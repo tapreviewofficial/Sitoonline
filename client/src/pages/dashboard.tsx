@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { logout } from "@/lib/auth";
 import { StatsPanel } from "@/components/StatsPanel";
 import { DraggableLinkList } from "@/components/DraggableLinkList";
+import { LivePreview } from "@/components/LivePreview";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -304,40 +305,8 @@ export default function Dashboard() {
 
           <TabsContent value="anteprima" className="mt-6">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Anteprima Pagina Pubblica</CardTitle>
-                <p className="text-white/60 text-sm">Vedi come appare la tua pagina ai clienti</p>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-black/20 p-4 rounded-xl">
-                  <iframe
-                    title="Anteprima pubblica"
-                    src={`/u/${authData.user.username}?preview=1`}
-                    className="w-full h-[600px] rounded-lg border border-white/10 bg-white"
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                    data-testid="iframe-public-preview"
-                  />
-                </div>
-                <div className="mt-4 flex gap-4">
-                  <Button
-                    onClick={() => {
-                      const iframe = document.querySelector('[data-testid="iframe-public-preview"]') as HTMLIFrameElement;
-                      if (iframe) iframe.src = iframe.src;
-                    }}
-                    className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
-                    data-testid="button-refresh-preview"
-                  >
-                    🔄 Aggiorna Anteprima
-                  </Button>
-                  <Button
-                    onClick={() => window.open(`/u/${authData.user.username}`, '_blank')}
-                    variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    data-testid="button-open-public-page"
-                  >
-                    🔗 Apri Pagina Pubblica
-                  </Button>
-                </div>
+              <CardContent className="py-6">
+                <LivePreview username={authData.user.username} />
               </CardContent>
             </Card>
           </TabsContent>
