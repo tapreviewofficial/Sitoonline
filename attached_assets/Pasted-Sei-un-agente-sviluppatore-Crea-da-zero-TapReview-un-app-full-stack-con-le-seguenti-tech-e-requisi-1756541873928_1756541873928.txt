@@ -1,0 +1,253 @@
+Sei un agente sviluppatore. Crea da zero TapReview, un’app full-stack con le seguenti tech e requisiti:
+
+Stack
+
+Frontend: React + Vite + TypeScript + TailwindCSS.
+
+Backend: Express (Node 20) + TypeScript.
+
+DB: Prisma con SQLite (file dev.db).
+
+Auth: email+password, bcryptjs per hash, JWT (cookie httpOnly, 30 giorni, sameSite=lax).
+
+UI Theme: luxury nero/oro (#0a0a0a / #CC9900).
+
+Monorepo con due cartelle: client/ (React) e server/ (Express).
+
+In dev usa concurrently: Express su 3001, Vite su 5173; proxy delle API in Vite (/api → http://localhost:3001).
+
+In prod Express serve gli statici buildati di React (client/dist).
+
+Variabili ambiente (Replit Secrets)
+
+DATABASE_URL = file:./server/prisma/dev.db
+
+JWT_SECRET = stringa lunga casuale
+
+Prisma schema (in server/prisma/schema.prisma)
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  username  String    @unique
+  createdAt DateTime  @default(now())
+  links     Link[]
+  profile   Profile?
+}
+model Profile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  displayName String?
+  bio         String?
+  avatarUrl   String?
+  accentColor String?
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model Link {
+  id        Int      @id @default(autoincrement())
+  title     String
+  url       String
+  order     Int      @default(0)
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+API (Express, prefisso /api)
+
+POST /api/auth/register → body {email, username, password}; crea utente (hash pw), set cookie token httpOnly 30d.
+
+POST /api/auth/login → body {email, password}; valida e set cookie.
+
+POST /api/auth/logout → invalida cookie.
+
+Protette (richiedono cookie JWT):
+
+GET /api/links → lista links utente.
+
+POST /api/links → crea {title,url}; order = count attuale.
+
+PATCH /api/links/:id → aggiorna {title?,url?,order?}.
+
+DELETE /api/links/:id → elimina.
+
+GET /api/profile → profilo.
+
+PUT /api/profile → upsert {displayName,bio,accentColor,avatarUrl}.
+
+GET /api/public/:username → restituisce dati pagina pubblica (profilo + links) per il frontend pubblico.
+
+Frontend (React + Vite + Tailwind)
+
+Pagine/route (React Router):
+
+/ Landing con il copy esatto sotto (tema nero/oro, hero con SVG smartphone + card NFC):
+
+Titolo/claim:
+
+“Le recensioni sono il tuo biglietto da visita.”
+
+“Noi le trasformiamo nel tuo strumento di crescita.”
+
+Sezione Problema (4 bullet):
+
+Il 90% dei clienti sceglie un locale basandosi sulle recensioni.
+
+Le recensioni sono frammentate (Google, TripAdvisor, TheFork).
+
+Molti locali non raccolgono abbastanza recensioni → perdono clienti senza nemmeno saperlo.
+
+Cercare recensioni online è lungo: i passanti rinunciano o vanno dai concorrenti.
+
+Sezione Soluzione: TapReview (3 bullet con emoji):
+
+🔗 Trasforma ogni cliente in un recensore in 10 secondi (card NFC premium).
+
+⭐ Ti fa crescere recensioni su Google e TripAdvisor in modo esponenziale.
+
+📱 Ti dà una pagina multilink elegante con recensioni
+
+Sezione Come Funziona (5 step numerati):
+
+Il cliente riceve la card TapReview al tavolo o alla cassa.
+
+Scansiona il NFC → in 10 secondi lascia la recensione.
+
+La recensione si somma a Google/TripAdvisor.
+
+Ogni recensione in più aumenta la tua visibilità, fiducia e clienti.
+
+I passanti vedono la targhetta TapReview → fiducia immediata → entrano.
+
+Sezione Benefici (4 bullet):
+
+📈 Più recensioni = più clienti = più fatturato.
+
+🏅 Immagine premium con card e targhetta elegante.
+
+⏱️ Zero complicazioni: pronto in 24h, nessuna gestione tecnica.
+
+🔒 Differenziazione immediata: chi non ha TapReview appare meno affidabile.
+
+Sezione Perché è impossibile dire di no (3 bullet):
+
+I tuoi clienti già guardano recensioni → TapReview ti rende più visibile
+
+Investimento minimo, ritorno immediato.
+
+Effetto “status symbol”: se non hai TapReview, sembri indietro rispetto ai concorrenti.
+
+CTA: bottoni “Attiva TapReview” → /register e “Ho già un account” → /login.
+
+Contatti:
+
+📧 tapreviewofficial@gmail.com
+
+🌐 www.tapreview.it
+
+/register e /login con form (email, username* solo in register, password). On success → /dashboard.
+
+/dashboard (area riservata):
+
+Form “aggiungi link” (titolo, URL).
+
+Lista link con modifica/elimina (titolo/URL) e suggerisci ordine crescente; (drag&drop opzionale fuori scope).
+
+Form profilo pubblico {displayName,bio,accentColor,avatarUrl(optional)}.
+
+Mostra URL pubblico: /u/[username].
+
+Bottone Esci (chiama logout).
+
+/u/:username pagina pubblica stile Linktree:
+
+Avatar placeholder, titolo (displayName o username) colorato con accentColor (default #CC9900), bio, pulsanti link full-width.
+
+Stile/UI
+
+Tailwind: classi utili predefinite (btn, btn-gold, btn-ghost, card, input) e palette:
+
+gold: #CC9900, coal: #0a0a0a; sfondo body nero; testi bianchi; accenti oro.
+
+Hero con semplice SVG: smartphone scuro e card nera con bordo oro e scritta “TapReview”.
+
+Struttura repo (monorepo)
+/client
+  vite.config.ts (proxy /api → http://localhost:3001)
+  tailwind.config.js, postcss.config.js, index.css
+  src/
+    main.tsx, App.tsx, routes (Landing.tsx, Login.tsx, Register.tsx, Dashboard.tsx, PublicPage.tsx)
+    ui/ (components: AuthForm, LinkRow, etc.)
+/server
+  package.json, tsconfig.json
+  prisma/schema.prisma
+  src/
+    index.ts (Express app, cors cookie-parser, serve static in prod)
+    auth.ts (sign/verify JWT, middleware requireAuth)
+    routes/ (auth.ts, links.ts, profile.ts, public.ts)
+  .env (usa secrets Replit)
+/package.json (root)
+  scripts: dev (concurrently), build (build client + tsc server), start (node dist/index.js)
+
+Dipendenze
+
+Root: concurrently
+
+Client: react react-dom react-router-dom vite typescript tailwindcss postcss autoprefixer
+
+Server: express cors cookie-parser jsonwebtoken bcryptjs prisma @prisma/client typescript ts-node-dev
+
+Script (root package.json)
+{
+  "name": "tapreview",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd server && prisma generate && cd .. && cd client && npm run build:css || true",
+    "dev": "concurrently -n SERVER,CLIENT -c \"blue,green\" \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "cd server && ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:client": "cd client && vite",
+    "build": "cd client && npm run build && cd ../server && tsc",
+    "start": "cd server && node dist/index.js"
+  }
+}
+
+Task finali dell’agente
+
+Inizializza monorepo con client/ e server/, configura tutto come sopra.
+
+Imposta Vite proxy verso http://localhost:3001 per /api.
+
+Configura Prisma, esegui:
+
+npm install (root installerà tutto)
+
+cd server && npx prisma migrate dev --name init
+
+Avvia npm run dev e conferma che siano raggiungibili:
+
+/ (landing con copy esatto),
+
+/register, /login,
+
+/dashboard (dopo login),
+
+/u/qualcosa (dopo creazione utente + link).
+
+Fornisci elenco file creati e note di deploy (in prod npm run build + npm start, Express serve client/dist).
+
+Criteri di accettazione
+
+Landing con copy esatto e tema nero/oro.
+
+Registrazione/login funzionanti con cookie httpOnly.
+
+Dashboard: aggiunta/modifica/eliminazione link, salvataggio profilo.
+
+Pagina pubblica /u/[username] corretta e stilosa.

@@ -1,0 +1,169 @@
+Requisiti tecnici
+
+Runtime: Node 20.
+
+Next.js 14 (app/), TypeScript, TailwindCSS.
+
+DB: Prisma con SQLite (file dev.db).
+
+Auth: email+password con bcryptjs, sessione via JWT firmato e salvato in cookie httpOnly (token, 30 giorni, sameSite=lax).
+
+API REST in app/api/* per: auth/register, auth/login, auth/logout, links [GET/POST], links/[id] [PATCH/DELETE], profile [GET/PUT].
+
+Sicurezza cookie: in dev su Replit lascia secure: false; in prod secure: true.
+
+Dati e schema Prisma
+
+Crea prisma/schema.prisma con:
+
+User { id Int @id @default(autoincrement()); email String @unique; password String; username String @unique; createdAt DateTime @default(now()); links Link[]; profile Profile? }
+
+Profile { id Int @id @default(autoincrement()); userId Int @unique; displayName String?; bio String?; avatarUrl String?; accentColor String?; user User @relation(fields:[userId], references:[id], onDelete:Cascade) }
+
+Link { id Int @id @default(autoincrement()); title String; url String; order Int @default(0); userId Int; createdAt DateTime @default(now()); user User @relation(fields:[userId], references:[id], onDelete:Cascade) }
+
+Variabili/Secrets Replit
+
+Imposta secrets:
+
+DATABASE_URL = file:./dev.db
+
+JWT_SECRET = stringa lunga random
+
+Pagine richieste
+
+Landing (app/page.tsx) con Tailwind, stile luxury nero/oro (#CC9900), hero con card NFC e smartphone (SVG semplice).
+Titolo/claim esatto:
+
+Le recensioni sono il tuo biglietto da visita.
+
+Noi le trasformiamo nel tuo strumento di crescita.
+Sezioni (testo esatto):
+
+Problema (4 bullet)
+• Il 90% dei clienti sceglie un locale basandosi sulle recensioni.
+• Le recensioni sono frammentate (Google, TripAdvisor, TheFork).
+• Molti locali non raccolgono abbastanza recensioni → perdono clienti senza nemmeno saperlo.
+• Cercare recensioni online è lungo: i passanti rinunciano o vanno dai concorrenti.
+
+Soluzione: TapReview (3 bullet con emoji)
+• 🔗 Trasforma ogni cliente in un recensore in 10 secondi (card NFC premium).
+• ⭐ Ti fa crescere recensioni su Google e TripAdvisor in modo esponenziale.
+• 📱 Ti dà una pagina multilink elegante con recensioni
+
+Come Funziona (5 step numerati)
+
+Il cliente riceve la card TapReview al tavolo o alla cassa.
+
+Scansiona il NFC → in 10 secondi lascia la recensione.
+
+La recensione si somma a Google/TripAdvisor.
+
+Ogni recensione in più aumenta la tua visibilità, fiducia e clienti.
+
+I passanti vedono la targhetta TapReview → fiducia immediata → entrano.
+
+Benefici (4 bullet)
+• 📈 Più recensioni = più clienti = più fatturato.
+• 🏅 Immagine premium con card e targhetta elegante.
+• ⏱️ Zero complicazioni: pronto in 24h, nessuna gestione tecnica.
+• 🔒 Differenziazione immediata: chi non ha TapReview appare meno affidabile.
+
+Perché è impossibile dire di no (3 bullet)
+• I tuoi clienti già guardano recensioni → TapReview ti rende più visibile
+• Investimento minimo, ritorno immediato.
+• Effetto “status symbol”: se non hai TapReview, sembri indietro rispetto ai concorrenti.
+
+Call to Action con 2 bottoni: “Attiva TapReview” (link /register) e “Ho già un account” (link /login).
+
+Contatti:
+📧 tapreviewofficial@gmail.com
+🌐 www.tapreview.it
+
+Auth: pagine app/register/page.tsx e app/login/page.tsx con un componente components/AuthForm.tsx riusabile.
+
+Register richiede: email, username (unico, usato per la pagina pubblica), password.
+
+On success: redirect a /dashboard.
+
+Dashboard (app/dashboard/page.tsx): mostra e gestisce i link (lista con titolo, URL, pulsanti Salva/Elimina) + form “aggiungi link” + form profilo pubblico (displayName, bio, accentColor, avatarUrl opzionale).
+
+Mostra URL pubblico: /u/[username].
+
+Aggiungi bottone Esci (chiama /api/auth/logout).
+
+Pagina pubblica stile Linktree (app/u/[username]/page.tsx):
+
+Centra avatar (placeholder), titolo (displayName o username) colorato con accentColor (default #CC9900), bio, e lista di pulsanti-link (full width).
+
+Librerie da installare
+
+next@14 react react-dom tailwindcss postcss autoprefixer prisma @prisma/client bcryptjs jose zod classnames typescript
+
+Config e utility
+
+tailwind.config.ts con palette gold: #CC9900, coal: #0a0a0a; classi base (btn, card, input).
+
+postcss.config.js, app/globals.css.
+
+lib/prisma.ts (singleton Prisma).
+
+lib/auth.ts (sign/verify JWT, getCurrentUser() da cookie).
+
+Header con brand “TapReview”, nav Accedi / Attiva ora.
+
+Rotte API (implementale tutte)
+
+POST /api/auth/register: crea utente (hash pw), set cookie token.
+
+POST /api/auth/login: valida credenziali, set cookie.
+
+POST /api/auth/logout: invalida cookie.
+
+GET /api/links: lista link dell’utente loggato.
+
+POST /api/links: crea link {title,url}; order = count attuale.
+
+PATCH /api/links/[id]: aggiorna titolo/url/order.
+
+DELETE /api/links/[id]: elimina link.
+
+GET /api/profile: get profilo utente.
+
+PUT /api/profile: upsert profilo {displayName,bio,accentColor,avatarUrl}.
+
+Script NPM
+
+dev: next dev -p 3000
+
+build: next build
+
+start: next start -p 3000
+
+postinstall: prisma generate
+
+File Replit
+
+.replit -> run = ["npm","run","dev"]
+
+replit.nix con Node 20 + npm.
+
+Task finali dell’agente
+
+Inizializza progetto, crea tutti i file, configura Tailwind e Prisma.
+
+Esegui npm install, poi npx prisma migrate dev --name init.
+
+Avvia npm run dev e conferma che siano raggiungibili:
+
+/ (landing con copy esatto sopra),
+
+/register, /login,
+
+/dashboard (dopo login),
+
+/u/qualcosa (dopo aver creato utente e link).
+
+Fornisci un riepilogo dei file creati e note per deploy successivo.
+
+Accettazione: la landing deve mostrare il copy esatto indicato; registrazione+login funzionanti; creazione/edizione/eliminazione link da dashboard; pagina pubblica leggibile e stilosa nero/oro.
