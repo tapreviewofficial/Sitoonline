@@ -172,21 +172,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/:username", async (req, res) => {
     try {
       const { username } = req.params;
-      const profile = await storage.getProfileByUsername(username);
-      if (!profile) {
+      
+      // First check if user exists
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Get profile (might not exist yet)
+      const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
+      
       res.json({
         profile: {
-          displayName: profile.displayName,
-          bio: profile.bio,
-          avatarUrl: profile.avatarUrl,
-          accentColor: profile.accentColor,
+          displayName: profile?.displayName || user.username,
+          bio: profile?.bio || "",
+          avatarUrl: profile?.avatarUrl || null,
+          accentColor: profile?.accentColor || "#CC9900",
         },
         user: {
-          username: profile.user.username,
+          username: user.username,
         },
         links,
       });
