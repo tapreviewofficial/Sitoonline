@@ -1,0 +1,395 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { logout } from "@/lib/auth";
+import type { Link, Profile } from "@shared/schema";
+
+const profileSchema = z.object({
+  displayName: z.string().optional(),
+  bio: z.string().optional(),
+  accentColor: z.string().optional(),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
+});
+
+const linkSchema = z.object({
+  title: z.string().min(1, "Titolo richiesto"),
+  url: z.string().url("URL non valido"),
+});
+
+type ProfileForm = z.infer<typeof profileSchema>;
+type LinkForm = z.infer<typeof linkSchema>;
+
+export default function Dashboard() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  // Check authentication
+  const { data: authData, isLoading: authLoading } = useQuery<{ user: { id: number; email: string; username: string } }>({
+    queryKey: ["api", "auth", "me"],
+  });
+
+  useEffect(() => {
+    if (!authLoading && !authData?.user) {
+      setLocation("/login");
+    }
+  }, [authData, authLoading, setLocation]);
+
+  // Fetch profile and links
+  const { data: profile } = useQuery<Profile | null>({
+    queryKey: ["api", "profile"],
+  });
+
+  const { data: links = [] } = useQuery<Link[]>({
+    queryKey: ["api", "links"],
+  });
+
+  // Profile form
+  const profileForm = useForm<ProfileForm>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      displayName: "",
+      bio: "",
+      accentColor: "#CC9900",
+      avatarUrl: "",
+    },
+  });
+
+  // Update profile form when data loads
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        displayName: profile.displayName || "",
+        bio: profile.bio || "",
+        accentColor: profile.accentColor || "#CC9900",
+        avatarUrl: profile.avatarUrl || "",
+      });
+    }
+  }, [profile, profileForm]);
+
+  // Link form
+  const linkForm = useForm<LinkForm>({
+    resolver: zodResolver(linkSchema),
+    defaultValues: {
+      title: "",
+      url: "",
+    },
+  });
+
+  // Mutations
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: ProfileForm) => {
+      return await apiRequest("PUT", "/api/profile", data);
+    },
+    onSuccess: () => {
+      toast({ title: "Profilo aggiornato", description: "Le modifiche sono state salvate con successo" });
+      queryClient.invalidateQueries({ queryKey: ["api", "profile"] });
+    },
+    onError: (error) => {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const addLinkMutation = useMutation({
+    mutationFn: async (data: LinkForm) => {
+      return await apiRequest("POST", "/api/links", data);
+    },
+    onSuccess: () => {
+      toast({ title: "Link aggiunto", description: "Il nuovo link è stato creato con successo" });
+      linkForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["api", "links"] });
+    },
+    onError: (error) => {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateLinkMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<LinkForm> }) => {
+      return await apiRequest("PATCH", `/api/links/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({ title: "Link aggiornato", description: "Le modifiche sono state salvate" });
+      queryClient.invalidateQueries({ queryKey: ["api", "links"] });
+    },
+    onError: (error) => {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteLinkMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/links/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Link eliminato", description: "Il link è stato rimosso con successo" });
+      queryClient.invalidateQueries({ queryKey: ["api", "links"] });
+    },
+    onError: (error) => {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const onProfileSubmit = (data: ProfileForm) => {
+    updateProfileMutation.mutate(data);
+  };
+
+  const onLinkSubmit = (data: LinkForm) => {
+    addLinkMutation.mutate(data);
+  };
+
+  const handleLinkUpdate = (id: number, field: keyof LinkForm, value: string) => {
+    updateLinkMutation.mutate({ id, data: { [field]: value } });
+  };
+
+  const handleLinkDelete = (id: number) => {
+    if (confirm("Sei sicuro di voler eliminare questo link?")) {
+      deleteLinkMutation.mutate(id);
+    }
+  };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Caricamento...</div>;
+  }
+
+  if (!authData?.user) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Dashboard Header */}
+      <div className="border-b border-border bg-secondary">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold" data-testid="text-dashboard-title">Dashboard</h1>
+              <p className="text-muted-foreground">Gestisci i tuoi link e profilo</p>
+            </div>
+            <Button onClick={logout} variant="ghost" data-testid="button-logout">
+              <i className="fas fa-sign-out-alt mr-2"></i>
+              Esci
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Profile Section */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profilo Pubblico</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="displayName">Nome visualizzato</Label>
+                    <Input
+                      id="displayName"
+                      placeholder="Il tuo nome o nome del business"
+                      {...profileForm.register("displayName")}
+                      data-testid="input-display-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      placeholder="Descrivi brevemente la tua attività..."
+                      className="min-h-[80px]"
+                      {...profileForm.register("bio")}
+                      data-testid="textarea-bio"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="accentColor">Colore tema</Label>
+                    <Input
+                      id="accentColor"
+                      type="color"
+                      className="h-12"
+                      {...profileForm.register("accentColor")}
+                      data-testid="input-accent-color"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="avatarUrl">URL Avatar (opzionale)</Label>
+                    <Input
+                      id="avatarUrl"
+                      type="url"
+                      placeholder="https://example.com/avatar.jpg"
+                      {...profileForm.register("avatarUrl")}
+                      data-testid="input-avatar-url"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="btn-gold w-full"
+                    disabled={updateProfileMutation.isPending}
+                    data-testid="button-save-profile"
+                  >
+                    {updateProfileMutation.isPending ? "Salvando..." : "Salva Profilo"}
+                  </Button>
+                </form>
+                
+                <div className="mt-6 p-4 bg-muted rounded-md">
+                  <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
+                  <button
+                    onClick={() => setLocation(`/u/${authData.user.username}`)}
+                    className="text-gold hover:underline text-sm font-medium"
+                    data-testid="link-public-profile"
+                  >
+                    tapreview.it/u/{authData.user.username}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Links Management */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>I tuoi Link</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Add Link Form */}
+                <form onSubmit={linkForm.handleSubmit(onLinkSubmit)} className="mb-8 p-4 bg-muted rounded-md">
+                  <h3 className="font-medium mb-4">Aggiungi nuovo link</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="title">Titolo</Label>
+                      <Input
+                        id="title"
+                        placeholder="es. Recensione Google"
+                        {...linkForm.register("title")}
+                        data-testid="input-link-title"
+                      />
+                      {linkForm.formState.errors.title && (
+                        <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.title.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="url">URL</Label>
+                      <Input
+                        id="url"
+                        placeholder="https://..."
+                        {...linkForm.register("url")}
+                        data-testid="input-link-url"
+                      />
+                      {linkForm.formState.errors.url && (
+                        <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.url.message}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="btn-gold mt-4"
+                    disabled={addLinkMutation.isPending}
+                    data-testid="button-add-link"
+                  >
+                    <i className="fas fa-plus mr-2"></i>
+                    {addLinkMutation.isPending ? "Aggiungendo..." : "Aggiungi Link"}
+                  </Button>
+                </form>
+
+                {/* Links List */}
+                <div className="space-y-4">
+                  <h3 className="font-medium">Link esistenti</h3>
+                  {links.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8" data-testid="text-no-links">
+                      Nessun link presente. Aggiungi il tuo primo link!
+                    </p>
+                  ) : (
+                    links.map((link: Link) => (
+                      <LinkRow
+                        key={link.id}
+                        link={link}
+                        onUpdate={handleLinkUpdate}
+                        onDelete={handleLinkDelete}
+                        isUpdating={updateLinkMutation.isPending}
+                        isDeleting={deleteLinkMutation.isPending}
+                      />
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface LinkRowProps {
+  link: Link;
+  onUpdate: (id: number, field: keyof LinkForm, value: string) => void;
+  onDelete: (id: number) => void;
+  isUpdating: boolean;
+  isDeleting: boolean;
+}
+
+function LinkRow({ link, onUpdate, onDelete, isUpdating, isDeleting }: LinkRowProps) {
+  const [title, setTitle] = useState(link.title);
+  const [url, setUrl] = useState(link.url);
+
+  const handleSave = () => {
+    if (title !== link.title) {
+      onUpdate(link.id, "title", title);
+    }
+    if (url !== link.url) {
+      onUpdate(link.id, "url", url);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4 p-4 bg-muted rounded-md" data-testid={`link-row-${link.id}`}>
+      <div className="flex-1 grid md:grid-cols-2 gap-4">
+        <div>
+          <Label className="text-sm font-medium mb-1">Titolo</Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            data-testid={`input-edit-title-${link.id}`}
+          />
+        </div>
+        <div>
+          <Label className="text-sm font-medium mb-1">URL</Label>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            data-testid={`input-edit-url-${link.id}`}
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleSave}
+          disabled={isUpdating || (title === link.title && url === link.url)}
+          data-testid={`button-save-link-${link.id}`}
+        >
+          <i className="fas fa-save"></i>
+        </Button>
+        <Button
+          onClick={() => onDelete(link.id)}
+          disabled={isDeleting}
+          className="bg-red-600 text-white hover:bg-red-700"
+          data-testid={`button-delete-link-${link.id}`}
+        >
+          <i className="fas fa-trash"></i>
+        </Button>
+      </div>
+    </div>
+  );
+}

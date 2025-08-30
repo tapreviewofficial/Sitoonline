@@ -1,0 +1,209 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import { storage } from "./storage";
+import { hashPassword, comparePassword, signToken, requireAuth, getCurrentUser } from "./lib/auth";
+import { insertUserSchema, insertProfileSchema, insertLinkSchema } from "@shared/schema";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  app.use(cors({
+    origin: process.env.NODE_ENV === "development" ? true : process.env.FRONTEND_URL,
+    credentials: true,
+  }));
+  app.use(cookieParser());
+
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, username, password } = insertUserSchema.parse(req.body);
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const existingUsername = await storage.getUserByUsername(username);
+      if (existingUsername) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+
+      // Create user
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        email,
+        username,
+        password: hashedPassword,
+      });
+
+      // Sign token and set cookie
+      const token = signToken({
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      res.json({ user: { id: user.id, email: user.email, username: user.username } });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValid = await comparePassword(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const token = signToken({
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      res.json({ user: { id: user.id, email: user.email, username: user.username } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(401).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie("token");
+    res.json({ message: "Logged out" });
+  });
+
+  // Protected routes
+  app.get("/api/links", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const links = await storage.getLinks(user.userId);
+      res.json(links);
+    } catch (error) {
+      console.error("Get links error:", error);
+      res.status(500).json({ message: "Failed to fetch links" });
+    }
+  });
+
+  app.post("/api/links", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const linkData = insertLinkSchema.parse(req.body);
+      const link = await storage.createLink(user.userId, linkData);
+      res.json(link);
+    } catch (error) {
+      console.error("Create link error:", error);
+      res.status(400).json({ message: "Failed to create link" });
+    }
+  });
+
+  app.patch("/api/links/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const linkData = insertLinkSchema.partial().parse(req.body);
+      const link = await storage.updateLink(id, linkData);
+      res.json(link);
+    } catch (error) {
+      console.error("Update link error:", error);
+      res.status(400).json({ message: "Failed to update link" });
+    }
+  });
+
+  app.delete("/api/links/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteLink(id);
+      res.json({ message: "Link deleted" });
+    } catch (error) {
+      console.error("Delete link error:", error);
+      res.status(400).json({ message: "Failed to delete link" });
+    }
+  });
+
+  app.get("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const profile = await storage.getProfile(user.userId);
+      res.json(profile || {});
+    } catch (error) {
+      console.error("Get profile error:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.put("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const profileData = insertProfileSchema.parse(req.body);
+      const profile = await storage.upsertProfile(user.userId, profileData);
+      res.json(profile);
+    } catch (error) {
+      console.error("Update profile error:", error);
+      res.status(400).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Public routes
+  app.get("/api/public/:username", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const profile = await storage.getProfileByUsername(username);
+      if (!profile) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const links = await storage.getLinksByUsername(username);
+      res.json({
+        profile: {
+          displayName: profile.displayName,
+          bio: profile.bio,
+          avatarUrl: profile.avatarUrl,
+          accentColor: profile.accentColor,
+        },
+        user: {
+          username: profile.user.username,
+        },
+        links,
+      });
+    } catch (error) {
+      console.error("Get public profile error:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  // Auth check route
+  app.get("/api/auth/me", (req, res) => {
+    const user = getCurrentUser(req);
+    if (!user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json({ user });
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
