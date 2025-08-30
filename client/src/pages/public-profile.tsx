@@ -99,7 +99,7 @@ export default function PublicProfile() {
               links.map((link: any) => (
                 <a
                   key={link.id}
-                  href={link.url}
+                  href={`/r/${user.username}/${link.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full p-4 bg-card rounded-lg border border-border hover:border-gold transition-colors text-center font-medium"

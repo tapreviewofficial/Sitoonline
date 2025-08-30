@@ -27,6 +27,16 @@ export const links = sqliteTable("links", {
   order: integer("order").default(0),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  clicks: integer("clicks").default(0),
+});
+
+export const clicks = sqliteTable("clicks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  userAgent: text("user_agent"),
+  referer: text("referer"),
+  ipHash: text("ip_hash"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -43,6 +53,12 @@ export const insertLinkSchema = createInsertSchema(links).omit({
   id: true,
   userId: true,
   createdAt: true,
+  clicks: true,
+});
+
+export const insertClickSchema = createInsertSchema(clicks).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -51,3 +67,5 @@ export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type Profile = typeof profiles.$inferSelect;
 export type InsertLink = z.infer<typeof insertLinkSchema>;
 export type Link = typeof links.$inferSelect;
+export type InsertClick = z.infer<typeof insertClickSchema>;
+export type Click = typeof clicks.$inferSelect;

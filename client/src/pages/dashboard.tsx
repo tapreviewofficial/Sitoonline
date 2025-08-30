@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { logout } from "@/lib/auth";
+import { StatsPanel } from "@/components/StatsPanel";
+import { DraggableLinkList } from "@/components/DraggableLinkList";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -113,31 +116,6 @@ export default function Dashboard() {
     },
   });
 
-  const updateLinkMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<LinkForm> }) => {
-      return await apiRequest("PATCH", `/api/links/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({ title: "Link aggiornato", description: "Le modifiche sono state salvate" });
-      queryClient.invalidateQueries({ queryKey: ["api", "links"] });
-    },
-    onError: (error) => {
-      toast({ title: "Errore", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const deleteLinkMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return await apiRequest("DELETE", `/api/links/${id}`);
-    },
-    onSuccess: () => {
-      toast({ title: "Link eliminato", description: "Il link è stato rimosso con successo" });
-      queryClient.invalidateQueries({ queryKey: ["api", "links"] });
-    },
-    onError: (error) => {
-      toast({ title: "Errore", description: error.message, variant: "destructive" });
-    },
-  });
 
   const onProfileSubmit = (data: ProfileForm) => {
     updateProfileMutation.mutate(data);
@@ -147,15 +125,6 @@ export default function Dashboard() {
     addLinkMutation.mutate(data);
   };
 
-  const handleLinkUpdate = (id: number, field: keyof LinkForm, value: string) => {
-    updateLinkMutation.mutate({ id, data: { [field]: value } });
-  };
-
-  const handleLinkDelete = (id: number) => {
-    if (confirm("Sei sicuro di voler eliminare questo link?")) {
-      deleteLinkMutation.mutate(id);
-    }
-  };
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Caricamento...</div>;
@@ -184,212 +153,251 @@ export default function Dashboard() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Profile Section */}
-          <div className="lg:col-span-1">
-            <Card>
+        <Tabs defaultValue="gestione" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-white/5 border-white/10">
+            <TabsTrigger value="gestione" data-testid="tab-manage">Gestione</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="anteprima" data-testid="tab-preview">Anteprima</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">Impostazioni</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="gestione" className="mt-6">
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Profile Section */}
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profilo Pubblico</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                      <div>
+                        <Label htmlFor="displayName">Nome visualizzato</Label>
+                        <Input
+                          id="displayName"
+                          placeholder="Il tuo nome o nome del business"
+                          {...profileForm.register("displayName")}
+                          data-testid="input-display-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Descrivi brevemente la tua attività..."
+                          className="min-h-[80px]"
+                          {...profileForm.register("bio")}
+                          data-testid="textarea-bio"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="accentColor">Colore tema</Label>
+                        <Input
+                          id="accentColor"
+                          type="color"
+                          className="h-12"
+                          {...profileForm.register("accentColor")}
+                          data-testid="input-accent-color"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="avatarUrl">URL Avatar (opzionale)</Label>
+                        <Input
+                          id="avatarUrl"
+                          type="url"
+                          placeholder="https://example.com/avatar.jpg"
+                          {...profileForm.register("avatarUrl")}
+                          data-testid="input-avatar-url"
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="btn-gold w-full"
+                        disabled={updateProfileMutation.isPending}
+                        data-testid="button-save-profile"
+                      >
+                        {updateProfileMutation.isPending ? "Salvando..." : "Salva Profilo"}
+                      </Button>
+                    </form>
+                    
+                    <div className="mt-6 p-4 bg-muted rounded-md">
+                      <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
+                      <button
+                        onClick={() => setLocation(`/u/${authData.user.username}`)}
+                        className="text-gold hover:underline text-sm font-medium"
+                        data-testid="link-public-profile"
+                      >
+                        tapreview.it/u/{authData.user.username}
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Links Management */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>I tuoi Link</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Add Link Form */}
+                    <form onSubmit={linkForm.handleSubmit(onLinkSubmit)} className="mb-8 p-4 bg-muted rounded-md">
+                      <h3 className="font-medium mb-4">Aggiungi nuovo link</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="title">Titolo</Label>
+                          <Input
+                            id="title"
+                            placeholder="es. Recensione Google"
+                            {...linkForm.register("title")}
+                            data-testid="input-link-title"
+                          />
+                          {linkForm.formState.errors.title && (
+                            <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.title.message}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="url">URL</Label>
+                          <Input
+                            id="url"
+                            placeholder="https://..."
+                            {...linkForm.register("url")}
+                            data-testid="input-link-url"
+                          />
+                          {linkForm.formState.errors.url && (
+                            <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.url.message}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="btn-gold mt-4"
+                        disabled={addLinkMutation.isPending}
+                        data-testid="button-add-link"
+                      >
+                        <i className="fas fa-plus mr-2"></i>
+                        {addLinkMutation.isPending ? "Aggiungendo..." : "Aggiungi Link"}
+                      </Button>
+                    </form>
+
+                    {/* Links List */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium text-white">Link esistenti ({links.length})</h3>
+                      {links.length === 0 ? (
+                        <p className="text-white/60 text-center py-8" data-testid="text-no-links">
+                          Nessun link presente. Aggiungi il tuo primo link!
+                        </p>
+                      ) : (
+                        <DraggableLinkList links={links} />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <StatsPanel />
+          </TabsContent>
+
+          <TabsContent value="anteprima" className="mt-6">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
-                <CardTitle>Profilo Pubblico</CardTitle>
+                <CardTitle className="text-white">Anteprima Pagina Pubblica</CardTitle>
+                <p className="text-white/60 text-sm">Vedi come appare la tua pagina ai clienti</p>
               </CardHeader>
               <CardContent>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                  <div>
-                    <Label htmlFor="displayName">Nome visualizzato</Label>
-                    <Input
-                      id="displayName"
-                      placeholder="Il tuo nome o nome del business"
-                      {...profileForm.register("displayName")}
-                      data-testid="input-display-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      placeholder="Descrivi brevemente la tua attività..."
-                      className="min-h-[80px]"
-                      {...profileForm.register("bio")}
-                      data-testid="textarea-bio"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="accentColor">Colore tema</Label>
-                    <Input
-                      id="accentColor"
-                      type="color"
-                      className="h-12"
-                      {...profileForm.register("accentColor")}
-                      data-testid="input-accent-color"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="avatarUrl">URL Avatar (opzionale)</Label>
-                    <Input
-                      id="avatarUrl"
-                      type="url"
-                      placeholder="https://example.com/avatar.jpg"
-                      {...profileForm.register("avatarUrl")}
-                      data-testid="input-avatar-url"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="btn-gold w-full"
-                    disabled={updateProfileMutation.isPending}
-                    data-testid="button-save-profile"
-                  >
-                    {updateProfileMutation.isPending ? "Salvando..." : "Salva Profilo"}
-                  </Button>
-                </form>
-                
-                <div className="mt-6 p-4 bg-muted rounded-md">
-                  <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
-                  <button
-                    onClick={() => setLocation(`/u/${authData.user.username}`)}
-                    className="text-gold hover:underline text-sm font-medium"
-                    data-testid="link-public-profile"
-                  >
-                    tapreview.it/u/{authData.user.username}
-                  </button>
+                <div className="bg-black/20 p-4 rounded-xl">
+                  <iframe
+                    title="Anteprima pubblica"
+                    src={`/u/${authData.user.username}`}
+                    className="w-full h-[600px] rounded-lg border border-white/10 bg-white"
+                    data-testid="iframe-public-preview"
+                  />
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          {/* Links Management */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>I tuoi Link</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Add Link Form */}
-                <form onSubmit={linkForm.handleSubmit(onLinkSubmit)} className="mb-8 p-4 bg-muted rounded-md">
-                  <h3 className="font-medium mb-4">Aggiungi nuovo link</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="title">Titolo</Label>
-                      <Input
-                        id="title"
-                        placeholder="es. Recensione Google"
-                        {...linkForm.register("title")}
-                        data-testid="input-link-title"
-                      />
-                      {linkForm.formState.errors.title && (
-                        <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.title.message}</p>
-                      )}
+          <TabsContent value="settings" className="mt-6">
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Profile Settings moved here */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Impostazioni Profilo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                      <div>
+                        <Label htmlFor="displayName">Nome visualizzato</Label>
+                        <Input
+                          id="displayName"
+                          placeholder="Il tuo nome o nome del business"
+                          {...profileForm.register("displayName")}
+                          data-testid="input-display-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Descrivi brevemente la tua attività..."
+                          className="min-h-[80px]"
+                          {...profileForm.register("bio")}
+                          data-testid="textarea-bio"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="accentColor">Colore tema</Label>
+                        <Input
+                          id="accentColor"
+                          type="color"
+                          className="h-12"
+                          {...profileForm.register("accentColor")}
+                          data-testid="input-accent-color"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="avatarUrl">URL Avatar (opzionale)</Label>
+                        <Input
+                          id="avatarUrl"
+                          type="url"
+                          placeholder="https://example.com/avatar.jpg"
+                          {...profileForm.register("avatarUrl")}
+                          data-testid="input-avatar-url"
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="btn-gold w-full"
+                        disabled={updateProfileMutation.isPending}
+                        data-testid="button-save-profile"
+                      >
+                        {updateProfileMutation.isPending ? "Salvando..." : "Salva Profilo"}
+                      </Button>
+                    </form>
+                    
+                    <div className="mt-6 p-4 bg-muted rounded-md">
+                      <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
+                      <button
+                        onClick={() => setLocation(`/u/${authData.user.username}`)}
+                        className="text-gold hover:underline text-sm font-medium"
+                        data-testid="link-public-profile"
+                      >
+                        tapreview.it/u/{authData.user.username}
+                      </button>
                     </div>
-                    <div>
-                      <Label htmlFor="url">URL</Label>
-                      <Input
-                        id="url"
-                        placeholder="https://..."
-                        {...linkForm.register("url")}
-                        data-testid="input-link-url"
-                      />
-                      {linkForm.formState.errors.url && (
-                        <p className="text-sm text-destructive mt-1">{linkForm.formState.errors.url.message}</p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="btn-gold mt-4"
-                    disabled={addLinkMutation.isPending}
-                    data-testid="button-add-link"
-                  >
-                    <i className="fas fa-plus mr-2"></i>
-                    {addLinkMutation.isPending ? "Aggiungendo..." : "Aggiungi Link"}
-                  </Button>
-                </form>
-
-                {/* Links List */}
-                <div className="space-y-4">
-                  <h3 className="font-medium">Link esistenti</h3>
-                  {links.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8" data-testid="text-no-links">
-                      Nessun link presente. Aggiungi il tuo primo link!
-                    </p>
-                  ) : (
-                    links.map((link: Link) => (
-                      <LinkRow
-                        key={link.id}
-                        link={link}
-                        onUpdate={handleLinkUpdate}
-                        onDelete={handleLinkDelete}
-                        isUpdating={updateLinkMutation.isPending}
-                        isDeleting={deleteLinkMutation.isPending}
-                      />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 }
 
-interface LinkRowProps {
-  link: Link;
-  onUpdate: (id: number, field: keyof LinkForm, value: string) => void;
-  onDelete: (id: number) => void;
-  isUpdating: boolean;
-  isDeleting: boolean;
-}
-
-function LinkRow({ link, onUpdate, onDelete, isUpdating, isDeleting }: LinkRowProps) {
-  const [title, setTitle] = useState(link.title);
-  const [url, setUrl] = useState(link.url);
-
-  const handleSave = () => {
-    if (title !== link.title) {
-      onUpdate(link.id, "title", title);
-    }
-    if (url !== link.url) {
-      onUpdate(link.id, "url", url);
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-4 p-4 bg-muted rounded-md" data-testid={`link-row-${link.id}`}>
-      <div className="flex-1 grid md:grid-cols-2 gap-4">
-        <div>
-          <Label className="text-sm font-medium mb-1">Titolo</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            data-testid={`input-edit-title-${link.id}`}
-          />
-        </div>
-        <div>
-          <Label className="text-sm font-medium mb-1">URL</Label>
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            data-testid={`input-edit-url-${link.id}`}
-          />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Button
-          onClick={handleSave}
-          disabled={isUpdating || (title === link.title && url === link.url)}
-          data-testid={`button-save-link-${link.id}`}
-        >
-          <i className="fas fa-save"></i>
-        </Button>
-        <Button
-          onClick={() => onDelete(link.id)}
-          disabled={isDeleting}
-          className="bg-red-600 text-white hover:bg-red-700"
-          data-testid={`button-delete-link-${link.id}`}
-        >
-          <i className="fas fa-trash"></i>
-        </Button>
-      </div>
-    </div>
-  );
-}

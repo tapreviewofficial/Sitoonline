@@ -1,0 +1,160 @@
+Estendi il progetto TapReview (React+Vite + Express + Prisma + JWT) aggiungendo:
+
+Tracciamento click via redirect firmato.
+
+Analytics (totali, per periodo, per link).
+
+Anteprima live della pagina pubblica nella dashboard.
+
+Riordino link (drag & drop leggero).
+
+Modifiche DB (Prisma) — server/prisma/schema.prisma
+
+Aggiungi il modello Click e un contatore rapido su Link:
+
+model Click {
+  id        Int      @id @default(autoincrement())
+  linkId    Int
+  createdAt DateTime @default(now())
+  userAgent String?
+  referer   String?
+  ipHash    String?   // opzionale per stimare “utenti unici” senza salvare IP in chiaro
+  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+}
+
+model Link {
+  id        Int      @id @default(autoincrement())
+  title     String
+  url       String
+  order     Int      @default(0)
+  userId    Int
+  createdAt DateTime @default(now())
+  clicks    Int      @default(0)  // contatore veloce
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Click     Click[]
+}
+
+
+Esegui:
+
+cd server
+npx prisma migrate dev --name add_clicks
+
+Backend
+Nuova rotta di redirect con tracking — server/src/routes/redirect.ts
+
+GET /r/:username/:linkId
+
+Funzioni: valida username e linkId, crea Click, incrementa Link.clicks, redirect 302 all’URL finale.
+
+Salva opzionalmente user-agent, referer e un hash dell’IP (sha256(ip + JWT_SECRET)).
+
+Nuove API analytics — server/src/routes/analytics.ts
+
+Protette (JWT cookie):
+
+GET /api/analytics/summary → { totalClicksAllTime, clicks7d, clicks30d }
+
+GET /api/analytics/links → array { id, title, clicksAllTime, clicks7d, clicks30d } ordinato per order.
+
+(opz.) GET /api/analytics/timeseries?days=30 → per grafici (bucket giornaliero).
+
+Nota: per performance base, usa COUNT da Click per 7/30 giorni e il campo Link.clicks per “all-time”.
+
+Integra le rotte nel tuo index.ts Express:
+
+import redirectRouter from './routes/redirect';
+import analyticsRouter from './routes/analytics';
+app.use(redirectRouter);
+app.use('/api/analytics', requireAuth, analyticsRouter);
+
+Rotta pubblica dati pagina — già esiste /api/public/:username
+
+Assicurati che la pagina pubblica usi i link come:
+
+/r/:username/:linkId
+
+
+così da tracciare ogni click.
+
+Frontend
+1) Anteprima live in Dashboard
+
+In Dashboard.tsx, aggiungi un pannello “Anteprima pagina pubblica” con un’iframe:
+
+<iframe
+  title="Anteprima pubblica"
+  src={`/u/${currentUser.username}`}
+  className="w-full h-[600px] rounded-2xl border border-white/10"
+/>
+
+
+Quando modifichi/salvi link o profilo, ricarica l’iframe (o usa un key diverso) per vedere l’anteprima aggiornata.
+
+2) Pannello Analytics
+
+Crea client/src/routes/components/StatsPanel.tsx:
+
+Chiama GET /api/analytics/summary e GET /api/analytics/links.
+
+Mostra 3 stat cards: “Totale”, “Ultimi 7 giorni”, “Ultimi 30 giorni”.
+
+Tabella per-link con colonne: Titolo, Totale, 7g, 30g.
+
+(Opzionale) piccolo grafico sparklines in testo (o numeri trend).
+
+Esempio rapido di tabella:
+
+<table className="w-full text-left">
+  <thead className="text-white/60">
+    <tr><th>Titolo</th><th>Totale</th><th>7g</th><th>30g</th></tr>
+  </thead>
+  <tbody>
+    {data.map(l => (
+      <tr key={l.id} className="border-t border-white/10">
+        <td className="py-2">{l.title}</td>
+        <td>{l.clicksAllTime}</td>
+        <td>{l.clicks7d}</td>
+        <td>{l.clicks30d}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+
+Inserisci <StatsPanel /> nella Dashboard sopra o sotto l’elenco dei link.
+
+3) Riordino link (drag&drop leggero)
+
+Aggiungi order all’UI.
+
+Usa react-beautiful-dnd oppure un drag semplice HTML5; onDrop invia il nuovo ordine con PATCH /api/links/:id { order }.
+
+Aggiorna l’elenco localmente per UX immediata.
+
+4) Pagina pubblica
+
+Cambia gli href dei pulsanti da link.url a:
+
+<a href={`/r/${username}/${link.id}`} target="_blank" className="btn btn-ghost w-full">...</a>
+
+
+Mantieni accentColor e stile nero/oro come già definito.
+
+Sicurezza & Privacy
+
+Cookie httpOnly per auth (già presente).
+
+Hash IP opzionale (sha256) per calcolare “utenti unici” senza conservare l’IP in chiaro (facoltativo).
+
+Rate-limit del redirect (facoltativo) per evitare abuso.
+
+Criteri di accettazione (checklist)
+
+ Clic su un pulsante della pagina pubblica → passa da /r/:username/:linkId e registra un Click.
+
+ La Dashboard mostra Totale / 7g / 30g e la tabella per-link.
+
+ La Dashboard include un’anteprima live della pagina pubblica.
+
+ I link sono riordinabili e l’ordine si riflette sia nella pagina pubblica che nella preview.

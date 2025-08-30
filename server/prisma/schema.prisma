@@ -38,7 +38,21 @@ model Link {
   order     Int      @default(0)
   userId    Int
   createdAt DateTime @default(now())
+  clicks    Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Click     Click[]
 
   @@map("links")
+}
+
+model Click {
+  id        Int      @id @default(autoincrement())
+  linkId    Int
+  createdAt DateTime @default(now())
+  userAgent String?
+  referer   String?
+  ipHash    String?
+  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@map("clicks")
 }

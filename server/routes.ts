@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { hashPassword, comparePassword, signToken, requireAuth, getCurrentUser } from "./lib/auth";
 import { insertUserSchema, insertProfileSchema, insertLinkSchema } from "@shared/schema";
@@ -202,6 +203,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Not authenticated" });
     }
     res.json({ user });
+  });
+
+  // Redirect with tracking
+  app.get("/r/:username/:linkId", async (req, res) => {
+    try {
+      const { username, linkId } = req.params;
+      const linkIdNum = parseInt(linkId);
+
+      // Get user and link
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const links = await storage.getLinks(user.id);
+      const link = links.find(l => l.id === linkIdNum);
+      if (!link) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+
+      // Create click record
+      const userAgent = req.headers["user-agent"] || null;
+      const referer = req.headers.referer || null;
+      const ipHash = req.ip ? crypto.createHash("sha256").update(req.ip + (process.env.JWT_SECRET || "")).digest("hex") : null;
+
+      await storage.createClick({
+        linkId: linkIdNum,
+        userAgent,
+        referer,
+        ipHash,
+      });
+
+      // Increment click counter
+      await storage.incrementLinkClicks(linkIdNum);
+
+      // Redirect to actual URL
+      res.redirect(302, link.url);
+    } catch (error) {
+      console.error("Redirect error:", error);
+      res.status(500).json({ message: "Redirect failed" });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/analytics/summary", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const stats = await storage.getClickStats(user.userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Analytics summary error:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/analytics/links", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const linkStats = await storage.getLinkStats(user.userId);
+      res.json(linkStats);
+    } catch (error) {
+      console.error("Analytics links error:", error);
+      res.status(500).json({ message: "Failed to fetch link analytics" });
+    }
   });
 
   const httpServer = createServer(app);

@@ -1,5 +1,5 @@
 import { prisma } from "./lib/prisma";
-import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink } from "@shared/schema";
+import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click, InsertClick } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -19,6 +19,12 @@ export interface IStorage {
   updateLink(id: number, link: Partial<InsertLink>): Promise<Link>;
   deleteLink(id: number): Promise<void>;
   getLinksByUsername(username: string): Promise<Link[]>;
+  
+  // Click methods
+  createClick(click: InsertClick): Promise<Click>;
+  incrementLinkClicks(linkId: number): Promise<void>;
+  getClickStats(userId: number): Promise<{ totalClicks: number; clicks7d: number; clicks30d: number }>;
+  getLinkStats(userId: number): Promise<Array<{ id: number; title: string; clicksAllTime: number; clicks7d: number; clicks30d: number; order: number }>>;
 }
 
 export class PrismaStorage implements IStorage {
@@ -92,6 +98,94 @@ export class PrismaStorage implements IStorage {
       where: { user: { username } },
       orderBy: { order: "asc" },
     });
+  }
+
+  async createClick(click: InsertClick): Promise<Click> {
+    return await prisma.click.create({ data: click });
+  }
+
+  async incrementLinkClicks(linkId: number): Promise<void> {
+    await prisma.link.update({
+      where: { id: linkId },
+      data: { clicks: { increment: 1 } },
+    });
+  }
+
+  async getClickStats(userId: number): Promise<{ totalClicks: number; clicks7d: number; clicks30d: number }> {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [totalResult, clicks7d, clicks30d] = await Promise.all([
+      prisma.link.aggregate({
+        where: { userId },
+        _sum: { clicks: true },
+      }),
+      prisma.click.count({
+        where: {
+          link: { userId },
+          createdAt: { gte: sevenDaysAgo },
+        },
+      }),
+      prisma.click.count({
+        where: {
+          link: { userId },
+          createdAt: { gte: thirtyDaysAgo },
+        },
+      }),
+    ]);
+
+    return {
+      totalClicks: totalResult._sum.clicks || 0,
+      clicks7d,
+      clicks30d,
+    };
+  }
+
+  async getLinkStats(userId: number): Promise<Array<{ id: number; title: string; clicksAllTime: number; clicks7d: number; clicks30d: number; order: number }>> {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const links = await prisma.link.findMany({
+      where: { userId },
+      orderBy: { order: "asc" },
+      include: {
+        _count: {
+          select: {
+            Click: true,
+          },
+        },
+      },
+    });
+
+    const linkStats = await Promise.all(
+      links.map(async (link) => {
+        const [clicks7d, clicks30d] = await Promise.all([
+          prisma.click.count({
+            where: {
+              linkId: link.id,
+              createdAt: { gte: sevenDaysAgo },
+            },
+          }),
+          prisma.click.count({
+            where: {
+              linkId: link.id,
+              createdAt: { gte: thirtyDaysAgo },
+            },
+          }),
+        ]);
+
+        return {
+          id: link.id,
+          title: link.title,
+          clicksAllTime: link.clicks,
+          clicks7d,
+          clicks30d,
+          order: link.order,
+        };
+      })
+    );
+
+    return linkStats;
   }
 }
 
