@@ -312,10 +312,31 @@ export default function Dashboard() {
                 <div className="bg-black/20 p-4 rounded-xl">
                   <iframe
                     title="Anteprima pubblica"
-                    src={`/u/${authData.user.username}`}
+                    src={`/u/${authData.user.username}?preview=1`}
                     className="w-full h-[600px] rounded-lg border border-white/10 bg-white"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                     data-testid="iframe-public-preview"
                   />
+                </div>
+                <div className="mt-4 flex gap-4">
+                  <Button
+                    onClick={() => {
+                      const iframe = document.querySelector('[data-testid="iframe-public-preview"]') as HTMLIFrameElement;
+                      if (iframe) iframe.src = iframe.src;
+                    }}
+                    className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
+                    data-testid="button-refresh-preview"
+                  >
+                    🔄 Aggiorna Anteprima
+                  </Button>
+                  <Button
+                    onClick={() => window.open(`/u/${authData.user.username}`, '_blank')}
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-open-public-page"
+                  >
+                    🔗 Apri Pagina Pubblica
+                  </Button>
                 </div>
               </CardContent>
             </Card>
