@@ -30,8 +30,18 @@ const linkSchema = z.object({
   url: z.string().url("URL non valido"),
 });
 
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, "Password attuale richiesta"),
+  newPassword: z.string().min(6, "La nuova password deve essere di almeno 6 caratteri"),
+  confirmPassword: z.string().min(1, "Conferma password richiesta"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Le password non corrispondono",
+  path: ["confirmPassword"],
+});
+
 type ProfileForm = z.infer<typeof profileSchema>;
 type LinkForm = z.infer<typeof linkSchema>;
+type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -89,6 +99,16 @@ export default function Dashboard() {
     },
   });
 
+  // Password form
+  const passwordForm = useForm<PasswordForm>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   // Mutations
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
@@ -117,6 +137,22 @@ export default function Dashboard() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: PasswordForm) => {
+      return await apiRequest("POST", "/api/auth/change-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Password aggiornata", description: "La tua password è stata cambiata con successo" });
+      passwordForm.reset();
+    },
+    onError: (error) => {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const onProfileSubmit = (data: ProfileForm) => {
     updateProfileMutation.mutate(data);
@@ -124,6 +160,10 @@ export default function Dashboard() {
 
   const onLinkSubmit = (data: LinkForm) => {
     addLinkMutation.mutate(data);
+  };
+
+  const onPasswordSubmit = (data: PasswordForm) => {
+    changePasswordMutation.mutate(data);
   };
 
 
@@ -312,13 +352,12 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6">
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* Profile Settings moved here */}
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Impostazioni Profilo</CardTitle>
-                  </CardHeader>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Profile Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Impostazioni Profilo</CardTitle>
+                </CardHeader>
                   <CardContent>
                     <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
                       <div>
@@ -382,7 +421,71 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+
+              {/* Password Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cambia Password</CardTitle>
+                  <p className="text-sm text-muted-foreground">Aggiorna la tua password per la sicurezza dell'account</p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                    <div>
+                      <Label htmlFor="currentPassword">Password Attuale</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        placeholder="Inserisci la password attuale"
+                        {...passwordForm.register("currentPassword")}
+                        data-testid="input-current-password"
+                      />
+                      {passwordForm.formState.errors.currentPassword && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {passwordForm.formState.errors.currentPassword.message}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="newPassword">Nuova Password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        placeholder="Inserisci la nuova password"
+                        {...passwordForm.register("newPassword")}
+                        data-testid="input-new-password"
+                      />
+                      {passwordForm.formState.errors.newPassword && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {passwordForm.formState.errors.newPassword.message}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="confirmPassword">Conferma Nuova Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Conferma la nuova password"
+                        {...passwordForm.register("confirmPassword")}
+                        data-testid="input-confirm-password"
+                      />
+                      {passwordForm.formState.errors.confirmPassword && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {passwordForm.formState.errors.confirmPassword.message}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="submit"
+                      className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black w-full"
+                      disabled={changePasswordMutation.isPending}
+                      data-testid="button-change-password"
+                    >
+                      {changePasswordMutation.isPending ? "Cambiando..." : "Cambia Password"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>

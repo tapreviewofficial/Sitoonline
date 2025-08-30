@@ -4,9 +4,11 @@ import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click,
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<void>;
 
   // Profile methods
   getProfile(userId: number): Promise<Profile | undefined>;
@@ -33,6 +35,11 @@ export class PrismaStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserById(id: number): Promise<User | undefined> {
+    const user = await prisma.user.findUnique({ where: { id } });
+    return user || undefined;
+  }
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const user = await prisma.user.findUnique({ where: { email } });
     return user || undefined;
@@ -45,6 +52,13 @@ export class PrismaStorage implements IStorage {
 
   async createUser(user: InsertUser): Promise<User> {
     return await prisma.user.create({ data: user });
+  }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
   }
 
   async getProfile(userId: number): Promise<Profile | undefined> {
