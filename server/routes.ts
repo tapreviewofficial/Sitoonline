@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import { hashPassword, comparePassword, signToken, requireAuth, getCurrentUser } from "./lib/auth";
 import { requireAdmin } from "./middleware/requireAdmin";
@@ -331,29 +332,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/stop-impersonate", async (req, res) => {
     console.log("Stop impersonate request, cookies:", req.cookies);
     const impersonator = req.cookies?.impersonator;
-    if (!impersonator) return res.status(400).json({ message: "Nessuna impersonificazione attiva" });
+    if (!impersonator) {
+      console.log("No impersonator cookie found");
+      return res.status(400).json({ message: "Nessuna impersonificazione attiva" });
+    }
 
     try {
-      const jwt = require("jsonwebtoken");
       console.log("Verifying impersonator token:", impersonator);
       const payload: any = jwt.verify(impersonator, process.env.JWT_SECRET as string);
       console.log("Token payload:", payload);
       const adminId = payload?.id;
-      if (!adminId) throw new Error("Token impersonator invalido");
+      if (!adminId) {
+        console.log("No admin ID in token");
+        throw new Error("Token impersonator invalido");
+      }
 
       // Verifica che l'admin esista ancora e sia ancora admin
       const admin = await storage.getUserById(adminId);
       console.log("Admin found:", admin ? { id: admin.id, role: admin.role } : "not found");
       if (!admin || admin.role !== "ADMIN") {
+        console.log("Admin not valid or not admin role");
         return res.status(403).json({ message: "Admin non valido" });
       }
 
-      const { signToken } = require("./utils/jwt");
       const token = signToken({ userId: adminId });
       res
         .cookie("token", token, { httpOnly: true, sameSite: "lax", path: "/" })
         .clearCookie("impersonator", { path: "/" })
         .json({ ok: true });
+      console.log("Successfully stopped impersonation");
     } catch (error) {
       console.log("Stop impersonate error:", error);
       return res.status(400).json({ message: "Token impersonator non valido" });
