@@ -12,9 +12,11 @@ export default function PublicProfile() {
     user: { username: string };
     links: Array<{ id: number; title: string; url: string }>;
   }>({
-    queryKey: ["api", "public", params.username],
+    queryKey: ["/api/public", params.username],
     enabled: !!params.username,
   });
+
+  console.log("PublicProfile params:", params, "data:", data, "error:", error);
 
   if (isLoading) {
     return (
