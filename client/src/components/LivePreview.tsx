@@ -60,7 +60,11 @@ export function LivePreview({ username }: LivePreviewProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-white">Anteprima Live</h2>
         <Button
-          onClick={() => window.open(`/u/${username}`, '_blank')}
+          onClick={() => {
+            const url = `/u/${username}`;
+            console.log("Opening public page URL:", url);
+            window.open(url, '_blank');
+          }}
           className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
           data-testid="button-open-public-page"
         >
