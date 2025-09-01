@@ -241,12 +241,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth check route
-  app.get("/api/auth/me", (req, res) => {
+  app.get("/api/auth/me", async (req, res) => {
     const user = getCurrentUser(req);
     if (!user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    res.json({ user });
+    
+    // Get full user data including role
+    const fullUser = await storage.getUserById(user.userId);
+    if (!fullUser) {
+      return res.status(401).json({ message: "User not found" });
+    }
+    
+    res.json({ 
+      user: { 
+        id: fullUser.id,
+        email: fullUser.email, 
+        username: fullUser.username,
+        role: fullUser.role
+      }
+    });
   });
 
   // Redirect with tracking
