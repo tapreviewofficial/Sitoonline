@@ -329,17 +329,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stop impersonate route (must be outside admin router to avoid requireAdmin)
   app.post("/api/admin/stop-impersonate", async (req, res) => {
+    console.log("Stop impersonate request, cookies:", req.cookies);
     const impersonator = req.cookies?.impersonator;
     if (!impersonator) return res.status(400).json({ message: "Nessuna impersonificazione attiva" });
 
     try {
       const jwt = require("jsonwebtoken");
+      console.log("Verifying impersonator token:", impersonator);
       const payload: any = jwt.verify(impersonator, process.env.JWT_SECRET as string);
+      console.log("Token payload:", payload);
       const adminId = payload?.id;
       if (!adminId) throw new Error("Token impersonator invalido");
 
       // Verifica che l'admin esista ancora e sia ancora admin
       const admin = await storage.getUserById(adminId);
+      console.log("Admin found:", admin ? { id: admin.id, role: admin.role } : "not found");
       if (!admin || admin.role !== "ADMIN") {
         return res.status(403).json({ message: "Admin non valido" });
       }
@@ -350,7 +354,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .cookie("token", token, { httpOnly: true, sameSite: "lax", path: "/" })
         .clearCookie("impersonator", { path: "/" })
         .json({ ok: true });
-    } catch {
+    } catch (error) {
+      console.log("Stop impersonate error:", error);
       return res.status(400).json({ message: "Token impersonator non valido" });
     }
   });
