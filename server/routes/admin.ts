@@ -105,26 +105,6 @@ router.post("/impersonate/:userId", async (req: any, res) => {
     .json({ ok: true });
 });
 
-/** POST /api/admin/stop-impersonate
- *  Torna all'admin originale, leggendo il cookie 'impersonator'.
- */
-router.post("/stop-impersonate", async (req, res) => {
-  const impersonator = req.cookies?.impersonator;
-  if (!impersonator) return res.status(400).json({ message: "Nessuna impersonificazione attiva" });
-
-  try {
-    const payload: any = jwt.verify(impersonator, process.env.JWT_SECRET as string);
-    const adminId = payload?.id;
-    if (!adminId) throw new Error("Token impersonator invalido");
-
-    const token = signToken({ userId: adminId });
-    res
-      .cookie("token", token, { httpOnly: true, sameSite: "lax", path: "/" })
-      .clearCookie("impersonator", { path: "/" })
-      .json({ ok: true });
-  } catch {
-    return res.status(400).json({ message: "Token impersonator non valido" });
-  }
-});
+// Note: stop-impersonate is now handled in main routes.ts to avoid requireAdmin middleware
 
 export default router;

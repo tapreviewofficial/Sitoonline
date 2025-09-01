@@ -327,6 +327,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stop impersonate route (must be outside admin router to avoid requireAdmin)
+  app.post("/api/admin/stop-impersonate", async (req, res) => {
+    const impersonator = req.cookies?.impersonator;
+    if (!impersonator) return res.status(400).json({ message: "Nessuna impersonificazione attiva" });
+
+    try {
+      const jwt = require("jsonwebtoken");
+      const payload: any = jwt.verify(impersonator, process.env.JWT_SECRET as string);
+      const adminId = payload?.id;
+      if (!adminId) throw new Error("Token impersonator invalido");
+
+      // Verifica che l'admin esista ancora e sia ancora admin
+      const admin = await storage.getUserById(adminId);
+      if (!admin || admin.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admin non valido" });
+      }
+
+      const { signToken } = require("./utils/jwt");
+      const token = signToken({ userId: adminId });
+      res
+        .cookie("token", token, { httpOnly: true, sameSite: "lax", path: "/" })
+        .clearCookie("impersonator", { path: "/" })
+        .json({ ok: true });
+    } catch {
+      return res.status(400).json({ message: "Token impersonator non valido" });
+    }
+  });
+
   // Admin routes
   app.use("/api/me", meRouter);
   app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
