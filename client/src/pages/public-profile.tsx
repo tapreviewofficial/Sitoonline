@@ -16,8 +16,6 @@ export default function PublicProfile() {
     enabled: !!params.username,
   });
 
-  console.log("PublicProfile params:", params, "data:", data, "error:", error);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center">
