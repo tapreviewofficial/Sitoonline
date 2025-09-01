@@ -5,7 +5,10 @@ import cors from "cors";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { hashPassword, comparePassword, signToken, requireAuth, getCurrentUser } from "./lib/auth";
+import { requireAdmin } from "./middleware/requireAdmin";
 import { insertUserSchema, insertProfileSchema, insertLinkSchema } from "@shared/schema";
+import adminRouter from "./routes/admin";
+import meRouter from "./routes/me";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
@@ -309,6 +312,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch link analytics" });
     }
   });
+
+  // Admin routes
+  app.use("/api/me", meRouter);
+  app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
 
   const httpServer = createServer(app);
   return httpServer;

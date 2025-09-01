@@ -185,10 +185,23 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold" data-testid="text-dashboard-title">Dashboard</h1>
               <p className="text-muted-foreground">Gestisci i tuoi link e profilo</p>
             </div>
-            <Button onClick={logout} variant="ghost" data-testid="button-logout">
-              <i className="fas fa-sign-out-alt mr-2"></i>
-              Esci
-            </Button>
+            <div className="flex items-center gap-3">
+              {authData?.user?.role === 'ADMIN' && (
+                <Button 
+                  onClick={() => window.location.href = '/admin'} 
+                  variant="outline" 
+                  className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
+                  data-testid="button-admin-panel"
+                >
+                  <i className="fas fa-cog mr-2"></i>
+                  Admin Panel
+                </Button>
+              )}
+              <Button onClick={logout} variant="ghost" data-testid="button-logout">
+                <i className="fas fa-sign-out-alt mr-2"></i>
+                Esci
+              </Button>
+            </div>
           </div>
         </div>
       </div>
