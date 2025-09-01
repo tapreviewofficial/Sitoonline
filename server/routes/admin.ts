@@ -13,35 +13,45 @@ function signToken(payload: object) {
  *  Lista utenti con counts basilari.
  */
 router.get("/users", async (req, res) => {
-  const q = String(req.query.query || "").trim();
-  const page = Number(req.query.page || 1);
-  const pageSize = Number(req.query.pageSize || 20);
-  const skip = (page - 1) * pageSize;
+  try {
+    const q = String(req.query.query || "").trim();
+    const page = Number(req.query.page || 1);
+    const pageSize = Number(req.query.pageSize || 20);
+    const skip = (page - 1) * pageSize;
 
-  const where = q
-    ? {
+    let where: any = {};
+    
+    if (q) {
+      // Use simple LIKE for better compatibility
+      where = {
         OR: [
-          { email: { contains: q, mode: "insensitive" } },
-          { username: { contains: q, mode: "insensitive" } },
-          { profile: { is: { displayName: { contains: q, mode: "insensitive" } } } },
+          { email: { contains: q } },
+          { username: { contains: q } },
         ],
-      }
-    : {};
+      };
+    }
 
-  const [total, users] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      include: {
-        _count: { select: { links: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: pageSize,
-    }),
-  ]);
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        include: {
+          _count: { select: { links: true } },
+          profile: { select: { displayName: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+      }),
+    ]);
 
-  res.json({ total, page, pageSize, users });
+    console.log("Admin users query:", { q, page, pageSize, total, usersCount: users.length });
+
+    res.json({ total, page, pageSize, users });
+  } catch (error) {
+    console.error("Admin users query error:", error);
+    res.status(500).json({ message: "Errore nel caricamento utenti" });
+  }
 });
 
 /** GET /api/admin/stats/summary
