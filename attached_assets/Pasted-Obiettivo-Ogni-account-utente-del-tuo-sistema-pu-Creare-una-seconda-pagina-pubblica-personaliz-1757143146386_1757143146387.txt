@@ -1,0 +1,421 @@
+Obiettivo
+
+Ogni account (utente del tuo sistema) può:
+
+Creare una seconda pagina pubblica personalizzabile (es. landing pubblica per invito/promo)
+
+Generare codici/QR univoci collegati a una promo/evento
+
+Consegnare al cliente un QR (digitale/stampabile)
+
+Validare il QR in negozio usando lo scanner via browser (niente app), con stato
+
+valido / scaduto / già utilizzato
+
+Flaggare come usato in tempo reale (una sola volta)
+
+🗄️ Modello Dati (Prisma / Postgres)
+
+Tabelle principali: PublicPage, Promo, Ticket, ScanLog
+
+// server/prisma/schema.prisma
+model PublicPage {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  slug        String   @unique        // /u/:slug come seconda pagina pubblica
+  title       String?
+  theme       String?  // json string — colori, layout, ecc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promos      Promo[]
+}
+
+model Promo {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  publicPageId Int?
+  title       String
+  description String?
+  type        String   // "invito" | "coupon" | "promo"
+  startAt     DateTime?
+  endAt       DateTime?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicPage  PublicPage @relation(fields: [publicPageId], references: [id])
+  tickets     Ticket[]
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  promoId     Int
+  customerName  String?
+  customerEmail String?
+  code        String   @unique  // corto: es. ULID / cuid2 / nanoid
+  qrPayload   String   // URL con token o code puro
+  status      TicketStatus @default(ACTIVE)
+  expiresAt   DateTime?
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  promo       Promo    @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  scans       ScanLog[]
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  EXPIRED
+}
+
+model ScanLog {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  userId    Int      // chi ha scansionato (commesso) — se vuoi
+  result    String   // "valid"|"expired"|"used"
+  at        DateTime @default(now())
+  meta      String?  // userAgent, ip hash, device info
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+🔗 URL & Payload del QR
+
+Formato semplice (consigliato)
+
+Codice univoco breve: code (es. nanoid o cuid2)
+
+QR = URL con code
+
+https://tuodominio.app/q/:code
+
+
+Il backend a /q/:code risolve e reindirizza alla pagina di dettaglio invito (o mostra direttamente il biglietto)
+
+Opzione più sicura (firma)
+
+JWT/HMAC come token, con claims { ticketId, promoId, exp }
+
+QR = https://tuodominio.app/q?t=<token>
+
+In verifica, decodifica e verifica firma → evita enumerazioni di codici
+
+Per semplicità, puoi iniziare con code + indicizzazione unica e, se vuoi, aggiungere firma in fase 2.
+
+🔌 API – Endpoints (Express)
+1) Public Pages
+// GET   /api/public-pages/:slug  -> dati pagina pubblica + promo attive
+// POST  /api/public-pages        -> crea/aggiorna pagina (autenticato)
+
+2) Promo CRUD
+// GET   /api/promos               -> lista promo utente (autenticato)
+// POST  /api/promos               -> crea promo
+// GET   /api/promos/:id           -> dettaglio
+// PATCH /api/promos/:id           -> update
+// DELETE /api/promos/:id
+
+3) Ticket: generazione e stato
+// POST  /api/promos/:id/tickets/generate   -> crea un Ticket (name/email) e ritorna la URL QR
+// GET   /api/tickets/:code/status          -> {status, message, usedAt, expiresAt}
+// POST  /api/tickets/:code/use             -> marca come usato (idempotente)
+
+4) Short QR page resolver
+// GET  /q/:code -> renderizza pagina biglietto (o redirect ad app client + fetch)
+
+🧠 Sicurezza & Anti-abuso
+
+Code unico con indice unico → evita duplicati
+
+Expiry (expiresAt) → codice scaduto non riutilizzabile
+
+Idempotenza su use → se USED, ritorna sempre già usato
+
+Logs (ScanLog) → audit di tutti i tentativi (valid, expired, used)
+
+Rate limit su /use e /status (se puoi: Upstash/Redis; minimo: throttling per IP)
+
+CORS solo sul tuo dominio
+
+Opzionale: firma token (JWT HMAC) per impedire enumerazione codici
+
+🎨 UI – pagine principali
+
+Pagina pubblica personalizzabile: /u/:slug
+
+Mostra info + form “Inserisci nome/email” → POST /api/promos/:id/tickets/generate
+
+Risposta: link/biglietto con QR
+
+Pagina biglietto: /ticket/:code (o /q/:code)
+
+Visualizza QR, titolo promo, stato
+
+Se scaduto/used, feedback
+
+Pagina scanner commesso (mobile): /scan
+
+Bottoncino “Attiva fotocamera” (getUserMedia)
+
+Scanner JS (es. @zxing/browser o qr-scanner)
+
+Una volta letto → chiama GET /api/tickets/:code/status e poi POST /api/tickets/:code/use se valido
+
+🧰 NPM utili
+
+QR generation: qrcode (server) o qrcode.react/qr-code-styling (client)
+
+Scanner:
+
+@zxing/browser (affidabile)
+
+qr-scanner (leggero)
+
+ID univoci: nanoid, cuid2
+
+🔧 Snippet pronti (Express)
+Router Ticket – generazione codice & QR
+// server/routes/tickets.ts
+import { Router } from "express";
+import { prisma } from "../prisma"; // istanza Prisma
+import { customAlphabet } from "nanoid";
+import QRCode from "qrcode";
+
+const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
+const router = Router();
+
+// genera ticket
+router.post("/promos/:promoId/tickets/generate", async (req, res) => {
+  try {
+    const userId = req.user?.id; // recupera da auth middleware se necessario
+    const promoId = Number(req.params.promoId);
+    const { customerName, customerEmail } = req.body;
+
+    const promo = await prisma.promo.findFirst({ where: { id: promoId, userId } });
+    if (!promo) return res.status(404).json({ error: "Promo non trovata" });
+
+    // crea code unico
+    let code = nanoid();
+    // (optional) loop finché unico, o rely su unique index e catch error
+
+    const qrUrl = `${process.env.PUBLIC_ORIGIN}/q/${code}`;
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        promoId,
+        customerName,
+        customerEmail,
+        code,
+        qrPayload: qrUrl,
+        expiresAt: promo.endAt ?? null
+      }
+    });
+
+    // genera PNG come dataURL (opzionale, lato client puoi usare libreria)
+    const qrDataUrl = await QRCode.toDataURL(qrUrl);
+
+    return res.json({
+      ticketId: ticket.id,
+      code,
+      qrUrl,
+      qrDataUrl
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Errore generazione ticket" });
+  }
+});
+
+export default router;
+
+Router Ticket – stato e use
+// server/routes/validation.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import dayjs from "dayjs";
+
+const router = Router();
+
+router.get("/tickets/:code/status", async (req, res) => {
+  const { code } = req.params;
+  const ticket = await prisma.ticket.findUnique({ where: { code } });
+  if (!ticket) return res.status(404).json({ status: "not_found" });
+
+  const now = dayjs();
+  if (ticket.expiresAt && now.isAfter(ticket.expiresAt)) {
+    return res.json({ status: "expired", usedAt: ticket.usedAt });
+  }
+  if (ticket.status === "USED") {
+    return res.json({ status: "used", usedAt: ticket.usedAt });
+  }
+  return res.json({ status: "valid", expiresAt: ticket.expiresAt, usedAt: ticket.usedAt });
+});
+
+router.post("/tickets/:code/use", async (req, res) => {
+  const { code } = req.params;
+  // (opzionale) req.user.id come commesso che scansiona
+  const scannedByUserId = req.user?.id ?? null;
+
+  const ticket = await prisma.ticket.findUnique({ where: { code } });
+  if (!ticket) return res.status(404).json({ status: "not_found" });
+
+  const now = new Date();
+  if (ticket.expiresAt && now > ticket.expiresAt) {
+    await prisma.scanLog.create({
+      data: { ticketId: ticket.id, userId: scannedByUserId ?? 0, result: "expired" }
+    });
+    return res.json({ status: "expired" });
+  }
+  if (ticket.status === "USED") {
+    await prisma.scanLog.create({
+      data: { ticketId: ticket.id, userId: scannedByUserId ?? 0, result: "used" }
+    });
+    return res.json({ status: "used", usedAt: ticket.usedAt });
+  }
+
+  // marca come usato
+  const updated = await prisma.ticket.update({
+    where: { id: ticket.id },
+    data: { status: "USED", usedAt: now }
+  });
+
+  await prisma.scanLog.create({
+    data: { ticketId: updated.id, userId: scannedByUserId ?? 0, result: "valid" }
+  });
+
+  return res.json({ status: "used", usedAt: updated.usedAt });
+});
+
+export default router;
+
+Scanner lato web (Vite)
+// client/pages/Scan.tsx
+import { useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+
+export default function ScanPage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("");
+
+  useEffect(() => {
+    const codeReader = new BrowserMultiFormatReader();
+    let stopped = false;
+
+    (async () => {
+      try {
+        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+        const cam = devices[0]?.deviceId;
+        if (!cam) throw new Error("Nessuna fotocamera trovata");
+
+        await codeReader.decodeFromVideoDevice(cam, videoRef.current!, (res, err) => {
+          if (stopped) return;
+          if (res) {
+            const text = res.getText();
+            setResult(text);
+            stopped = true;
+            codeReader.reset();
+            handleDecoded(text);
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        setStatus("Errore accesso camera");
+      }
+    })();
+
+    return () => {
+      stopped = true;
+    };
+  }, []);
+
+  async function handleDecoded(text: string) {
+    try {
+      // text può essere l’URL completo oppure un code nudo
+      let code = text;
+      const m = text.match(/\/q\/([A-Za-z0-9_-]+)/);
+      if (m) code = m[1];
+
+      const s = await fetch(`/api/tickets/${code}/status`).then(r => r.json());
+      if (s.status === "valid") {
+        const u = await fetch(`/api/tickets/${code}/use`, { method: "POST" }).then(r => r.json());
+        setStatus(`USATO: ${u.usedAt ?? ""}`);
+      } else {
+        setStatus(`NON VALIDO: ${s.status}`);
+      }
+    } catch (e) {
+      console.error(e);
+      setStatus("Errore validazione");
+    }
+  }
+
+  return (
+    <div>
+      <h1>Scanner QR</h1>
+      <video ref={videoRef} style={{ width: "100%", maxWidth: 480 }} />
+      <p>Letto: {result ?? "-"}</p>
+      <p>Stato: {status}</p>
+    </div>
+  );
+}
+
+🧩 Seconda pagina pubblica per account
+
+Crea PublicPage con slug (es. tapreview.it/u/rob-store)
+
+UI semplice per personalizzare testo, colori, call-to-action (JSON in theme)
+
+In questa pagina l’utente finale inserisce nome/email → POST /api/promos/:id/tickets/generate → riceve qrUrl (o mostra direttamente il QR)
+
+✅ Tasklist pronta per l’Agent Replit
+
+Prisma Schema: aggiungi PublicPage, Promo, Ticket, ScanLog (copiando il blocco sopra) e migra.
+
+Env: aggiungi PUBLIC_ORIGIN=https://localhost:3000 (o il dominio dev).
+
+Router:
+
+server/routes/publicPages.ts (CRUD semplice)
+
+server/routes/promos.ts (CRUD promo)
+
+server/routes/tickets.ts (generate)
+
+server/routes/validation.ts (status/use)
+
+monta in server/app.ts:
+
+app.use("/api", publicPagesRouter);
+app.use("/api", promosRouter);
+app.use("/api", ticketsRouter);
+app.use("/api", validationRouter);
+
+
+Client:
+
+Pagina /u/:slug → form di generazione ticket (name/email)
+
+Pagina /scan → scanner (snippet sopra)
+
+Pagina /ticket/:code o /q/:code → mostra biglietto
+
+Controlli:
+
+prova creazione promo
+
+genera un ticket
+
+stampa/mostra QR
+
+scansiona da /scan → vedi stato → flag “usato”
+
+Hardening:
+
+aggiungi rate-limiting
+
+(opzionale) passa a token firmati (JWT) nel QR
+
+filtra CORS
+
+registra userId del commesso in ScanLog (se hai ruoli)
