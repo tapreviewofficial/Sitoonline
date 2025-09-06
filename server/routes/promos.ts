@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // Ottieni tutte le promozioni dell'utente
 router.get("/promos", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req as any).user.userId;
     
     const promos = await prisma.promo.findMany({
       where: { userId },
@@ -32,7 +32,7 @@ router.get("/promos", requireAuth, async (req, res) => {
 // Ottieni dettaglio promozione
 router.get("/promos/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req as any).user.userId;
     const promoId = parseInt(req.params.id);
 
     const promo = await prisma.promo.findFirst({
@@ -59,7 +59,7 @@ router.get("/promos/:id", requireAuth, async (req, res) => {
 // Crea nuova promozione
 router.post("/promos", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req as any).user.userId;
     const { title, description, type, startAt, endAt, publicPageId } = req.body;
 
     if (!title || !type) {
@@ -91,7 +91,7 @@ router.post("/promos", requireAuth, async (req, res) => {
 // Aggiorna promozione
 router.patch("/promos/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req as any).user.userId;
     const promoId = parseInt(req.params.id);
     const { title, description, type, startAt, endAt, active, publicPageId } = req.body;
 
@@ -129,7 +129,7 @@ router.patch("/promos/:id", requireAuth, async (req, res) => {
 // Elimina promozione
 router.delete("/promos/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req as any).user.userId;
     const promoId = parseInt(req.params.id);
 
     const existingPromo = await prisma.promo.findFirst({
