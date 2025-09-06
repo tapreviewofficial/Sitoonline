@@ -1,5 +1,5 @@
 import { prisma } from "./lib/prisma";
-import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click, InsertClick } from "@shared/schema";
+import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -27,6 +27,12 @@ export interface IStorage {
   incrementLinkClicks(linkId: number): Promise<void>;
   getClickStats(userId: number): Promise<{ totalClicks: number; clicks7d: number; clicks30d: number }>;
   getLinkStats(userId: number): Promise<Array<{ id: number; title: string; clicksAllTime: number; clicks7d: number; clicks30d: number; order: number }>>;
+
+  // Password reset methods
+  createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset>;
+  getPasswordResetByToken(token: string): Promise<(PasswordReset & { user: User }) | undefined>;
+  markPasswordResetAsUsed(id: number): Promise<void>;
+  invalidateUserPasswordResets(userId: number): Promise<void>;
 }
 
 export class PrismaStorage implements IStorage {
@@ -200,6 +206,36 @@ export class PrismaStorage implements IStorage {
     );
 
     return linkStats;
+  }
+
+  async createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset> {
+    return await prisma.passwordReset.create({ data: reset });
+  }
+
+  async getPasswordResetByToken(token: string): Promise<(PasswordReset & { user: User }) | undefined> {
+    const passwordReset = await prisma.passwordReset.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+    return passwordReset || undefined;
+  }
+
+  async markPasswordResetAsUsed(id: number): Promise<void> {
+    await prisma.passwordReset.update({
+      where: { id },
+      data: { used: 1 }, // Using 1 for true in SQLite
+    });
+  }
+
+  async invalidateUserPasswordResets(userId: number): Promise<void> {
+    await prisma.passwordReset.updateMany({
+      where: {
+        userId,
+        used: 0, // Using 0 for false
+        expiresAt: { gt: new Date() },
+      },
+      data: { used: 1 },
+    });
   }
 }
 

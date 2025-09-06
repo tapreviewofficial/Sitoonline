@@ -105,8 +105,8 @@ export function AuthForm({ type }: AuthFormProps) {
                 <p className="text-xs text-muted-foreground mt-1">
                   Il tuo username sarà usato per la pagina pubblica: tapreview.it/u/username
                 </p>
-                {form.formState.errors.username && 'username' in form.formState.errors && (
-                  <p className="text-sm text-destructive mt-1">{form.formState.errors.username?.message}</p>
+                {form.formState.errors.username && (
+                  <p className="text-sm text-destructive mt-1">{form.formState.errors.username.message}</p>
                 )}
               </div>
             )}

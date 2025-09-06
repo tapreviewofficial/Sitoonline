@@ -15,9 +15,7 @@ import ticketsRouter from "./routes/tickets";
 import publicPagesRouter from "./routes/publicPages";
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from './services/emailService';
-import { PrismaClient } from '@prisma/client';
-
-const db = new PrismaClient();
+import { storage } from './storage';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
@@ -164,25 +162,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Invalida token precedenti non utilizzati
-      await db.passwordReset.updateMany({
-        where: {
-          userId: user.id,
-          used: false,
-          expiresAt: { gt: new Date() }
-        },
-        data: { used: true }
-      });
+      await storage.invalidateUserPasswordResets(user.id);
 
       // Crea nuovo token di reset
       const token = nanoid(32);
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 ora
 
-      await db.passwordReset.create({
-        data: {
-          userId: user.id,
-          token,
-          expiresAt
-        }
+      await storage.createPasswordReset({
+        userId: user.id,
+        token,
+        expiresAt,
+        used: 0
       });
 
       // Genera link di reset
@@ -218,12 +208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token } = req.params;
 
-      const passwordReset = await db.passwordReset.findUnique({
-        where: { token },
-        include: { user: true }
-      });
+      const passwordReset = await storage.getPasswordResetByToken(token);
 
-      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
+      if (!passwordReset || passwordReset.used !== 0 || passwordReset.expiresAt < new Date()) {
         return res.status(400).json({ error: 'Token non valido o scaduto' });
       }
 
@@ -250,12 +237,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'La password deve essere almeno di 6 caratteri' });
       }
 
-      const passwordReset = await db.passwordReset.findUnique({
-        where: { token },
-        include: { user: true }
-      });
+      const passwordReset = await storage.getPasswordResetByToken(token);
 
-      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
+      if (!passwordReset || passwordReset.used !== 0 || passwordReset.expiresAt < new Date()) {
         return res.status(400).json({ error: 'Token non valido o scaduto' });
       }
 
@@ -266,10 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserPassword(passwordReset.userId, hashedPassword);
 
       // Marca token come utilizzato
-      await db.passwordReset.update({
-        where: { id: passwordReset.id },
-        data: { used: true }
-      });
+      await storage.markPasswordResetAsUsed(passwordReset.id);
 
       res.json({ success: true, message: 'Password reimpostata con successo' });
 

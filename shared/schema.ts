@@ -42,6 +42,15 @@ export const clicks = pgTable("clicks", {
   ipHash: text("ip_hash"),
 });
 
+export const passwordResets = pgTable("password_resets", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: integer("used").default(0), // SQLite doesn't have boolean, using 0/1
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -64,6 +73,11 @@ export const insertClickSchema = createInsertSchema(clicks).omit({
   createdAt: true,
 });
 
+export const insertPasswordResetSchema = createInsertSchema(passwordResets).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -72,3 +86,5 @@ export type InsertLink = z.infer<typeof insertLinkSchema>;
 export type Link = typeof links.$inferSelect;
 export type InsertClick = z.infer<typeof insertClickSchema>;
 export type Click = typeof clicks.$inferSelect;
+export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
+export type PasswordReset = typeof passwordResets.$inferSelect;
