@@ -208,8 +208,9 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="gestione" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/5 border-white/10">
+          <TabsList className="grid w-full grid-cols-5 bg-white/5 border-white/10">
             <TabsTrigger value="gestione" data-testid="tab-manage">Gestione</TabsTrigger>
+            <TabsTrigger value="promo" data-testid="tab-promo">Promozioni</TabsTrigger>
             <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
             <TabsTrigger value="anteprima" data-testid="tab-preview">Anteprima</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Impostazioni</TabsTrigger>
@@ -354,6 +355,83 @@ export default function Dashboard() {
 
           <TabsContent value="analytics" className="mt-6">
             <StatsPanel />
+          </TabsContent>
+
+          <TabsContent value="promo" className="mt-6">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold">Gestione Promozioni</h2>
+                  <p className="text-muted-foreground">Crea e gestisci i tuoi inviti e biglietti digitali</p>
+                </div>
+                <Button className="bg-[#CC9900] hover:bg-[#CC9900]/80">
+                  <i className="fas fa-plus mr-2"></i>
+                  Nuova Promozione
+                </Button>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <i className="fas fa-gift"></i>
+                      Promozioni Attive
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="text-center py-8 text-muted-foreground">
+                        <i className="fas fa-gift text-4xl mb-4 opacity-50"></i>
+                        <p>Nessuna promozione attiva</p>
+                        <p className="text-sm">Crea la tua prima promozione per iniziare</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <i className="fas fa-qrcode"></i>
+                      Statistiche Biglietti
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <div className="text-2xl font-bold text-[#CC9900]">0</div>
+                        <div className="text-sm text-muted-foreground">Biglietti generati</div>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <div className="text-2xl font-bold text-green-500">0</div>
+                        <div className="text-sm text-muted-foreground">Biglietti utilizzati</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <i className="fas fa-mobile-alt"></i>
+                    Scanner QR
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">Scanner per validare biglietti</p>
+                      <p className="text-sm text-muted-foreground">Usa il tuo smartphone per scansionare e validare i codici QR dei clienti</p>
+                    </div>
+                    <Button onClick={() => window.open('/scan', '_blank')} variant="outline">
+                      <i className="fas fa-qrcode mr-2"></i>
+                      Apri Scanner
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="anteprima" className="mt-6">
