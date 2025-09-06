@@ -70,6 +70,9 @@ const defaultValues: Partial<PromoFormData> = {
   notCumulative: false,
   onePerCustomer: true,
   usesPerCode: 1,
+  maxCodes: 100,
+  startAt: new Date().toISOString().slice(0, 16), // Data/ora attuale
+  endAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // +30 giorni
   codeFormat: "short",
   qrMode: "url",
   askName: true,
@@ -106,8 +109,9 @@ export default function NewPromotionWizard({ onSuccess }: NewPromotionWizardProp
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
     reset,
+    trigger,
   } = useForm<PromoFormData>({
     defaultValues: defaultValues as any,
     resolver: zodResolver(promoSchema),
@@ -157,44 +161,42 @@ export default function NewPromotionWizard({ onSuccess }: NewPromotionWizardProp
       return;
     }
 
-    // Normalizza payload per API
+    // Normalizza payload per API (versione semplificata per compatibilità attuale)
     const payload = {
       title: data.title,
       description: data.description,
       type: data.type,
-      internalCode: data.internalCode || null,
-      
-      value: data.valueType === "percent" ? { kind: "percent", amount: data.valueAmount } :
-             data.valueType === "amount"  ? { kind: "amount", amount: data.valueAmount } :
-             { kind: "none" },
-      
-      notCumulative: data.notCumulative,
-      onePerCustomer: data.onePerCustomer,
-      minSpend: data.minSpend || null,
-      
       startAt: data.startAt,
       endAt: data.endAt,
-      maxCodes: data.maxCodes,
-      usesPerCode: data.usesPerCode,
-      
-      codeFormat: data.codeFormat,
-      codePrefix: data.codePrefix || null,
-      qrMode: data.qrMode,
-      
-      fields: {
-        name: data.askName,
-        email: data.askEmail,
-      },
-      privacy: {
-        required: data.privacyConsentRequired,
-      },
-      landing: {
-        lang: data.landingLang,
-        template: data.landingTemplate,
-        headline: data.landingHeadline || "",
-        subtitle: data.landingSubtitle || "",
-        showCodeAndQr: data.showCodeAndQr,
-      },
+      // Aggiungiamo i dati avanzati come JSON nella descrizione per ora
+      metadata: {
+        internalCode: data.internalCode || null,
+        value: data.valueType === "percent" ? { kind: "percent", amount: data.valueAmount } :
+               data.valueType === "amount"  ? { kind: "amount", amount: data.valueAmount } :
+               { kind: "none" },
+        notCumulative: data.notCumulative,
+        onePerCustomer: data.onePerCustomer,
+        minSpend: data.minSpend || null,
+        maxCodes: data.maxCodes,
+        usesPerCode: data.usesPerCode,
+        codeFormat: data.codeFormat,
+        codePrefix: data.codePrefix || null,
+        qrMode: data.qrMode,
+        fields: {
+          name: data.askName,
+          email: data.askEmail,
+        },
+        privacy: {
+          required: data.privacyConsentRequired,
+        },
+        landing: {
+          lang: data.landingLang,
+          template: data.landingTemplate,
+          headline: data.landingHeadline || "",
+          subtitle: data.landingSubtitle || "",
+          showCodeAndQr: data.showCodeAndQr,
+        },
+      }
     };
 
     try {
@@ -582,11 +584,22 @@ export default function NewPromotionWizard({ onSuccess }: NewPromotionWizardProp
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 text-white">
-                      <p><strong>Titolo:</strong> {watch("title")}</p>
+                      <p><strong>Titolo:</strong> {watch("title") || "Non specificato"}</p>
                       <p><strong>Tipo:</strong> {watch("type")}</p>
-                      <p><strong>Periodo:</strong> {watch("startAt")} - {watch("endAt")}</p>
+                      <p><strong>Periodo:</strong> {
+                        watch("startAt") && watch("endAt") 
+                          ? `${new Date(watch("startAt")).toLocaleDateString()} - ${new Date(watch("endAt")).toLocaleDateString()}`
+                          : "Non specificato"
+                      }</p>
                       <p><strong>Max codici:</strong> {watch("maxCodes")}</p>
                       <p><strong>Formato codice:</strong> {watch("codeFormat")}</p>
+                      {watch("valueType") !== "none" && (
+                        <p><strong>Valore:</strong> {
+                          watch("valueType") === "percent" 
+                            ? `${watch("valueAmount")}%` 
+                            : `€${watch("valueAmount")}`
+                        }</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -633,6 +646,10 @@ export default function NewPromotionWizard({ onSuccess }: NewPromotionWizardProp
                       disabled={isSubmitting}
                       className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
                       data-testid="button-create-promotion"
+                      onClick={() => {
+                        console.log("Form errors:", errors);
+                        console.log("Form is valid:", isValid);
+                      }}
                     >
                       {isSubmitting ? "Creando..." : "Crea Promozione"}
                       <i className="fas fa-check ml-2"></i>
