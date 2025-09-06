@@ -10,6 +10,9 @@ import { requireAdmin } from "./middleware/requireAdmin";
 import { insertUserSchema, insertProfileSchema, insertLinkSchema } from "@shared/schema";
 import adminRouter from "./routes/admin";
 import meRouter from "./routes/me";
+import promosRouter from "./routes/promos";
+import ticketsRouter from "./routes/tickets";
+import publicPagesRouter from "./routes/publicPages";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
@@ -367,9 +370,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin routes
+  // QR Code resolver route (deve essere prima delle altre routes)
+  app.get("/q/:code", async (req, res) => {
+    const { code } = req.params;
+    // Reindirizza alla pagina del ticket nel client
+    res.redirect(`/ticket/${code}`);
+  });
+
+  // Routes
   app.use("/api/me", meRouter);
   app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
+  app.use("/api", promosRouter);
+  app.use("/api", ticketsRouter);
+  app.use("/api", publicPagesRouter);
 
   const httpServer = createServer(app);
   return httpServer;
