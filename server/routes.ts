@@ -15,7 +15,9 @@ import ticketsRouter from "./routes/tickets";
 import publicPagesRouter from "./routes/publicPages";
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from './services/emailService';
-import { db } from './db';
+import { PrismaClient } from '@prisma/client';
+
+const db = new PrismaClient();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
@@ -494,7 +496,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin non valido" });
       }
 
-      const token = signToken({ userId: adminId });
+      const token = signToken({ 
+        userId: adminId, 
+        email: admin.email, 
+        username: admin.username 
+      });
       res
         .cookie("token", token, { httpOnly: true, sameSite: "lax", path: "/" })
         .clearCookie("impersonator", { path: "/" })

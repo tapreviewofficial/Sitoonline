@@ -13,6 +13,8 @@ import PublicProfile from "@/pages/public-profile";
 import InvitePage from "@/pages/invite-page";
 import TicketPage from "@/pages/ticket";
 import ScanPage from "@/pages/scan";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +29,8 @@ function Router() {
       <Route path="/invite/:slug" component={InvitePage} />
       <Route path="/ticket/:code" component={TicketPage} />
       <Route path="/scan" component={ScanPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
   );
