@@ -13,6 +13,9 @@ import meRouter from "./routes/me";
 import promosRouter from "./routes/promos";
 import ticketsRouter from "./routes/tickets";
 import publicPagesRouter from "./routes/publicPages";
+import { nanoid } from 'nanoid';
+import { sendEmail, generatePasswordResetEmail } from './services/emailService';
+import { db } from './db';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
@@ -138,6 +141,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Password reset routes
+  app.post("/api/auth/request-reset", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: 'Email richiesta' });
+      }
+
+      // Trova l'utente
+      const user = await storage.getUserByEmail(email.toLowerCase());
+
+      // Anche se l'utente non esiste, restituiamo successo per sicurezza
+      if (!user) {
+        return res.json({ success: true, message: 'Se l\'email esiste, riceverai le istruzioni per il reset' });
+      }
+
+      // Invalida token precedenti non utilizzati
+      await db.passwordReset.updateMany({
+        where: {
+          userId: user.id,
+          used: false,
+          expiresAt: { gt: new Date() }
+        },
+        data: { used: true }
+      });
+
+      // Crea nuovo token di reset
+      const token = nanoid(32);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 ora
+
+      await db.passwordReset.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt
+        }
+      });
+
+      // Genera link di reset
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+      
+      // Genera email
+      const emailContent = generatePasswordResetEmail(resetLink, user.username);
+      
+      // Invia email
+      const emailSent = await sendEmail({
+        to: user.email,
+        subject: 'TapReview - Reimpostazione Password',
+        html: emailContent.html,
+        text: emailContent.text
+      });
+
+      if (!emailSent) {
+        console.error('Errore nell\'invio della email di reset');
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Se l\'email esiste, riceverai le istruzioni per il reset' 
+      });
+
+    } catch (error) {
+      console.error('Errore richiesta reset password:', error);
+      res.status(500).json({ error: 'Errore interno del server' });
+    }
+  });
+
+  app.get("/api/auth/verify-reset/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const passwordReset = await db.passwordReset.findUnique({
+        where: { token },
+        include: { user: true }
+      });
+
+      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Token non valido o scaduto' });
+      }
+
+      res.json({ 
+        valid: true, 
+        username: passwordReset.user.username 
+      });
+
+    } catch (error) {
+      console.error('Errore verifica token reset:', error);
+      res.status(500).json({ error: 'Errore interno del server' });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token e nuova password richiesti' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'La password deve essere almeno di 6 caratteri' });
+      }
+
+      const passwordReset = await db.passwordReset.findUnique({
+        where: { token },
+        include: { user: true }
+      });
+
+      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Token non valido o scaduto' });
+      }
+
+      // Hash nuova password
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Aggiorna password utente
+      await storage.updateUserPassword(passwordReset.userId, hashedPassword);
+
+      // Marca token come utilizzato
+      await db.passwordReset.update({
+        where: { id: passwordReset.id },
+        data: { used: true }
+      });
+
+      res.json({ success: true, message: 'Password reimpostata con successo' });
+
+    } catch (error) {
+      console.error('Errore reset password:', error);
+      res.status(500).json({ error: 'Errore interno del server' });
     }
   });
 
