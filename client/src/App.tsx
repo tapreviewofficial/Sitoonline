@@ -10,6 +10,9 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
 import PublicProfile from "@/pages/public-profile";
+import InvitePage from "@/pages/invite-page";
+import TicketPage from "@/pages/ticket";
+import ScanPage from "@/pages/scan";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +24,9 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/u/:username" component={PublicProfile} />
+      <Route path="/invite/:slug" component={InvitePage} />
+      <Route path="/ticket/:code" component={TicketPage} />
+      <Route path="/scan" component={ScanPage} />
       <Route component={NotFound} />
     </Switch>
   );
