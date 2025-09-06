@@ -134,6 +134,18 @@ export function AuthForm({ type }: AuthFormProps) {
               {authMutation.isPending ? "Attendere..." : (isLogin ? "Accedi" : "Crea account")}
             </Button>
           </form>
+
+          {isLogin && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setLocation("/forgot-password")}
+                className="text-sm text-muted-foreground hover:text-gold hover:underline"
+                data-testid="link-forgot-password"
+              >
+                Hai dimenticato la password?
+              </button>
+            </div>
+          )}
           
           <div className="mt-6 text-center">
             <p className="text-muted-foreground">
