@@ -21,6 +21,7 @@ async function createPromoApi(payload: any) {
   const res = await fetch("/api/promos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include", // Include cookies for authentication
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
