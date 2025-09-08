@@ -68,6 +68,10 @@ export default function Dashboard() {
     queryKey: ["api", "links"],
   });
 
+  const { data: promos = [] } = useQuery({
+    queryKey: ["api", "promos"],
+  });
+
   // Profile form
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -378,11 +382,31 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="text-center py-8 text-muted-foreground">
-                        <i className="fas fa-gift text-4xl mb-4 opacity-50"></i>
-                        <p>Nessuna promozione attiva</p>
-                        <p className="text-sm">Crea la tua prima promozione per iniziare</p>
-                      </div>
+                      {promos.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <i className="fas fa-gift text-4xl mb-4 opacity-50"></i>
+                          <p>Nessuna promozione attiva</p>
+                          <p className="text-sm">Crea la tua prima promozione per iniziare</p>
+                        </div>
+                      ) : (
+                        promos.map((promo: any) => (
+                          <div key={promo.id} className="border rounded-lg p-4 bg-muted/50">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-semibold">{promo.title}</h4>
+                                <p className="text-sm text-muted-foreground">{promo.description}</p>
+                                <span className="inline-block mt-2 px-2 py-1 bg-[#CC9900] text-black text-xs rounded">
+                                  {promo.type.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="text-right text-xs text-muted-foreground">
+                                <div>Inizio: {new Date(promo.startAt).toLocaleDateString('it-IT')}</div>
+                                <div>Fine: {new Date(promo.endAt).toLocaleDateString('it-IT')}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -397,12 +421,12 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <div className="text-2xl font-bold text-[#CC9900]">0</div>
-                        <div className="text-sm text-muted-foreground">Biglietti generati</div>
+                        <div className="text-2xl font-bold text-[#CC9900]">{promos.length}</div>
+                        <div className="text-sm text-muted-foreground">Promozioni create</div>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">0</div>
-                        <div className="text-sm text-muted-foreground">Biglietti utilizzati</div>
+                        <div className="text-2xl font-bold text-green-500">{promos.filter((p: any) => p.active).length}</div>
+                        <div className="text-sm text-muted-foreground">Promozioni attive</div>
                       </div>
                     </div>
                   </CardContent>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 
 type FormData = {
   title: string;
@@ -33,6 +34,7 @@ async function createPromoApi(payload: any) {
 
 export default function NewPromoLite() {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -90,6 +92,8 @@ export default function NewPromoLite() {
 
     try {
       await createPromoApi(payload);
+      // Invalidate and refetch promos list
+      queryClient.invalidateQueries({ queryKey: ["api", "promos"] });
       alert("Promozione creata ✅");
       setOpen(false);
     } catch (e: any) {
