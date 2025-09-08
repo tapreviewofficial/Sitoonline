@@ -16,7 +16,7 @@ import { logout } from "@/lib/auth";
 import { StatsPanel } from "@/components/StatsPanel";
 import { DraggableLinkList } from "@/components/DraggableLinkList";
 import { LivePreview } from "@/components/LivePreview";
-import NewPromotionWizard from "@/components/NewPromotionWizard";
+import NewPromoLite from "@/components/NewPromoLite";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -365,10 +365,7 @@ export default function Dashboard() {
                   <h2 className="text-2xl font-bold">Gestione Promozioni</h2>
                   <p className="text-muted-foreground">Crea e gestisci i tuoi inviti e biglietti digitali</p>
                 </div>
-                <NewPromotionWizard onSuccess={() => {
-                  toast({ title: "Successo", description: "Promozione creata con successo!" });
-                  // Qui in futuro potremo aggiungere l'invalidazione delle query per ricaricare la lista promozioni
-                }} />
+                <NewPromoLite />
               </div>
 
               <div className="grid lg:grid-cols-2 gap-6">
