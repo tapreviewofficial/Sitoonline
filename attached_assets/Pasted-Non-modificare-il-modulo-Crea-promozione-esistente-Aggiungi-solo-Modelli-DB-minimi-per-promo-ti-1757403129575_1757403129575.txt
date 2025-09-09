@@ -1,0 +1,252 @@
+Non modificare il modulo “Crea promozione” esistente.
+Aggiungi solo:
+
+Modelli DB minimi per promo/ticket (se mancanti)
+
+Endpoint API per lista/toggle e per pagina pubblica (claim + promo attiva)
+
+Pagina pubblica /p/:username
+
+Toggle “Attiva” nella lista promozioni (max 1 attiva)
+
+1) Prisma – aggiungi modelli (solo se non già presenti)
+
+File: server/prisma/schema.prisma
+
+model Promo {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  title        String
+  description  String
+  type         String      // "coupon" | "invito" | "omaggio"
+  valueKind    String?     // "percent" | "amount"
+  value        Float?
+  startAt      DateTime
+  endAt        DateTime
+  maxCodes     Int
+  usesPerCode  Int         @default(1)
+  codeFormat   String      // "short" | "uuid"
+  qrMode       String      // "url" | "jwt"
+  active       Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tickets      Ticket[]
+}
+
+model Ticket {
+  id              Int       @id @default(autoincrement())
+  promoId         Int
+  customerName    String?
+  customerSurname String?
+  customerEmail   String
+  code            String    @unique
+  qrUrl           String
+  status          String    @default("ACTIVE") // ACTIVE | USED | EXPIRED
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  promo           Promo     @relation(fields: [promoId], references: [id], onDelete: Cascade)
+}
+
+
+Esegui:
+
+npx prisma generate --schema=server/prisma/schema.prisma
+npx prisma migrate dev --name promos_basic --schema=server/prisma/schema.prisma
+
+2) API promozioni: lista + toggle “attiva” + endpoints pubblici
+
+Crea server/routes/promos.ts (o integra nello schema esistente):
+
+import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
+import { customAlphabet } from "nanoid";
+
+const prisma = new PrismaClient();
+const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
+const router = Router();
+
+// recupera userId dal tuo auth/session middleware
+function getUserId(req:any){ return req.user?.id || req.session?.userId || 1; }
+
+// GET /api/promos  -> lista promozioni dell'utente (per UI lista)
+router.get("/", async (req,res)=>{
+  const userId = getUserId(req);
+  const items = await prisma.promo.findMany({
+    where:{ userId },
+    orderBy:{ createdAt:"desc" },
+    select:{ id:true,title:true,description:true,active:true,startAt:true,endAt:true }
+  });
+  res.json({ items });
+});
+
+// PATCH /api/promos/:id/active  -> set attiva (max 1 attiva)
+router.patch("/:id/active", async (req,res)=>{
+  const userId = getUserId(req);
+  const id = Number(req.params.id);
+  const { active } = req.body as { active:boolean };
+  const promo = await prisma.promo.findFirst({ where:{ id, userId }});
+  if(!promo) return res.status(404).json({ error:"Promo non trovata" });
+  if(active){
+    await prisma.promo.updateMany({ where:{ userId }, data:{ active:false } });
+    await prisma.promo.update({ where:{ id }, data:{ active:true } });
+  } else {
+    await prisma.promo.update({ where:{ id }, data:{ active:false } });
+  }
+  res.json({ ok:true });
+});
+
+// GET /api/public/:username/active-promo  -> dati minima promo attiva
+router.get("/public/:username/active-promo", async (req,res)=>{
+  const { username } = req.params;
+  const user = await prisma.user.findFirst({ where:{ username } });
+  if(!user) return res.json({ active:false });
+  const promo = await prisma.promo.findFirst({ where:{ userId:user.id, active:true } });
+  if(!promo) return res.json({ active:false });
+  res.json({ active:true, title:promo.title, description:promo.description, endAt:promo.endAt });
+});
+
+// POST /api/public/:username/claim  -> genera ticket + (stub) invio email con link/QR
+router.post("/public/:username/claim", async (req,res)=>{
+  try{
+    const { username } = req.params;
+    const { name, surname, email } = req.body as { name?:string; surname?:string; email:string };
+    const user = await prisma.user.findFirst({ where:{ username } });
+    if(!user) return res.status(404).json({ error:"Profilo non trovato" });
+    const promo = await prisma.promo.findFirst({ where:{ userId:user.id, active:true }});
+    if(!promo) return res.status(400).json({ error:"Nessuna promozione attiva" });
+    const code = nanoid();
+    const origin = process.env.PUBLIC_ORIGIN || "http://localhost:3000";
+    const qrUrl = `${origin}/q/${code}`;
+    await prisma.ticket.create({
+      data:{
+        promoId:promo.id,
+        customerName:name || null,
+        customerSurname:surname || null,
+        customerEmail:email,
+        code, qrUrl,
+        expiresAt: promo.endAt
+      }
+    });
+    console.log(`[EMAIL STUB] To:${email} | Subject:Il tuo QR | Body:${qrUrl}`);
+    res.json({ ok:true, code, qrUrl });
+  }catch(e:any){
+    res.status(400).json({ error:e?.message || "Errore" });
+  }
+});
+
+export default router;
+
+
+Registra le route in server/app.ts:
+
+import promosRouter from "./routes/promos";
+app.use("/api/promos", promosRouter);
+app.use("/api", promosRouter); // per /api/public/...
+
+3) Route breve QR (opzionale ma utile)
+
+server/routes/q.ts:
+
+import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+const router = Router();
+
+router.get("/:code", async (req,res)=>{
+  const t = await prisma.ticket.findUnique({ where:{ code:req.params.code } });
+  if(!t) return res.status(404).send("Codice non trovato");
+  if(t.usedAt) return res.status(410).send("Codice già usato");
+  if(t.expiresAt && new Date()>t.expiresAt) return res.status(410).send("Codice scaduto");
+  res.json({ ok:true, code:t.code, status: t.usedAt ? "USED" : "ACTIVE" });
+});
+export default router;
+
+
+In server/app.ts:
+
+import qRouter from "./routes/q";
+app.use("/q", qRouter);
+
+4) Pagina pubblica cliente (Nome, Cognome, Email)
+
+Crea client/pages/PublicClaim.tsx (stile Tailwind semplice):
+
+import React, { useEffect, useState } from "react";
+import { useParams } from "wouter";
+
+export default function PublicClaimPage(){
+  const { username } = useParams();
+  const [promo,setPromo] = useState<any>(null);
+  const [sent,setSent] = useState(false);
+
+  useEffect(()=>{ (async()=>{
+    const r = await fetch(`/api/public/${username}/active-promo`);
+    setPromo(await r.json());
+  })(); },[username]);
+
+  async function onSubmit(e:React.FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const body = { name:fd.get("name")?.toString(), surname:fd.get("surname")?.toString(), email:fd.get("email")?.toString() };
+    const r = await fetch(`/api/public/${username}/claim`, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+    if(r.ok) setSent(true); else alert("Errore invio");
+  }
+
+  if(!promo) return <div className="p-6 text-white">Caricamento…</div>;
+  if(!promo.active) return <div className="p-6 text-white">Nessuna promozione attiva.</div>;
+
+  return (
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-zinc-900 rounded p-5">
+        <h1 className="text-xl font-bold mb-2">{promo.title}</h1>
+        <p className="opacity-80 mb-4">{promo.description}</p>
+        {!sent ? (
+          <form onSubmit={onSubmit} className="space-y-3">
+            <div><label className="block text-sm mb-1">Nome</label><input name="name" className="w-full bg-zinc-800 rounded px-3 py-2" required /></div>
+            <div><label className="block text-sm mb-1">Cognome</label><input name="surname" className="w-full bg-zinc-800 rounded px-3 py-2" required /></div>
+            <div><label className="block text-sm mb-1">Email</label><input type="email" name="email" className="w-full bg-zinc-800 rounded px-3 py-2" required /></div>
+            <button className="w-full px-4 py-2 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold">Ricevi il QR via email</button>
+          </form>
+        ) : (<div className="text-center"><p>Controlla la tua email 📩</p></div>)}
+      </div>
+    </div>
+  );
+}
+
+
+Registra la route client (se usi wouter):
+
+// client/App.tsx (o router principale)
+import { Route } from "wouter";
+import PublicClaimPage from "./pages/PublicClaim";
+<Route path="/p/:username" component={PublicClaimPage} />
+
+5) Lista promozioni: aggiungi toggle senza cambiare il tuo form
+
+Nel file della pagina lista promozioni (es. client/pages/Promos.tsx), aggiungi (o estendi) una lista con switch:
+
+async function setActive(id:number, active:boolean){
+  const r = await fetch(`/api/promos/${id}/active`, {
+    method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ active })
+  });
+  if(r.ok) load(); else alert("Errore cambio stato");
+}
+// per ogni promo renderizza:
+<label className="flex items-center gap-2">
+  <input type="checkbox" checked={p.active} onChange={e=>setActive(p.id, e.target.checked)} /> Attiva
+</label>
+
+6) ENV
+
+In .env (dev) e Replit Secrets aggiungi:
+
+PUBLIC_ORIGIN=http://localhost:3000
+
+
+(In produzione metti il dominio reale.)
+
+7) Email
+
+Per ora lascia lo stub (console.log). Se disponibili credenziali SMTP, integra nodemailer e invia davvero l’email col link qrUrl.

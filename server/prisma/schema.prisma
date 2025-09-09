@@ -92,10 +92,16 @@ model Promo {
   publicPageId Int?
   title        String
   description  String?
-  type         String      // "invito" | "coupon" | "promo"
-  startAt      DateTime?
-  endAt        DateTime?
-  active       Boolean     @default(true)
+  type         String      // "coupon" | "invito" | "omaggio"
+  valueKind    String?     // "percent" | "amount"
+  value        Float?
+  startAt      DateTime
+  endAt        DateTime
+  maxCodes     Int         @default(100)
+  usesPerCode  Int         @default(1)
+  codeFormat   String      @default("short") // "short" | "uuid"
+  qrMode       String      @default("url")   // "url" | "jwt"
+  active       Boolean     @default(false)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -106,18 +112,19 @@ model Promo {
 }
 
 model Ticket {
-  id            Int          @id @default(autoincrement())
-  promoId       Int
-  customerName  String?
-  customerEmail String?
-  code          String       @unique
-  qrPayload     String
-  status        TicketStatus @default(ACTIVE)
-  expiresAt     DateTime?
-  usedAt        DateTime?
-  createdAt     DateTime     @default(now())
-  promo         Promo        @relation(fields: [promoId], references: [id], onDelete: Cascade)
-  scans         ScanLog[]
+  id              Int          @id @default(autoincrement())
+  promoId         Int
+  customerName    String?
+  customerSurname String?
+  customerEmail   String
+  code            String       @unique
+  qrUrl           String
+  status          String       @default("ACTIVE") // ACTIVE | USED | EXPIRED
+  usedAt          DateTime?
+  createdAt       DateTime     @default(now())
+  expiresAt       DateTime?
+  promo           Promo        @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  scans           ScanLog[]
 
   @@map("tickets")
 }
