@@ -506,6 +506,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", promosRouter);
   app.use("/api", ticketsRouter);
   app.use("/api", publicPagesRouter);
+  
+  // QR route breve
+  const qRouter = (await import("./routes/q.js")).default;
+  app.use("/q", qRouter);
 
   const httpServer = createServer(app);
   return httpServer;
