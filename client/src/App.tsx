@@ -15,6 +15,7 @@ import TicketPage from "@/pages/ticket";
 import ScanPage from "@/pages/scan";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
+import PublicClaimPage from "@/pages/PublicClaim";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/scan" component={ScanPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/p/:username" component={PublicClaimPage} />
       <Route component={NotFound} />
     </Switch>
   );
