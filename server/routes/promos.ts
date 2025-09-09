@@ -79,8 +79,8 @@ router.post("/promos", requireAuth, async (req, res) => {
         title,
         description,
         type,
-        startAt: startAt ? new Date(startAt) : null,
-        endAt: endAt ? new Date(endAt) : null,
+        startAt: startAt ? new Date(startAt) : new Date(),
+        endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         publicPageId: publicPageId || null
       },
       include: {
@@ -116,8 +116,8 @@ router.patch("/promos/:id", requireAuth, async (req, res) => {
         title,
         description,
         type,
-        startAt: startAt ? new Date(startAt) : null,
-        endAt: endAt ? new Date(endAt) : null,
+        startAt: startAt ? new Date(startAt) : new Date(),
+        endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         active,
         publicPageId: publicPageId || null
       },
