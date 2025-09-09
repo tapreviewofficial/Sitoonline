@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,6 +47,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Check authentication
   const { data: authData, isLoading: authLoading } = useQuery<{ user: { id: number; email: string; username: string } }>({
@@ -71,6 +72,26 @@ export default function Dashboard() {
   const { data: promos = [] } = useQuery({
     queryKey: ["api", "promos"],
   });
+
+  // Funzione per toggle attiva/disattiva promozione (max 1 attiva)
+  async function setActive(id: number, active: boolean) {
+    try {
+      const r = await fetch(`/api/promos/${id}/active`, {
+        method: "PATCH", 
+        headers: { "Content-Type": "application/json" }, 
+        credentials: "include",
+        body: JSON.stringify({ active })
+      });
+      if (r.ok) {
+        queryClient.invalidateQueries({ queryKey: ["api", "promos"] });
+        toast({ title: active ? "Promozione attivata" : "Promozione disattivata" });
+      } else {
+        toast({ title: "Errore cambio stato", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Errore di rete", variant: "destructive" });
+    }
+  }
 
   // Profile form
   const profileForm = useForm<ProfileForm>({
@@ -392,12 +413,25 @@ export default function Dashboard() {
                         promos.map((promo: any) => (
                           <div key={promo.id} className="border rounded-lg p-4 bg-muted/50">
                             <div className="flex justify-between items-start">
-                              <div>
+                              <div className="flex-1">
                                 <h4 className="font-semibold">{promo.title}</h4>
                                 <p className="text-sm text-muted-foreground">{promo.description}</p>
-                                <span className="inline-block mt-2 px-2 py-1 bg-[#CC9900] text-black text-xs rounded">
-                                  {promo.type.toUpperCase()}
-                                </span>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="inline-block px-2 py-1 bg-[#CC9900] text-black text-xs rounded">
+                                    {promo.type.toUpperCase()}
+                                  </span>
+                                  <label className="flex items-center gap-2 text-sm">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={promo.active} 
+                                      onChange={e => setActive(promo.id, e.target.checked)}
+                                      className="accent-[#CC9900]"
+                                    /> 
+                                    <span className={promo.active ? "text-[#CC9900] font-semibold" : "text-muted-foreground"}>
+                                      {promo.active ? "ATTIVA" : "Inattiva"}
+                                    </span>
+                                  </label>
+                                </div>
                               </div>
                               <div className="text-right text-xs text-muted-foreground">
                                 <div>Inizio: {new Date(promo.startAt).toLocaleDateString('it-IT')}</div>
