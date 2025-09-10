@@ -161,8 +161,8 @@ router.delete("/promos/:id", requireAuth, async (req, res) => {
 // NUOVI ENDPOINT AGGIUNTI PER LA FUNZIONALITÀ RICHIESTA
 
 // GET / -> lista promozioni dell'utente (per UI lista semplificata)
-router.get("/", async (req, res) => {
-  const userId = getUserId(req);
+router.get("/", requireAuth, async (req, res) => {
+  const userId = (req as any).user.userId;
   const items = await prisma.promo.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -172,8 +172,8 @@ router.get("/", async (req, res) => {
 });
 
 // PATCH /:id/active -> set attiva (max 1 attiva)
-router.patch("/:id/active", async (req, res) => {
-  const userId = getUserId(req);
+router.patch("/:id/active", requireAuth, async (req, res) => {
+  const userId = (req as any).user.userId;
   const id = Number(req.params.id);
   const { active } = req.body as { active: boolean };
   const promo = await prisma.promo.findFirst({ where: { id, userId } });
