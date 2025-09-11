@@ -40,7 +40,9 @@ async function run() {
     if (msg.includes('permission') || msg.includes('rls') || msg.includes('policy')) {
       console.warn('\nWARNING: Probabile RLS senza policy di INSERT per ruolo anon.');
       console.warn('SOLUTION: Aggiungi in Supabase SQL Editor le policy seguenti:\n');
-      console.warn('-- Consenti INSERT agli anon sulla tabella public.links');
+      console.warn('-- ATTENZIONE: Policy anon INSERT non è consigliata in produzione!');
+      console.warn('-- Usa solo per test di sviluppo. In produzione usa service-role.');
+      console.warn('-- Consenti INSERT agli anon sulla tabella public.links (SOLO SVILUPPO)');
       console.warn('CREATE POLICY "allow insert to anon"');
       console.warn('ON public.links');
       console.warn('FOR INSERT');
