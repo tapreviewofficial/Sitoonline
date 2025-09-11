@@ -15,7 +15,6 @@ import ticketsRouter from "./routes/tickets";
 import publicPagesRouter from "./routes/publicPages";
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from './services/emailService';
-import { storage } from './storage';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({

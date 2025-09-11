@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import { db, promos, tickets, users, publicPages } from "../lib/supabase";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
 import { customAlphabet } from "nanoid";
 
 const router = Router();
-const prisma = new PrismaClient();
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
 
 // recupera userId dal middleware auth
@@ -18,18 +18,56 @@ router.get("/promos", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
     
-    const promos = await prisma.promo.findMany({
-      where: { userId },
-      include: {
-        publicPage: true,
-        _count: {
-          select: { tickets: true }
+    const promosResult = await db
+      .select({
+        id: promos.id,
+        userId: promos.userId,
+        publicPageId: promos.publicPageId,
+        title: promos.title,
+        description: promos.description,
+        type: promos.type,
+        valueKind: promos.valueKind,
+        value: promos.value,
+        startAt: promos.startAt,
+        endAt: promos.endAt,
+        maxCodes: promos.maxCodes,
+        usesPerCode: promos.usesPerCode,
+        codeFormat: promos.codeFormat,
+        qrMode: promos.qrMode,
+        active: promos.active,
+        createdAt: promos.createdAt,
+        updatedAt: promos.updatedAt,
+        publicPage: {
+          id: publicPages.id,
+          userId: publicPages.userId,
+          slug: publicPages.slug,
+          title: publicPages.title,
+          theme: publicPages.theme,
+          createdAt: publicPages.createdAt,
+          updatedAt: publicPages.updatedAt
         }
-      },
-      orderBy: { createdAt: "desc" }
-    });
+      })
+      .from(promos)
+      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
+      .where(eq(promos.userId, userId))
+      .orderBy(desc(promos.createdAt));
 
-    res.json(promos);
+    // Get ticket counts for each promo
+    const promosWithCounts = await Promise.all(
+      promosResult.map(async (promo) => {
+        const ticketCount = await db
+          .select({ count: count() })
+          .from(tickets)
+          .where(eq(tickets.promoId, promo.id));
+        
+        return {
+          ...promo,
+          _count: { tickets: ticketCount[0]?.count || 0 }
+        };
+      })
+    );
+
+    res.json(promosWithCounts);
   } catch (error) {
     console.error("Errore recupero promozioni:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -42,21 +80,59 @@ router.get("/promos/:id", requireAuth, async (req, res) => {
     const userId = (req as any).user.userId;
     const promoId = parseInt(req.params.id);
 
-    const promo = await prisma.promo.findFirst({
-      where: { id: promoId, userId },
-      include: {
-        publicPage: true,
-        tickets: {
-          orderBy: { createdAt: "desc" }
+    const promoResult = await db
+      .select({
+        id: promos.id,
+        userId: promos.userId,
+        publicPageId: promos.publicPageId,
+        title: promos.title,
+        description: promos.description,
+        type: promos.type,
+        valueKind: promos.valueKind,
+        value: promos.value,
+        startAt: promos.startAt,
+        endAt: promos.endAt,
+        maxCodes: promos.maxCodes,
+        usesPerCode: promos.usesPerCode,
+        codeFormat: promos.codeFormat,
+        qrMode: promos.qrMode,
+        active: promos.active,
+        createdAt: promos.createdAt,
+        updatedAt: promos.updatedAt,
+        publicPage: {
+          id: publicPages.id,
+          userId: publicPages.userId,
+          slug: publicPages.slug,
+          title: publicPages.title,
+          theme: publicPages.theme,
+          createdAt: publicPages.createdAt,
+          updatedAt: publicPages.updatedAt
         }
-      }
-    });
+      })
+      .from(promos)
+      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
+      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .limit(1);
 
-    if (!promo) {
+    if (!promoResult.length) {
       return res.status(404).json({ error: "Promozione non trovata" });
     }
 
-    res.json(promo);
+    const promo = promoResult[0];
+
+    // Get tickets for this promo
+    const promoTickets = await db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.promoId, promoId))
+      .orderBy(desc(tickets.createdAt));
+
+    const result = {
+      ...promo,
+      tickets: promoTickets
+    };
+
+    res.json(result);
   } catch (error) {
     console.error("Errore recupero promozione:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -73,8 +149,9 @@ router.post("/promos", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Titolo e tipo sono obbligatori" });
     }
 
-    const promo = await prisma.promo.create({
-      data: {
+    const insertedPromo = await db
+      .insert(promos)
+      .values({
         userId,
         title,
         description,
@@ -82,13 +159,47 @@ router.post("/promos", requireAuth, async (req, res) => {
         startAt: startAt ? new Date(startAt) : new Date(),
         endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         publicPageId: publicPageId || null
-      },
-      include: {
-        publicPage: true
-      }
-    });
+      })
+      .returning();
 
-    res.status(201).json(promo);
+    const promoId = insertedPromo[0].id;
+
+    // Get the created promo with publicPage
+    const promoWithPublicPage = await db
+      .select({
+        id: promos.id,
+        userId: promos.userId,
+        publicPageId: promos.publicPageId,
+        title: promos.title,
+        description: promos.description,
+        type: promos.type,
+        valueKind: promos.valueKind,
+        value: promos.value,
+        startAt: promos.startAt,
+        endAt: promos.endAt,
+        maxCodes: promos.maxCodes,
+        usesPerCode: promos.usesPerCode,
+        codeFormat: promos.codeFormat,
+        qrMode: promos.qrMode,
+        active: promos.active,
+        createdAt: promos.createdAt,
+        updatedAt: promos.updatedAt,
+        publicPage: {
+          id: publicPages.id,
+          userId: publicPages.userId,
+          slug: publicPages.slug,
+          title: publicPages.title,
+          theme: publicPages.theme,
+          createdAt: publicPages.createdAt,
+          updatedAt: publicPages.updatedAt
+        }
+      })
+      .from(promos)
+      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
+      .where(eq(promos.id, promoId))
+      .limit(1);
+
+    res.status(201).json(promoWithPublicPage[0]);
   } catch (error) {
     console.error("Errore creazione promozione:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -102,31 +213,66 @@ router.patch("/promos/:id", requireAuth, async (req, res) => {
     const promoId = parseInt(req.params.id);
     const { title, description, type, startAt, endAt, active, publicPageId } = req.body;
 
-    const existingPromo = await prisma.promo.findFirst({
-      where: { id: promoId, userId }
-    });
+    const existingPromo = await db
+      .select()
+      .from(promos)
+      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .limit(1);
 
-    if (!existingPromo) {
+    if (!existingPromo.length) {
       return res.status(404).json({ error: "Promozione non trovata" });
     }
 
-    const promo = await prisma.promo.update({
-      where: { id: promoId },
-      data: {
+    await db
+      .update(promos)
+      .set({
         title,
         description,
         type,
         startAt: startAt ? new Date(startAt) : new Date(),
         endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         active,
-        publicPageId: publicPageId || null
-      },
-      include: {
-        publicPage: true
-      }
-    });
+        publicPageId: publicPageId || null,
+        updatedAt: new Date()
+      })
+      .where(eq(promos.id, promoId));
 
-    res.json(promo);
+    // Get the updated promo with publicPage
+    const updatedPromo = await db
+      .select({
+        id: promos.id,
+        userId: promos.userId,
+        publicPageId: promos.publicPageId,
+        title: promos.title,
+        description: promos.description,
+        type: promos.type,
+        valueKind: promos.valueKind,
+        value: promos.value,
+        startAt: promos.startAt,
+        endAt: promos.endAt,
+        maxCodes: promos.maxCodes,
+        usesPerCode: promos.usesPerCode,
+        codeFormat: promos.codeFormat,
+        qrMode: promos.qrMode,
+        active: promos.active,
+        createdAt: promos.createdAt,
+        updatedAt: promos.updatedAt,
+        publicPage: {
+          id: publicPages.id,
+          userId: publicPages.userId,
+          slug: publicPages.slug,
+          title: publicPages.title,
+          theme: publicPages.theme,
+          createdAt: publicPages.createdAt,
+          updatedAt: publicPages.updatedAt
+        }
+      })
+      .from(promos)
+      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
+      .where(eq(promos.id, promoId))
+      .limit(1);
+
+    res.json(updatedPromo[0]);
   } catch (error) {
     console.error("Errore aggiornamento promozione:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -139,17 +285,19 @@ router.delete("/promos/:id", requireAuth, async (req, res) => {
     const userId = (req as any).user.userId;
     const promoId = parseInt(req.params.id);
 
-    const existingPromo = await prisma.promo.findFirst({
-      where: { id: promoId, userId }
-    });
+    const existingPromo = await db
+      .select()
+      .from(promos)
+      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .limit(1);
 
-    if (!existingPromo) {
+    if (!existingPromo.length) {
       return res.status(404).json({ error: "Promozione non trovata" });
     }
 
-    await prisma.promo.delete({
-      where: { id: promoId }
-    });
+    await db
+      .delete(promos)
+      .where(eq(promos.id, promoId));
 
     res.json({ success: true });
   } catch (error) {
@@ -163,11 +311,18 @@ router.delete("/promos/:id", requireAuth, async (req, res) => {
 // GET / -> lista promozioni dell'utente (per UI lista semplificata)
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).user.userId;
-  const items = await prisma.promo.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, title: true, description: true, active: true, startAt: true, endAt: true }
-  });
+  const items = await db
+    .select({
+      id: promos.id,
+      title: promos.title,
+      description: promos.description,
+      active: promos.active,
+      startAt: promos.startAt,
+      endAt: promos.endAt
+    })
+    .from(promos)
+    .where(eq(promos.userId, userId))
+    .orderBy(desc(promos.createdAt));
   res.json({ items });
 });
 
@@ -176,25 +331,63 @@ router.patch("/:id/active", requireAuth, async (req, res) => {
   const userId = (req as any).user.userId;
   const id = Number(req.params.id);
   const { active } = req.body as { active: boolean };
-  const promo = await prisma.promo.findFirst({ where: { id, userId } });
-  if (!promo) return res.status(404).json({ error: "Promo non trovata" });
+  
+  const promo = await db
+    .select()
+    .from(promos)
+    .where(and(eq(promos.id, id), eq(promos.userId, userId)))
+    .limit(1);
+    
+  if (!promo.length) return res.status(404).json({ error: "Promo non trovata" });
+  
   if (active) {
-    await prisma.promo.updateMany({ where: { userId }, data: { active: false } });
-    await prisma.promo.update({ where: { id }, data: { active: true } });
+    // Deactivate all user's promos first
+    await db
+      .update(promos)
+      .set({ active: false, updatedAt: new Date() })
+      .where(eq(promos.userId, userId));
+    
+    // Then activate the specific promo
+    await db
+      .update(promos)
+      .set({ active: true, updatedAt: new Date() })
+      .where(eq(promos.id, id));
   } else {
-    await prisma.promo.update({ where: { id }, data: { active: false } });
+    await db
+      .update(promos)
+      .set({ active: false, updatedAt: new Date() })
+      .where(eq(promos.id, id));
   }
+  
   res.json({ ok: true });
 });
 
 // GET /public/:username/active-promo -> dati minima promo attiva
 router.get("/public/:username/active-promo", async (req, res) => {
   const { username } = req.params;
-  const user = await prisma.user.findFirst({ where: { username } });
-  if (!user) return res.json({ active: false });
-  const promo = await prisma.promo.findFirst({ where: { userId: user.id, active: true } });
-  if (!promo) return res.json({ active: false });
-  res.json({ active: true, title: promo.title, description: promo.description, endAt: promo.endAt });
+  
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+    
+  if (!user.length) return res.json({ active: false });
+  
+  const promo = await db
+    .select()
+    .from(promos)
+    .where(and(eq(promos.userId, user[0].id), eq(promos.active, true)))
+    .limit(1);
+    
+  if (!promo.length) return res.json({ active: false });
+  
+  res.json({ 
+    active: true, 
+    title: promo[0].title, 
+    description: promo[0].description, 
+    endAt: promo[0].endAt 
+  });
 });
 
 // POST /public/:username/claim -> genera ticket + (stub) invio email con link/QR
@@ -202,23 +395,39 @@ router.post("/public/:username/claim", async (req, res) => {
   try {
     const { username } = req.params;
     const { name, surname, email } = req.body as { name?: string; surname?: string; email: string };
-    const user = await prisma.user.findFirst({ where: { username } });
-    if (!user) return res.status(404).json({ error: "Profilo non trovato" });
-    const promo = await prisma.promo.findFirst({ where: { userId: user.id, active: true } });
-    if (!promo) return res.status(400).json({ error: "Nessuna promozione attiva" });
+    
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+      
+    if (!user.length) return res.status(404).json({ error: "Profilo non trovato" });
+    
+    const promo = await db
+      .select()
+      .from(promos)
+      .where(and(eq(promos.userId, user[0].id), eq(promos.active, true)))
+      .limit(1);
+      
+    if (!promo.length) return res.status(400).json({ error: "Nessuna promozione attiva" });
+    
     const code = nanoid();
     const origin = process.env.PUBLIC_ORIGIN || "http://localhost:5000";
     const qrUrl = `${origin}/q/${code}`;
-    await prisma.ticket.create({
-      data: {
-        promoId: promo.id,
+    
+    await db
+      .insert(tickets)
+      .values({
+        promoId: promo[0].id,
         customerName: name || null,
         customerSurname: surname || null,
         customerEmail: email,
-        code, qrUrl,
-        expiresAt: promo.endAt
-      }
-    });
+        code, 
+        qrUrl,
+        expiresAt: promo[0].endAt
+      });
+      
     console.log(`[EMAIL STUB] To:${email} | Subject:Il tuo QR | Body:${qrUrl}`);
     res.json({ ok: true, code, qrUrl });
   } catch (e: any) {
