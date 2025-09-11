@@ -1,0 +1,162 @@
+verifica che le env SUPABASE_URL e SUPABASE_ANON_KEY (e opzionale SUPABASE_SERVICE_ROLE_KEY) siano presenti
+
+prova un insert nella tabella links
+
+se fallisce, stampa il motivo (RLS/policy mancante, tabella inesistente, ecc.) e ti dà le SQL pronte da incollare in Supabase
+
+1) File: scripts/supabase_smoke.mjs
+
+crea la cartella scripts/ e incolla:
+
+// scripts/supabase_smoke.mjs
+import { createClient } from '@supabase/supabase-js';
+
+const url  = process.env.SUPABASE_URL;
+const anon = process.env.SUPABASE_ANON_KEY;
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
+
+function assertEnv() {
+  const missing = [];
+  if (!url)  missing.push('SUPABASE_URL');
+  if (!anon) missing.push('SUPABASE_ANON_KEY');
+  if (missing.length) {
+    console.error('❌ Mancano variabili d’ambiente:', missing.join(', '));
+    process.exit(1);
+  }
+  console.log('✅ Env ok:', { SUPABASE_URL: url.replace(/https?:\/\//,''), HAS_SERVICE_ROLE: !!service });
+}
+
+async function run() {
+  assertEnv();
+
+  // client lato “utente”
+  const supabase = createClient(url, anon, { auth: { persistSession: false } });
+
+  // Prova INSERT nella tabella `links`
+  const testRow = {
+    url: 'https://example.com',
+    title: 'SmokeTest',
+    created_at: new Date().toISOString()
+  };
+
+  console.log('⏳ Provo INSERT anon su public.links ...');
+  const { data, error } = await supabase.from('links').insert([testRow]).select();
+
+  if (error) {
+    console.error('❌ INSERT (anon) fallita:', error);
+
+    // Diagnostica rapida
+    const msg = (error?.message || '').toLowerCase();
+    if (msg.includes('permission') || msg.includes('rls') || msg.includes('policy')) {
+      console.warn('\n🔒 Probabile RLS senza policy di INSERT per ruolo anon.');
+      console.warn('👉 Aggiungi in Supabase SQL Editor le policy seguenti:\n');
+      console.warn(`-- Consenti INSERT agli anon sulla tabella public.links
+CREATE POLICY "allow insert to anon"
+ON public.links
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+-- (facoltativo) Consenti SELECT
+CREATE POLICY "allow select to anon"
+ON public.links
+FOR SELECT
+TO anon
+USING (true);
+
+-- Assicurati che la RLS sia abilitata (di default lo è)
+ALTER TABLE public.links ENABLE ROW LEVEL SECURITY;`);
+    } else if (msg.includes('relation') && msg.includes('does not exist')) {
+      console.warn('\n🧱 La tabella `public.links` non esiste.');
+      console.warn('👉 Crea tabella e policy con queste SQL:\n');
+      console.warn(`CREATE TABLE IF NOT EXISTS public.links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  url text NOT NULL,
+  title text,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.links ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "allow insert to anon" ON public.links FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "allow select to anon" ON public.links FOR SELECT TO anon USING (true);`);
+    } else {
+      console.warn('\nℹ️ Se vuoi forzare un test lato server, imposta SUPABASE_SERVICE_ROLE_KEY e rilancia.');
+    }
+
+    // Se hai la service key, proviamo un insert “admin” per verificare connettività
+    if (service) {
+      console.log('\n⏳ Riprovo con SERVICE_ROLE_KEY (bypass RLS) per testare la connettività ...');
+      const admin = createClient(url, service, { auth: { persistSession: false } });
+      const { data: d2, error: e2 } = await admin.from('links').insert([{
+        ...testRow, title: 'SmokeTest (service)'
+      }]).select();
+      if (e2) {
+        console.error('❌ INSERT (service) fallita:', e2);
+      } else {
+        console.log('✅ INSERT (service) riuscita:', d2);
+        console.log('👉 Connettività ok: il problema è RLS/policy lato anon.');
+      }
+    }
+
+    process.exit(1);
+  }
+
+  console.log('✅ INSERT (anon) riuscita:', data);
+
+  // Verifica conteggio
+  const { count, error: countErr } = await supabase
+    .from('links')
+    .select('*', { count: 'exact', head: true });
+
+  if (countErr) {
+    console.error('⚠️ Select count fallita:', countErr);
+  } else {
+    console.log(`📊 Righe in links: ${count}`);
+  }
+
+  console.log('🎉 Smoke test completato.');
+}
+
+run().catch(e => {
+  console.error('💥 Errore inatteso:', e);
+  process.exit(1);
+});
+
+2) Dipendenza
+
+Nel progetto assicurati di avere la libreria:
+
+npm i -E @supabase/supabase-js
+
+3) Aggiungi un Workflow (Agente Replit)
+
+Clic Workflows → New Workflow → Name: Supabase Smoke Test
+
+Tasks:
+
+Run Command: npm i -E @supabase/supabase-js
+
+Run Command: node scripts/supabase_smoke.mjs
+
+Poi Run Workflow.
+
+4) Variabili richieste
+
+Devi avere nei Project Secrets (come da tuo screenshot):
+
+SUPABASE_URL
+
+SUPABASE_ANON_KEY
+
+(opzionale, solo per test/operazioni admin) SUPABASE_SERVICE_ROLE_KEY
+
+Cosa aspettarti in output
+
+Se va tutto bene: “✅ INSERT (anon) riuscita” e conteggio righe.
+
+Se fallisce per RLS/policy: ti stampa le SQL esatte da incollare in Supabase → SQL Editor.
+
+Se manca la tabella: ti stampa SQL di create table + policy.
+
+Se con service key l’inserimento riesce ma con anon no → è sicuramente una policy.
