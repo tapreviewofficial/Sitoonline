@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma";
+import { db, users, profiles, links, clicks } from "../lib/supabase.js";
+import { eq, or, ilike, desc, count, gte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -19,35 +20,45 @@ router.get("/users", async (req, res) => {
     const pageSize = Number(req.query.pageSize || 20);
     const skip = (page - 1) * pageSize;
 
-    let where: any = {};
-    
-    if (q) {
-      // Use simple LIKE for better compatibility
-      where = {
-        OR: [
-          { email: { contains: q } },
-          { username: { contains: q } },
-        ],
-      };
-    }
+    let whereCondition = q ? 
+      or(
+        ilike(users.email, `%${q}%`),
+        ilike(users.username, `%${q}%`)
+      ) : undefined;
 
-    const [total, users] = await Promise.all([
-      prisma.user.count({ where }),
-      prisma.user.findMany({
-        where,
-        include: {
-          _count: { select: { links: true } },
-          profile: { select: { displayName: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: pageSize,
-      }),
+    const [totalResult, usersResult] = await Promise.all([
+      db.select({ count: count() })
+        .from(users)
+        .where(whereCondition),
+      db.select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        role: users.role,
+        createdAt: users.createdAt,
+        linksCount: count(links.id),
+        displayName: profiles.displayName
+      })
+      .from(users)
+      .leftJoin(links, eq(users.id, links.userId))
+      .leftJoin(profiles, eq(users.id, profiles.userId))
+      .where(whereCondition)
+      .groupBy(users.id, profiles.displayName)
+      .orderBy(desc(users.createdAt))
+      .offset(skip)
+      .limit(pageSize)
     ]);
 
-    console.log("Admin users query:", { q, page, pageSize, total, usersCount: users.length });
+    const total = totalResult[0].count;
+    const usersData = usersResult.map(user => ({
+      ...user,
+      _count: { links: user.linksCount },
+      profile: { displayName: user.displayName }
+    }));
 
-    res.json({ total, page, pageSize, users });
+    console.log("Admin users query:", { q, page, pageSize, total, usersCount: usersData.length });
+
+    res.json({ total, page, pageSize, users: usersData });
   } catch (error) {
     console.error("Admin users query error:", error);
     res.status(500).json({ message: "Errore nel caricamento utenti" });
@@ -59,23 +70,27 @@ router.get("/users", async (req, res) => {
  *  Se esiste tabella Click, calcola 7/30 giorni. Altrimenti 0.
  */
 router.get("/stats/summary", async (_req, res) => {
-  const [usersCount, linksCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.link.count(),
+  const [usersCountResult, linksCountResult] = await Promise.all([
+    db.select({ count: count() }).from(users),
+    db.select({ count: count() }).from(links),
   ]);
+
+  const usersCount = usersCountResult[0].count;
+  const linksCount = linksCountResult[0].count;
 
   // All-time clicks
   let clicksAllTime = 0;
   try {
     // Se esiste colonna clicks su Link (contatore veloce)
-    const links = await prisma.link.findMany({ select: { clicks: true } });
-    if (links.length) {
-      clicksAllTime = links.reduce((a: number, b: any) => a + (b.clicks || 0), 0);
+    const linksResult = await db.select({ clicks: links.clicks }).from(links);
+    if (linksResult.length) {
+      clicksAllTime = linksResult.reduce((a: number, b: any) => a + (b.clicks || 0), 0);
     }
   } catch {
     // Se non esiste la colonna clicks, prova tabella Click
     try {
-      clicksAllTime = await prisma.click.count();
+      const clicksResult = await db.select({ count: count() }).from(clicks);
+      clicksAllTime = clicksResult[0].count;
     } catch {
       clicksAllTime = 0;
     }
@@ -87,8 +102,14 @@ router.get("/stats/summary", async (_req, res) => {
     const now = new Date();
     const d7 = new Date(now); d7.setDate(now.getDate() - 7);
     const d30 = new Date(now); d30.setDate(now.getDate() - 30);
-    clicks7d = await prisma.click.count({ where: { createdAt: { gte: d7 } } });
-    clicks30d = await prisma.click.count({ where: { createdAt: { gte: d30 } } });
+    
+    const [clicks7dResult, clicks30dResult] = await Promise.all([
+      db.select({ count: count() }).from(clicks).where(gte(clicks.createdAt, d7)),
+      db.select({ count: count() }).from(clicks).where(gte(clicks.createdAt, d30))
+    ]);
+    
+    clicks7d = clicks7dResult[0].count;
+    clicks30d = clicks30dResult[0].count;
   } catch {
     clicks7d = 0; clicks30d = 0;
   }
@@ -103,7 +124,8 @@ router.get("/stats/summary", async (_req, res) => {
 router.post("/impersonate/:userId", async (req: any, res) => {
   const targetId = Number(req.params.userId);
   const admin = req.admin; // messo da requireAdmin
-  const user = await prisma.user.findUnique({ where: { id: targetId } });
+  const userResult = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
+  const user = userResult.length ? userResult[0] : null;
   if (!user) return res.status(404).json({ message: "Utente non trovato" });
 
   const userToken = signToken({ userId: user.id, imp: true, by: admin.id });

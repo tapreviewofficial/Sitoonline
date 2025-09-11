@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma";
+import { db, users } from "../lib/supabase.js";
+import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -11,11 +12,18 @@ router.get("/", async (req: any, res) => {
   try {
     const payload: any = jwt.verify(token, process.env.JWT_SECRET as string);
     const userId = payload?.userId || payload?.id;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, username: true, role: true },
-    });
+    
+    const userResult = await db.select({
+      id: users.id,
+      email: users.email,
+      username: users.username,
+      role: users.role
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
 
+    const user = userResult.length ? userResult[0] : null;
     const impersonating = Boolean(payload?.imp);
     res.json({ user, impersonating });
   } catch {

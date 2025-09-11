@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import { db, promos, tickets, scanLogs } from "../lib/supabase.js";
+import { eq, and } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
 import { customAlphabet } from "nanoid";
 import QRCode from "qrcode";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Crea codici più leggibili con alphabet senza caratteri confusi
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
@@ -18,23 +18,23 @@ router.post("/promos/:promoId/tickets/generate", async (req, res) => {
     const { customerName, customerEmail } = req.body;
 
     // Verifica che la promozione esista e sia attiva
-    const promo = await prisma.promo.findFirst({
-      where: { 
-        id: promoId,
-        active: true
-      }
-    });
+    const promo = await db.select()
+      .from(promos)
+      .where(and(eq(promos.id, promoId), eq(promos.active, true)))
+      .limit(1);
 
-    if (!promo) {
+    if (!promo.length) {
       return res.status(404).json({ error: "Promozione non trovata o non attiva" });
     }
 
+    const promoData = promo[0];
+
     // Verifica se la promozione è ancora valida
     const now = new Date();
-    if (promo.startAt && now < promo.startAt) {
+    if (promoData.startAt && now < promoData.startAt) {
       return res.status(400).json({ error: "La promozione non è ancora iniziata" });
     }
-    if (promo.endAt && now > promo.endAt) {
+    if (promoData.endAt && now > promoData.endAt) {
       return res.status(400).json({ error: "La promozione è scaduta" });
     }
 
@@ -45,8 +45,11 @@ router.post("/promos/:promoId/tickets/generate", async (req, res) => {
     
     // Assicurati che il codice sia unico (max 5 tentativi)
     while (!isUnique && attempts < 5) {
-      const existing = await prisma.ticket.findUnique({ where: { code } });
-      if (!existing) {
+      const existing = await db.select()
+        .from(tickets)
+        .where(eq(tickets.code, code))
+        .limit(1);
+      if (!existing.length) {
         isUnique = true;
       } else {
         code = nanoid();
@@ -63,16 +66,18 @@ router.post("/promos/:promoId/tickets/generate", async (req, res) => {
     const qrUrl = `${publicOrigin}/q/${code}`;
 
     // Crea ticket
-    const ticket = await prisma.ticket.create({
-      data: {
+    const ticket = await db.insert(tickets)
+      .values({
         promoId,
         customerName: customerName || null,
         customerEmail: customerEmail || null,
         code,
-        qrPayload: qrUrl,
-        expiresAt: promo.endAt
-      }
-    });
+        qrUrl: qrUrl,
+        expiresAt: promoData.endAt
+      })
+      .returning();
+
+    const ticketData = ticket[0];
 
     // Genera QR code come data URL
     const qrDataUrl = await QRCode.toDataURL(qrUrl, {
@@ -85,11 +90,11 @@ router.post("/promos/:promoId/tickets/generate", async (req, res) => {
     });
 
     res.status(201).json({
-      ticketId: ticket.id,
+      ticketId: ticketData.id,
       code,
       qrUrl,
       qrDataUrl,
-      expiresAt: ticket.expiresAt
+      expiresAt: ticketData.expiresAt
     });
 
   } catch (error) {
@@ -103,48 +108,52 @@ router.get("/tickets/:code/status", async (req, res) => {
   try {
     const { code } = req.params;
     
-    const ticket = await prisma.ticket.findUnique({
-      where: { code },
-      include: {
-        promo: {
-          select: {
-            title: true,
-            description: true,
-            type: true
-          }
-        }
+    const ticket = await db.select({
+      id: tickets.id,
+      status: tickets.status,
+      usedAt: tickets.usedAt,
+      expiresAt: tickets.expiresAt,
+      promo: {
+        title: promos.title,
+        description: promos.description,
+        type: promos.type
       }
-    });
+    })
+    .from(tickets)
+    .innerJoin(promos, eq(tickets.promoId, promos.id))
+    .where(eq(tickets.code, code))
+    .limit(1);
 
-    if (!ticket) {
+    if (!ticket.length) {
       return res.status(404).json({ status: "not_found" });
     }
 
+    const ticketData = ticket[0];
     const now = new Date();
     
     // Controlla se scaduto
-    if (ticket.expiresAt && now > ticket.expiresAt) {
+    if (ticketData.expiresAt && now > ticketData.expiresAt) {
       return res.json({ 
         status: "expired", 
-        usedAt: ticket.usedAt,
-        promo: ticket.promo 
+        usedAt: ticketData.usedAt,
+        promo: ticketData.promo 
       });
     }
     
     // Controlla se già usato
-    if (ticket.status === "USED") {
+    if (ticketData.status === "USED") {
       return res.json({ 
         status: "used", 
-        usedAt: ticket.usedAt,
-        promo: ticket.promo 
+        usedAt: ticketData.usedAt,
+        promo: ticketData.promo 
       });
     }
 
     // Ticket valido
     return res.json({ 
       status: "valid", 
-      expiresAt: ticket.expiresAt,
-      promo: ticket.promo 
+      expiresAt: ticketData.expiresAt,
+      promo: ticketData.promo 
     });
 
   } catch (error) {
@@ -158,84 +167,86 @@ router.post("/tickets/:code/use", async (req, res) => {
   try {
     const { code } = req.params;
     // L'utente che scansiona (se loggato)
-    const scannedByUserId = req.user?.id || null;
+    const scannedByUserId = (req as any).user?.id || null;
     
-    const ticket = await prisma.ticket.findUnique({
-      where: { code },
-      include: {
-        promo: {
-          select: {
-            title: true,
-            description: true
-          }
-        }
+    const ticket = await db.select({
+      id: tickets.id,
+      status: tickets.status,
+      usedAt: tickets.usedAt,
+      expiresAt: tickets.expiresAt,
+      promo: {
+        title: promos.title,
+        description: promos.description
       }
-    });
+    })
+    .from(tickets)
+    .innerJoin(promos, eq(tickets.promoId, promos.id))
+    .where(eq(tickets.code, code))
+    .limit(1);
 
-    if (!ticket) {
-      await prisma.scanLog.create({
-        data: { 
+    if (!ticket.length) {
+      await db.insert(scanLogs)
+        .values({ 
           ticketId: 0, // ticket non trovato
           userId: scannedByUserId,
           result: "not_found",
           meta: req.get("User-Agent") || null
-        }
-      }).catch(() => {}); // Ignora errori di log
+        })
+        .catch(() => {}); // Ignora errori di log
       
       return res.status(404).json({ status: "not_found" });
     }
 
+    const ticketData = ticket[0];
+
     const now = new Date();
 
     // Controlla se scaduto
-    if (ticket.expiresAt && now > ticket.expiresAt) {
-      await prisma.scanLog.create({
-        data: { 
-          ticketId: ticket.id, 
+    if (ticketData.expiresAt && now > ticketData.expiresAt) {
+      await db.insert(scanLogs)
+        .values({ 
+          ticketId: ticketData.id, 
           userId: scannedByUserId,
           result: "expired",
           meta: req.get("User-Agent") || null
-        }
-      });
+        });
       return res.json({ status: "expired" });
     }
 
     // Controlla se già usato (idempotente)
-    if (ticket.status === "USED") {
-      await prisma.scanLog.create({
-        data: { 
-          ticketId: ticket.id, 
+    if (ticketData.status === "USED") {
+      await db.insert(scanLogs)
+        .values({ 
+          ticketId: ticketData.id, 
           userId: scannedByUserId,
           result: "used",
           meta: req.get("User-Agent") || null
-        }
-      });
-      return res.json({ status: "used", usedAt: ticket.usedAt });
+        });
+      return res.json({ status: "used", usedAt: ticketData.usedAt });
     }
 
     // Marca come usato
-    const updatedTicket = await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: { 
+    const updatedTicket = await db.update(tickets)
+      .set({ 
         status: "USED", 
         usedAt: now 
-      }
-    });
+      })
+      .where(eq(tickets.id, ticketData.id))
+      .returning();
 
     // Log dello scan valido
-    await prisma.scanLog.create({
-      data: { 
-        ticketId: updatedTicket.id, 
+    await db.insert(scanLogs)
+      .values({ 
+        ticketId: updatedTicket[0].id, 
         userId: scannedByUserId,
         result: "valid",
         meta: req.get("User-Agent") || null
-      }
-    });
+      });
 
     res.json({ 
       status: "used", 
-      usedAt: updatedTicket.usedAt,
-      promo: ticket.promo
+      usedAt: updatedTicket[0].usedAt,
+      promo: ticketData.promo
     });
 
   } catch (error) {
