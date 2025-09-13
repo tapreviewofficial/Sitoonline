@@ -2,7 +2,7 @@
 // Come suggerito dall'integrazione Replit
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema';
+import * as schema from '@shared/schema';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -36,7 +36,7 @@ try {
 }
 
 // Export dello schema per uso diretto
-export * from './schema';
+export * from '@shared/schema';
 
 // Test connessione
 client`SELECT 1 as test`.then(() => {

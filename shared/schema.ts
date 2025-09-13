@@ -1,11 +1,14 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, timestamp, pgEnum, pgSchema } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = pgEnum("user_role", ["USER", "ADMIN"]);
+// Schema dedicato per TapReview per evitare conflitti con tabelle esistenti
+const tapreview = pgSchema("tapreview");
 
-export const users = pgTable("users", {
+export const userRoleEnum = tapreview.enum("user_role", ["USER", "ADMIN"]);
+
+export const users = tapreview.table("users", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
@@ -14,7 +17,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const profiles = pgTable("profiles", {
+export const profiles = tapreview.table("profiles", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
@@ -23,7 +26,7 @@ export const profiles = pgTable("profiles", {
   accentColor: text("accent_color").default("#CC9900"),
 });
 
-export const links = pgTable("links", {
+export const links = tapreview.table("links", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   title: text("title").notNull(),
   url: text("url").notNull(),
@@ -33,7 +36,7 @@ export const links = pgTable("links", {
   clicks: integer("clicks").default(0),
 });
 
-export const clicks = pgTable("clicks", {
+export const clicks = tapreview.table("clicks", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
@@ -42,7 +45,7 @@ export const clicks = pgTable("clicks", {
   ipHash: text("ip_hash"),
 });
 
-export const passwordResets = pgTable("password_resets", {
+export const passwordResets = tapreview.table("password_resets", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),

@@ -22,8 +22,9 @@ const sql = postgres(databaseUrl, {
 async function bootstrapSupabase() {
   console.log('🚀 Bootstrap automatico Supabase...');
   
-  // Skip bootstrap solo se esplicitamente richiesto
-  // Con la conversione automatica pooler->diretto, possiamo sempre provare il bootstrap
+  // TEMPORANEO: Skip bootstrap per testare app senza RLS
+  console.log('⏭️  Bootstrap saltato temporaneamente per test');
+  return;
   
   try {
     // Verifica se il bootstrap è già stato eseguito

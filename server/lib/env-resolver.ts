@@ -57,13 +57,19 @@ if (!process.env.DATABASE_URL) {
     // currentUrl rimane invariato per mantenere hostname DNS valido
   }
   
-  // Aggiungi SSL se necessario
+  // Aggiungi SSL e search_path per schema tapreview se necessario
   if (currentUrl.includes('supabase.') && !currentUrl.includes('sslmode=')) {
     const urlWithSsl = currentUrl.includes('?') 
-      ? `${currentUrl}&sslmode=require` 
-      : `${currentUrl}?sslmode=require`;
+      ? `${currentUrl}&sslmode=require&options=-csearch_path%3Dtapreview,public` 
+      : `${currentUrl}?sslmode=require&options=-csearch_path%3Dtapreview,public`;
     process.env.DATABASE_URL = urlWithSsl;
-    console.log('✅ SSL aggiunto alla DATABASE_URL Supabase');
+    console.log('✅ SSL e search_path tapreview aggiunti alla DATABASE_URL');
+  } else if (currentUrl.includes('supabase.') && !currentUrl.includes('search_path')) {
+    const urlWithPath = currentUrl.includes('?') 
+      ? `${currentUrl}&options=-csearch_path%3Dtapreview,public` 
+      : `${currentUrl}?options=-csearch_path%3Dtapreview,public`;
+    process.env.DATABASE_URL = urlWithPath;
+    console.log('✅ search_path tapreview aggiunto alla DATABASE_URL');
   } else {
     process.env.DATABASE_URL = currentUrl;
     console.log('✅ DATABASE_URL configurata correttamente');
