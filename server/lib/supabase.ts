@@ -11,8 +11,13 @@ if (!databaseUrl) {
 
 console.log('🔗 Connessione a Supabase PostgreSQL via Drizzle...');
 
-// Client PostgreSQL per Supabase
-const client = postgres(databaseUrl);
+// Client PostgreSQL per Supabase con configurazione ottimizzata
+const client = postgres(databaseUrl, {
+  ssl: 'require',
+  max: 10,
+  idle_timeout: 30,
+  connect_timeout: 10
+});
 export const db = drizzle(client, { schema });
 
 // Export dello schema per uso diretto

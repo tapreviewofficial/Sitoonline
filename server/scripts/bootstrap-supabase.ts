@@ -6,7 +6,13 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL non configurata');
 }
 
-const sql = postgres(databaseUrl);
+// Configurazione specifica per Supabase
+const sql = postgres(databaseUrl, {
+  ssl: 'require',
+  max: 3,
+  idle_timeout: 10,
+  connect_timeout: 10
+});
 
 async function bootstrapSupabase() {
   console.log('🚀 Bootstrap automatico Supabase...');

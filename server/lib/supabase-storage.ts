@@ -202,9 +202,9 @@ export class SupabaseStorage implements IStorage {
   // Password reset methods
   async createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset> {
     const result = await db.insert(passwordResets).values({
-      userId: reset.userId,
+      user_id: reset.userId,
       token: reset.token,
-      expiresAt: reset.expiresAt,
+      expires_at: reset.expiresAt,
       used: reset.used ?? false
     }).returning();
     return result[0] as PasswordReset;
