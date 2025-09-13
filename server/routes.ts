@@ -510,6 +510,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const qRouter = (await import("./routes/q.js")).default;
   app.use("/q", qRouter);
 
+  // Health check endpoint
+  app.get("/api/health", async (req, res) => {
+    try {
+      const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: 'disconnected'
+      };
+
+      // Test connessione database semplice
+      try {
+        await storage.getUserById(0); // Query sicura che non dovrebbe mai restituire dati
+        health.database = 'connected';
+      } catch (error) {
+        health.database = 'error';
+      }
+
+      const statusCode = health.database === 'connected' ? 200 : 503;
+      res.status(statusCode).json(health);
+      
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        database: 'error'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

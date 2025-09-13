@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// Auto-configurazione variabili Supabase
+import './lib/env-resolver';
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -40,6 +43,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Bootstrap automatico Supabase prima di tutto
+  try {
+    const { bootstrapSupabase } = await import('./scripts/bootstrap-supabase');
+    await bootstrapSupabase();
+  } catch (error) {
+    log('Bootstrap Supabase fallito:', error instanceof Error ? error.message : String(error));
+    // Continua comunque - l'app potrebbe funzionare anche senza
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
