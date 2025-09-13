@@ -11,14 +11,29 @@ if (!databaseUrl) {
 
 console.log('🔗 Connessione a Supabase PostgreSQL via Drizzle...');
 
-// Client PostgreSQL per Supabase con configurazione ottimizzata
-const client = postgres(databaseUrl, {
+// Configurazione ottimizzata per Supabase (pooler vs diretto)
+const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
+const clientConfig = {
   ssl: 'require',
-  max: 10,
-  idle_timeout: 30,
-  connect_timeout: 10
-});
+  max: isPooler ? 2 : 10,
+  idle_timeout: isPooler ? 10 : 30,
+  connect_timeout: 15,
+  ...(isPooler && { 
+    prepare: false, // Disabilita prepared statements per PgBouncer
+    onnotice: () => {}, // Ignora notices da PgBouncer
+  })
+};
+
+const client = postgres(databaseUrl, clientConfig);
 export const db = drizzle(client, { schema });
+
+// Log connessione (senza password)
+try {
+  const url = new URL(databaseUrl);
+  console.log(`🔗 Connesso a: ${url.hostname}:${url.port} database=${url.pathname.slice(1)} user=${url.username} ${isPooler ? '(pooler)' : '(diretto)'}`);
+} catch (e) {
+  console.log('🔗 Connesso a Supabase PostgreSQL');
+}
 
 // Export dello schema per uso diretto
 export * from './schema';

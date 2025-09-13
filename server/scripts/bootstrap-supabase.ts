@@ -7,15 +7,23 @@ if (!databaseUrl) {
 }
 
 // Configurazione specifica per Supabase
+const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
 const sql = postgres(databaseUrl, {
   ssl: 'require',
-  max: 3,
+  max: 2,
   idle_timeout: 10,
-  connect_timeout: 10
+  connect_timeout: 15,
+  ...(isPooler && { 
+    prepare: false,
+    onnotice: () => {}
+  })
 });
 
 async function bootstrapSupabase() {
   console.log('🚀 Bootstrap automatico Supabase...');
+  
+  // Skip bootstrap solo se esplicitamente richiesto
+  // Con la conversione automatica pooler->diretto, possiamo sempre provare il bootstrap
   
   try {
     // Verifica se il bootstrap è già stato eseguito
