@@ -7,15 +7,16 @@ import { z } from "zod";
 // Schema dedicato per TapReview per evitare conflitti con tabelle esistenti
 const tapreview = pgSchema("tapreview");
 
-export const userRoleEnum = tapreview.enum("trv_user_role", ["USER", "ADMIN"]);
-export const ticketStatusEnum = tapreview.enum("trv_ticket_status", ["ACTIVE", "USED", "EXPIRED"]);
+// Temporarily remove enums to resolve conflicts during migration
+// export const userRoleEnum = tapreview.enum("trv_user_role", ["USER", "ADMIN"]);
+// ticketStatusEnum removed - tickets.status uses varchar, not enum
 
 export const users = tapreview.table("tr_users", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password_hash: text("password_hash").notNull(),
   username: text("username").notNull().unique(),
-  role: userRoleEnum("role").notNull().default("USER"),
+  role: text("role").notNull().default("USER"), // Temporarily use text instead of enum
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -115,6 +116,15 @@ export const scanLogs = tapreview.table("scan_logs", {
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  password_hash: true, // Omit database field
+  createdAt: true,
+}).extend({
+  password: z.string().min(6), // Add plain text password for API
+});
+
+// Separate schema for database operations with password_hash
+export const insertUserDbSchema = createInsertSchema(users).omit({
+  id: true,
   createdAt: true,
 });
 
@@ -167,6 +177,7 @@ export const insertScanLogSchema = createInsertSchema(scanLogs).omit({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUserDb = z.infer<typeof insertUserDbSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type Profile = typeof profiles.$inferSelect;

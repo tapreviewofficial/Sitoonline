@@ -1,5 +1,5 @@
 import { SupabaseStorage } from "./lib/supabase-storage";
-import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
+import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -7,7 +7,7 @@ export interface IStorage {
   getUserById(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUserDb): Promise<User>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
 
   // Profile methods

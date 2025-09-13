@@ -2,7 +2,7 @@
 import { eq, and, desc, asc, gte, lte, count, sql } from 'drizzle-orm';
 import { db, users, profiles, links, clicks, passwordResets } from './supabase';
 import type { IStorage } from '../storage';
-import type { User, InsertUser, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
+import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
 
 export class SupabaseStorage implements IStorage {
   // User methods
@@ -31,14 +31,15 @@ export class SupabaseStorage implements IStorage {
     return { ...user, role: user.role || 'USER' } as User;
   }
 
-  async createUser(user: InsertUser): Promise<User> {
+  async createUser(user: InsertUserDb): Promise<User> {
+    // InsertUser has password_hash from routes
     const result = await db.insert(users).values(user).returning();
     const newUser = result[0];
     return { ...newUser, role: newUser.role || 'USER' } as User;
   }
 
   async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
-    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
+    await db.update(users).set({ password_hash: hashedPassword }).where(eq(users.id, id));
   }
 
   // Profile methods
@@ -55,11 +56,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(users.username, username))
       .limit(1);
       
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
     
     return {
-      ...result[0].profiles,
-      user: result[0].users
+      ...result[0].tr_profiles,
+      user: result[0].tr_users
     } as Profile & { user: User };
   }
 
@@ -202,9 +203,9 @@ export class SupabaseStorage implements IStorage {
   // Password reset methods
   async createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset> {
     const result = await db.insert(passwordResets).values({
-      user_id: reset.userId,
+      userId: reset.userId,
       token: reset.token,
-      expires_at: reset.expiresAt,
+      expiresAt: reset.expiresAt,
       used: reset.used ?? false
     }).returning();
     return result[0] as PasswordReset;
@@ -218,11 +219,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(passwordResets.token, token))
       .limit(1);
 
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
 
     return {
-      ...result[0].password_resets,
-      user: result[0].users
+      ...result[0].tr_password_resets,
+      user: result[0].tr_users
     } as PasswordReset & { user: User };
   }
 

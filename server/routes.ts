@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser({
         email,
         username,
-        password: hashedPassword,
+        password_hash: hashedPassword,
       });
 
       // Sign token and set cookie
@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const isValid = await comparePassword(password, user.password);
+      const isValid = await comparePassword(password, user.password_hash);
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -127,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify current password
-      const isValid = await comparePassword(currentPassword, dbUser.password);
+      const isValid = await comparePassword(currentPassword, dbUser.password_hash);
       if (!isValid) {
         return res.status(401).json({ message: "Current password is incorrect" });
       }
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: user.id,
         token,
         expiresAt,
-        used: 0
+        used: false
       });
 
       // Genera link di reset
@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const passwordReset = await storage.getPasswordResetByToken(token);
 
-      if (!passwordReset || passwordReset.used !== 0 || passwordReset.expiresAt < new Date()) {
+      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
         return res.status(400).json({ error: 'Token non valido o scaduto' });
       }
 
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const passwordReset = await storage.getPasswordResetByToken(token);
 
-      if (!passwordReset || passwordReset.used !== 0 || passwordReset.expiresAt < new Date()) {
+      if (!passwordReset || passwordReset.used || passwordReset.expiresAt < new Date()) {
         return res.status(400).json({ error: 'Token non valido o scaduto' });
       }
 
