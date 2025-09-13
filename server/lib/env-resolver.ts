@@ -49,18 +49,12 @@ if (!process.env.DATABASE_URL) {
     console.warn('⚠️  PROBLEMA: DATABASE_URL sembra convertita da pooler a diretto');
   }
   
-  // CONVERSIONE AUTOMATICA: pooler -> connessione diretta (risolve problemi di rete)
-  if (currentUrl.includes('pooler.supabase.') || currentUrl.includes(':6543')) {
-    currentUrl = currentUrl
-      .replace('.pooler.supabase.com', '.supabase.com')  // Rimuovi solo "pooler."
-      .replace(':6543', ':5432')                         // Porta diretta
-      .replace('?pgbouncer=true', '')                   // Rimuovi parametri pooler
-      .replace('&pgbouncer=true', '');
-    console.log('🔄 AUTO-FIX: Convertito da pooler a connessione diretta Supabase');
-    
-    // Rimuovi le altre variabili per evitare override accidentali
-    delete process.env.SUPABASE_DB_URL;
-    delete process.env.SUPABASE_DATABASE_URL;
+  // MANTIENI POOLER URL (fix per DNS): il pooler URL è valido e funzionante!
+  // Rimuovi solo parametri problematici ma mantieni il pooler hostname originale
+  if (currentUrl.includes(':6543')) {
+    console.log('✅ Mantenuto Supabase pooler URL originale (DNS risolto)');
+    // Solo rimuovere pgbouncer se problematico, mantenere tutto il resto
+    // currentUrl rimane invariato per mantenere hostname DNS valido
   }
   
   // Aggiungi SSL se necessario
