@@ -33,6 +33,12 @@ if (!process.env.DATABASE_URL) {
 } else {
   let currentUrl = process.env.DATABASE_URL;
   
+  // CLEAN-UP AUTOMATICO: rimuovi virgolette problematiche dai Replit Secrets
+  if (currentUrl.startsWith('"') && currentUrl.endsWith('"')) {
+    currentUrl = currentUrl.slice(1, -1);
+    console.log('🔧 AUTO-FIX: Rimosse virgolette problematiche dalla DATABASE_URL');
+  }
+  
   // Verifica che sia effettivamente Supabase (supporta sia .com che .co)
   if (!currentUrl.includes('supabase.')) {
     console.log('⚠️  WARNING: DATABASE_URL non sembra essere Supabase');
