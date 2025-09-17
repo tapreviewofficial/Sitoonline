@@ -56,11 +56,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(users.username, username))
       .limit(1);
       
-    if (!result[0] || !result[0].tr_users) return undefined;
+    if (!result[0] || !result[0].users) return undefined;
     
     return {
-      ...result[0].tr_profiles,
-      user: result[0].tr_users
+      ...result[0].profiles,
+      user: result[0].users
     } as Profile & { user: User };
   }
 
@@ -219,11 +219,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(passwordResets.token, token))
       .limit(1);
 
-    if (!result[0] || !result[0].tr_users) return undefined;
+    if (!result[0] || !result[0].users) return undefined;
 
     return {
-      ...result[0].tr_password_resets,
-      user: result[0].tr_users
+      ...result[0].password_resets,
+      user: result[0].users
     } as PasswordReset & { user: User };
   }
 

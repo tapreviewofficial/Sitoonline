@@ -14,7 +14,7 @@ console.log('🔗 Connessione a Supabase PostgreSQL via Drizzle...');
 // Configurazione ottimizzata per Supabase (pooler vs diretto)
 const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
 const clientConfig = {
-  ssl: 'require',
+  ssl: 'require' as const,
   max: isPooler ? 2 : 10,
   idle_timeout: isPooler ? 10 : 30,
   connect_timeout: 15,
