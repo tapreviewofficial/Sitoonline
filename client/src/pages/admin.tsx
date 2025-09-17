@@ -18,14 +18,51 @@ export default function Admin() {
 
   useEffect(() => {
     fetch(`/api/admin/users?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`, { credentials: "include" })
-      .then(r => r.json())
-      .then(d => { setUsers(d.users || []); setTotal(d.total || 0); });
+      .then(async r => {
+        if (!r.ok) {
+          if (r.status === 403 || r.status === 401) {
+            console.log('Non autorizzato per pannello admin');
+            window.location.href = '/dashboard';
+            return;
+          }
+          throw new Error(`HTTP ${r.status}`);
+        }
+        return r.json();
+      })
+      .then(d => { 
+        if (d) {
+          setUsers(d.users || []); 
+          setTotal(d.total || 0); 
+        }
+      })
+      .catch(err => {
+        console.error('Errore caricamento utenti:', err);
+        setUsers([]);
+        setTotal(0);
+      });
   }, [query, page, pageSize]);
 
   useEffect(() => {
     fetch("/api/admin/stats/summary", { credentials: "include" })
-      .then(r => r.json())
-      .then(setStats);
+      .then(async r => {
+        if (!r.ok) {
+          if (r.status === 403 || r.status === 401) {
+            console.log('Non autorizzato per statistiche admin');
+            return null;
+          }
+          throw new Error(`HTTP ${r.status}`);
+        }
+        return r.json();
+      })
+      .then(data => {
+        if (data) {
+          setStats(data);
+        }
+      })
+      .catch(err => {
+        console.error('Errore caricamento statistiche:', err);
+        setStats(null);
+      });
   }, []);
 
   const impersona = async (id: number) => {

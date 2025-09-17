@@ -501,6 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Routes
   app.use("/api/me", meRouter);
+
   app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
   app.use("/api", promosRouter);
   app.use("/api", ticketsRouter);
@@ -537,6 +538,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         database: 'error'
       });
     }
+  });
+
+  // Terminal 404 handler for all /api/* routes to prevent Vite catch-all from serving HTML
+  app.all("/api/*", (_req, res) => {
+    res.status(404).json({ message: "Not found" });
   });
 
   const httpServer = createServer(app);
