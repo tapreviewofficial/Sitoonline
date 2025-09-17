@@ -5,6 +5,23 @@ import type { IStorage } from '../storage';
 import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
 
 export class SupabaseStorage implements IStorage {
+  // Helper per monitorare performance query
+  private async logQuery<T>(operation: string, query: Promise<T>): Promise<T> {
+    const start = Date.now();
+    try {
+      const result = await query;
+      const duration = Date.now() - start;
+      if (duration > 1000) {
+        console.warn(`🐌 Query lenta [${operation}]: ${duration}ms`);
+      }
+      return result;
+    } catch (error) {
+      const duration = Date.now() - start;
+      console.error(`❌ Query fallita [${operation}] dopo ${duration}ms:`, error);
+      throw error;
+    }
+  }
+
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);

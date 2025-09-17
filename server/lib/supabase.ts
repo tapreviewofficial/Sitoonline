@@ -11,13 +11,13 @@ if (!databaseUrl) {
 
 console.log('🔗 Connessione a Supabase PostgreSQL via Drizzle...');
 
-// Configurazione ottimizzata per Supabase (pooler vs diretto)
+// Configurazione conservativa per Supabase
 const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
 const clientConfig = {
   ssl: 'require' as const,
-  max: isPooler ? 2 : 10,
-  idle_timeout: isPooler ? 10 : 30,
-  connect_timeout: 15,
+  max: isPooler ? 3 : 8, // Incremento moderato: 2→3 per pooler
+  idle_timeout: isPooler ? 15 : 30, // Timeout moderato  
+  connect_timeout: 10, // Timeout più breve per fallire veloce
   ...(isPooler && { 
     prepare: false, // Disabilita prepared statements per PgBouncer
     onnotice: () => {}, // Ignora notices da PgBouncer
@@ -38,8 +38,13 @@ try {
 // Export dello schema per uso diretto
 export * from '@shared/schema';
 
-// Test connessione
-client`SELECT 1 as test`.then(() => {
+// Test connessione semplice con timeout
+Promise.race([
+  client`SELECT 1 as test`,
+  new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Connection test timeout')), 5000)
+  )
+]).then(() => {
   console.log('✅ Database Supabase connesso!');
 }).catch((error: any) => {
   console.error('❌ Errore connessione database:', error.message);
