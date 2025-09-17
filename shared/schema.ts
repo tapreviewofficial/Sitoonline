@@ -1,27 +1,21 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, pgEnum, pgSchema, varchar, decimal, boolean } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Schema dedicato per TapReview per evitare conflitti con tabelle esistenti
-const tapreview = pgSchema("tapreview");
-
-// Temporarily remove enums to resolve conflicts during migration
-// export const userRoleEnum = tapreview.enum("trv_user_role", ["USER", "ADMIN"]);
-// ticketStatusEnum removed - tickets.status uses varchar, not enum
-
-export const users = tapreview.table("tr_users", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+// Schema PostgreSQL standard senza prefissi, semplificato per migrazione completa
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   username: text("username").notNull().unique(),
-  role: text("role").notNull().default("USER"), // Temporarily use text instead of enum
+  role: text("role").notNull().default("USER"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const profiles = tapreview.table("tr_profiles", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const profiles = pgTable("profiles", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
   bio: text("bio"),
@@ -29,8 +23,8 @@ export const profiles = tapreview.table("tr_profiles", {
   accentColor: text("accent_color").default("#CC9900"),
 });
 
-export const links = tapreview.table("tr_links", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const links = pgTable("links", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   url: text("url").notNull(),
   order: integer("order").default(0),
@@ -39,8 +33,8 @@ export const links = tapreview.table("tr_links", {
   clicks: integer("clicks").default(0),
 });
 
-export const clicks = tapreview.table("tr_clicks", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const clicks = pgTable("clicks", {
+  id: serial("id").primaryKey(),
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   userAgent: text("user_agent"),
@@ -48,50 +42,47 @@ export const clicks = tapreview.table("tr_clicks", {
   ipHash: text("ip_hash"),
 });
 
-export const passwordResets = tapreview.table("tr_password_resets", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const passwordResets = pgTable("password_resets", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
-  used: boolean("used").default(false), // Fixed per PostgreSQL
+  used: boolean("used").default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Public Pages table
-export const publicPages = tapreview.table("public_pages", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const publicPages = pgTable("public_pages", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   title: varchar("title", { length: 255 }),
-  theme: text("theme"), // JSON string per colori, layout, etc.
+  theme: text("theme"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Promos table
-export const promos = tapreview.table("promos", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const promos = pgTable("promos", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   publicPageId: integer("public_page_id").references(() => publicPages.id),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
-  type: varchar("type", { length: 50 }).notNull(), // 'coupon' | 'invito' | 'omaggio'
-  valueKind: varchar("value_kind", { length: 20 }), // 'percent' | 'amount'
+  type: varchar("type", { length: 50 }).notNull(),
+  valueKind: varchar("value_kind", { length: 20 }),
   value: decimal("value", { precision: 10, scale: 2 }),
   startAt: timestamp("start_at").notNull(),
   endAt: timestamp("end_at").notNull(),
   maxCodes: integer("max_codes").default(100),
   usesPerCode: integer("uses_per_code").default(1),
-  codeFormat: varchar("code_format", { length: 20 }).default("short"), // 'short' | 'uuid'
-  qrMode: varchar("qr_mode", { length: 20 }).default("url"), // 'url' | 'jwt'
+  codeFormat: varchar("code_format", { length: 20 }).default("short"),
+  qrMode: varchar("qr_mode", { length: 20 }).default("url"),
   active: boolean("active").default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Tickets table
-export const tickets = tapreview.table("tickets", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
   promoId: integer("promo_id").notNull().references(() => promos.id, { onDelete: "cascade" }),
   customerName: varchar("customer_name", { length: 255 }),
   customerSurname: varchar("customer_surname", { length: 255 }),
@@ -104,25 +95,24 @@ export const tickets = tapreview.table("tickets", {
   expiresAt: timestamp("expires_at"),
 });
 
-// Scan Logs table
-export const scanLogs = tapreview.table("scan_logs", {
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+export const scanLogs = pgTable("scan_logs", {
+  id: serial("id").primaryKey(),
   ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
   userId: integer("user_id").references(() => users.id),
-  result: varchar("result", { length: 20 }).notNull(), // 'valid'|'expired'|'used'
+  result: varchar("result", { length: 20 }).notNull(),
   at: timestamp("at").default(sql`CURRENT_TIMESTAMP`),
-  meta: text("meta"), // userAgent, ip hash, device info
+  meta: text("meta"),
 });
 
+// Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
-  password_hash: true, // Omit database field
+  password_hash: true,
   createdAt: true,
 }).extend({
-  password: z.string().min(6), // Add plain text password for API
+  password: z.string().min(6),
 });
 
-// Separate schema for database operations with password_hash
 export const insertUserDbSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -176,6 +166,7 @@ export const insertScanLogSchema = createInsertSchema(scanLogs).omit({
   at: true,
 });
 
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertUserDb = z.infer<typeof insertUserDbSchema>;
 export type User = typeof users.$inferSelect;
