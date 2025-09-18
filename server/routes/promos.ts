@@ -326,8 +326,8 @@ router.get("/", requireAuth, async (req, res) => {
   res.json({ items });
 });
 
-// PATCH /:id/active -> set attiva (max 1 attiva)
-router.patch("/:id/active", requireAuth, async (req, res) => {
+// PATCH /promos/:id/active -> set attiva (max 1 attiva)
+router.patch("/promos/:id/active", requireAuth, async (req, res) => {
   const userId = (req as any).user.userId;
   const id = Number(req.params.id);
   const { active } = req.body as { active: boolean };
