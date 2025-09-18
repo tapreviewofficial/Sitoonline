@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { logout } from "@/lib/auth";
@@ -420,17 +421,20 @@ export default function Dashboard() {
                                   <span className="inline-block px-2 py-1 bg-[#CC9900] text-black text-xs rounded">
                                     {promo.type.toUpperCase()}
                                   </span>
-                                  <label className="flex items-center gap-2 text-sm">
-                                    <input 
-                                      type="checkbox" 
-                                      checked={promo.active} 
-                                      onChange={e => setActive(promo.id, e.target.checked)}
-                                      className="accent-[#CC9900]"
-                                    /> 
-                                    <span className={promo.active ? "text-[#CC9900] font-semibold" : "text-muted-foreground"}>
+                                  <div className="flex items-center gap-3">
+                                    <Switch
+                                      id={`promo-active-${promo.id}`}
+                                      checked={promo.active}
+                                      onCheckedChange={(checked) => setActive(promo.id, checked)}
+                                      data-testid={`switch-promo-active-${promo.id}`}
+                                    />
+                                    <label 
+                                      htmlFor={`promo-active-${promo.id}`} 
+                                      className={`text-sm cursor-pointer select-none ${promo.active ? "text-[#CC9900] font-semibold" : "text-muted-foreground"}`}
+                                    >
                                       {promo.active ? "ATTIVA" : "Inattiva"}
-                                    </span>
-                                  </label>
+                                    </label>
+                                  </div>
                                 </div>
                               </div>
                               <div className="text-right text-xs text-muted-foreground">
