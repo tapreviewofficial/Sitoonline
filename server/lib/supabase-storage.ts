@@ -56,7 +56,14 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
-    await db.update(users).set({ password_hash: hashedPassword }).where(eq(users.id, id));
+    await db.update(users).set({ 
+      password_hash: hashedPassword,
+      mustChangePassword: false 
+    }).where(eq(users.id, id));
+  }
+
+  async updateUserMustChangePassword(userId: number, mustChange: boolean): Promise<void> {
+    await db.update(users).set({ mustChangePassword: mustChange }).where(eq(users.id, userId));
   }
 
   // Profile methods

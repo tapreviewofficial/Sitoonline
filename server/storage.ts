@@ -9,6 +9,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUserDb): Promise<User>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
+  updateUserMustChangePassword(userId: number, mustChange: boolean): Promise<void>;
 
   // Profile methods
   getProfile(userId: number): Promise<Profile | undefined>;
