@@ -1,4 +1,16 @@
 import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { UserPlus, Users, Eye, EyeOff } from "lucide-react";
 
 type UserRow = {
   id: number;
@@ -8,6 +20,15 @@ type UserRow = {
   _count: { links: number };
 };
 
+const createUserSchema = z.object({
+  email: z.string().email("Email non valida"),
+  username: z.string().min(3, "Username minimo 3 caratteri"),
+  role: z.enum(["USER", "ADMIN"]).default("USER"),
+  tempPassword: z.string().min(8, "Password temporanea minimo 8 caratteri")
+});
+
+type CreateUserForm = z.infer<typeof createUserSchema>;
+
 export default function Admin() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -15,6 +36,45 @@ export default function Admin() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<{usersCount:number;linksCount:number;clicksAllTime:number;clicks7d:number;clicks30d:number} | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
+
+  // Form per creazione utenti
+  const form = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      email: "",
+      username: "",
+      role: "USER",
+      tempPassword: ""
+    }
+  });
+
+  // Mutation per creare utente
+  const createUserMutation = useMutation({
+    mutationFn: async (data: CreateUserForm) => {
+      return await apiRequest("POST", "/api/admin/users", data);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Utente creato",
+        description: `Account creato per ${data.user.username}. L'utente dovrà cambiare password al primo accesso.`,
+      });
+      form.reset();
+      setShowCreateForm(false);
+      // Ricarica la lista utenti
+      setPage(1);
+      window.location.reload(); // Semplice reload per aggiornare stats e lista
+    },
+    onError: (error) => {
+      toast({
+        title: "Errore",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     fetch(`/api/admin/users?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`, { credentials: "include" })
@@ -84,6 +144,133 @@ export default function Admin() {
           <StatCard title="Click (totali)" value={stats?.clicksAllTime ?? 0} />
           <StatCard title="Click 7g" value={stats?.clicks7d ?? 0} />
           <StatCard title="Click 30g" value={stats?.clicks30d ?? 0} />
+        </div>
+
+        {/* Create User Section */}
+        <div className="mb-8">
+          {!showCreateForm ? (
+            <Button 
+              onClick={() => setShowCreateForm(true)}
+              className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black font-medium"
+              data-testid="button-show-create-form"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Crea Nuovo Utente
+            </Button>
+          ) : (
+            <Card className="border-[#CC9900]/20 bg-black/50">
+              <CardHeader>
+                <CardTitle className="text-[#CC9900] flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Crea Nuovo Utente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={form.handleSubmit((data) => createUserMutation.mutate(data))} className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Email */}
+                    <div>
+                      <Label htmlFor="email" className="text-white/80">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="utente@example.com"
+                        {...form.register("email")}
+                        className="bg-black/50 border-white/20 text-white focus:border-[#CC9900]"
+                        data-testid="input-create-email"
+                      />
+                      {form.formState.errors.email && (
+                        <p className="text-red-400 text-sm mt-1">{form.formState.errors.email.message}</p>
+                      )}
+                    </div>
+
+                    {/* Username */}
+                    <div>
+                      <Label htmlFor="username" className="text-white/80">Username</Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="nome_utente"
+                        {...form.register("username")}
+                        className="bg-black/50 border-white/20 text-white focus:border-[#CC9900]"
+                        data-testid="input-create-username"
+                      />
+                      {form.formState.errors.username && (
+                        <p className="text-red-400 text-sm mt-1">{form.formState.errors.username.message}</p>
+                      )}
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <Label className="text-white/80">Ruolo</Label>
+                      <Select 
+                        value={form.watch("role")} 
+                        onValueChange={(value: "USER" | "ADMIN") => form.setValue("role", value)}
+                      >
+                        <SelectTrigger className="bg-black/50 border-white/20 text-white focus:border-[#CC9900]" data-testid="select-create-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USER">USER</SelectItem>
+                          <SelectItem value="ADMIN">ADMIN</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Temporary Password */}
+                    <div>
+                      <Label htmlFor="tempPassword" className="text-white/80">Password Temporanea</Label>
+                      <div className="relative">
+                        <Input
+                          id="tempPassword"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Minimo 8 caratteri"
+                          {...form.register("tempPassword")}
+                          className="bg-black/50 border-white/20 text-white focus:border-[#CC9900] pr-10"
+                          data-testid="input-create-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
+                          data-testid="button-toggle-password"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {form.formState.errors.tempPassword && (
+                        <p className="text-red-400 text-sm mt-1">{form.formState.errors.tempPassword.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 pt-4">
+                    <Button 
+                      type="submit" 
+                      disabled={createUserMutation.isPending}
+                      className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black font-medium"
+                      data-testid="button-submit-create-user"
+                    >
+                      {createUserMutation.isPending ? "Creazione..." : "Crea Utente"}
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        form.reset();
+                      }}
+                      className="border-white/20 text-white hover:bg-white/10"
+                      data-testid="button-cancel-create"
+                    >
+                      Annulla
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Search */}
