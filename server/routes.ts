@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import { hashPassword, comparePassword, signToken, requireAuth, getCurrentUser } from "./lib/auth";
 import { requireAdmin } from "./middleware/requireAdmin";
+import { requirePasswordChanged } from "./middleware/requirePasswordChanged";
 import { insertUserSchema, insertProfileSchema, insertLinkSchema } from "@shared/schema";
 import adminRouter from "./routes/admin";
 import meRouter from "./routes/me";
@@ -225,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Protected routes
-  app.get("/api/links", requireAuth, async (req, res) => {
+  app.get("/api/links", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const user = (req as any).user;
       const links = await storage.getLinks(user.userId);
@@ -236,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/links", requireAuth, async (req, res) => {
+  app.post("/api/links", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const user = (req as any).user;
       const linkData = insertLinkSchema.parse(req.body);
@@ -248,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/links/:id", requireAuth, async (req, res) => {
+  app.patch("/api/links/:id", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const linkData = insertLinkSchema.partial().parse(req.body);
@@ -260,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/links/:id", requireAuth, async (req, res) => {
+  app.delete("/api/links/:id", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteLink(id);
@@ -271,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/profile", requireAuth, async (req, res) => {
+  app.get("/api/profile", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const user = (req as any).user;
       const profile = await storage.getProfile(user.userId);
@@ -282,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/profile", requireAuth, async (req, res) => {
+  app.put("/api/profile", requireAuth, requirePasswordChanged, async (req, res) => {
     try {
       const user = (req as any).user;
       const profileData = insertProfileSchema.parse(req.body);
@@ -468,9 +469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/me", meRouter);
 
   app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
-  app.use("/api", promosRouter);
-  app.use("/api", ticketsRouter);
-  app.use("/api", publicPagesRouter);
+  app.use("/api", requirePasswordChanged, promosRouter);
+  app.use("/api", requirePasswordChanged, ticketsRouter);
+  app.use("/api", requirePasswordChanged, publicPagesRouter);
   
   // QR route breve
   const qRouter = (await import("./routes/q.js")).default;
