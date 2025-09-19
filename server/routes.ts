@@ -24,48 +24,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
 
   // Auth routes
+  // Registration disabled - users must contact admin for account creation
   app.post("/api/auth/register", async (req, res) => {
-    try {
-      const { email, username, password } = insertUserSchema.parse(req.body);
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-
-      const existingUsername = await storage.getUserByUsername(username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already taken" });
-      }
-
-      // Create user
-      const hashedPassword = await hashPassword(password);
-      const user = await storage.createUser({
-        email,
-        username,
-        password_hash: hashedPassword,
-      });
-
-      // Sign token and set cookie
-      const token = signToken({
-        userId: user.id,
-        email: user.email,
-        username: user.username,
-      });
-
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
-
-      res.json({ user: { id: user.id, email: user.email, username: user.username } });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(400).json({ message: "Registration failed" });
-    }
+    res.status(403).json({ 
+      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta tapreviewofficial@gmail.com",
+      contactEmail: "tapreviewofficial@gmail.com",
+      code: "REGISTRATION_DISABLED"
+    });
   });
 
   app.post("/api/auth/login", async (req, res) => {
