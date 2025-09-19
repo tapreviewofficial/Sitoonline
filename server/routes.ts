@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
-      res.json({ user: { id: user.id, email: user.email, username: user.username } });
+      res.json({ user: { id: user.id, email: user.email, username: user.username, mustChangePassword: user.mustChangePassword } });
     } catch (error) {
       console.error("Login error:", error);
       res.status(401).json({ message: "Login failed" });
@@ -346,7 +346,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: fullUser.id,
         email: fullUser.email, 
         username: fullUser.username,
-        role: fullUser.role
+        role: fullUser.role,
+        mustChangePassword: fullUser.mustChangePassword
       }
     });
   });
