@@ -15,6 +15,7 @@ import TicketPage from "@/pages/ticket";
 import ScanPage from "@/pages/scan";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
+import ForceChangePassword from "@/pages/force-change-password";
 import PublicClaimPage from "@/pages/PublicClaim";
 import NotFound from "@/pages/not-found";
 
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/force-change-password" component={ForceChangePassword} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/u/:username" component={PublicProfile} />

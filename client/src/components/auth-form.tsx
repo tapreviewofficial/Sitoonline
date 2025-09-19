@@ -44,13 +44,19 @@ export function AuthForm({ type }: AuthFormProps) {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
       return await apiRequest("POST", endpoint, data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: isLogin ? "Accesso effettuato" : "Account creato",
         description: isLogin ? "Benvenuto!" : "Il tuo account è stato creato con successo",
       });
       queryClient.invalidateQueries({ queryKey: ["api", "auth", "me"] });
-      setLocation("/dashboard");
+      
+      // Check if user must change password (only for login)
+      if (isLogin && response?.user?.mustChangePassword) {
+        setLocation("/force-change-password");
+      } else {
+        setLocation("/dashboard");
+      }
     },
     onError: (error) => {
       toast({
