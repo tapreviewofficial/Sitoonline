@@ -2,6 +2,9 @@ import { Router } from "express";
 import { db, users, profiles, links, clicks } from "../lib/supabase.js";
 import { eq, or, ilike, desc, count, gte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { hashPassword } from "../lib/auth.js";
+import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 
 const router = Router();
 
@@ -62,6 +65,88 @@ router.get("/users", async (req, res) => {
   } catch (error) {
     console.error("Admin users query error:", error);
     res.status(500).json({ message: "Errore nel caricamento utenti" });
+  }
+});
+
+/** POST /api/admin/users
+ *  Crea un nuovo utente da parte dell'admin
+ */
+router.post("/users", async (req, res) => {
+  try {
+    // Schema basato su shared schema con estensioni admin-specific
+    const adminCreateUserSchema = insertUserSchema.omit({
+      password: true  // Usiamo tempPassword invece
+    }).extend({
+      tempPassword: z.string().min(8, "Password temporanea minimo 8 caratteri"),
+      email: z.string().email("Email non valida").toLowerCase().trim(),
+      username: z.string().min(3, "Username minimo 3 caratteri").toLowerCase().trim(),
+      role: z.enum(["USER", "ADMIN"]).default("USER")
+    });
+
+    // Validazione input con Zod
+    const validation = adminCreateUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ 
+        message: "Dati non validi", 
+        errors: validation.error.errors.map(e => e.message)
+      });
+    }
+
+    const { email, username, role, tempPassword } = validation.data;
+
+    // Hash password
+    const hashedPassword = await hashPassword(tempPassword);
+    
+    // Crea utente - lascia che il DB gestisca i constraint di unicità
+    const newUser = await db.insert(users)
+      .values({
+        email,
+        username,
+        password_hash: hashedPassword,
+        role,
+        mustChangePassword: true // L'utente deve cambiare password al primo accesso
+      })
+      .returning();
+
+    const user = newUser[0];
+
+    console.log("Admin created user:", { id: user.id, email: user.email, role: user.role });
+
+    // Restituisci utente creato (senza password_hash)
+    res.status(201).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword,
+        createdAt: user.createdAt
+      }
+    });
+
+  } catch (error: unknown) {
+    console.error("Admin create user error:", error);
+    
+    // Type guard per errori PostgreSQL
+    function isPgError(e: unknown): e is { code?: string; constraint?: string; message?: string } {
+      return typeof e === 'object' && e !== null;
+    }
+    
+    // Gestione errori specifici di unicità con constraint detection type-safe
+    if (isPgError(error) && error.code === '23505') {
+      const constraint = error.constraint || '';
+      const message = error.message || '';
+      
+      if (constraint.includes('email') || message.includes('email')) {
+        return res.status(409).json({ message: "Email già registrata" });
+      }
+      if (constraint.includes('username') || message.includes('username')) {
+        return res.status(409).json({ message: "Username già in uso" });
+      }
+      return res.status(409).json({ message: "Email o username già in uso" });
+    }
+    
+    res.status(500).json({ message: "Errore nella creazione dell'utente" });
   }
 });
 
