@@ -73,7 +73,7 @@ export default function Dashboard() {
     queryKey: ["api", "links"],
   });
 
-  const { data: promos = [] } = useQuery({
+  const { data: promos = [] } = useQuery<any[]>({
     queryKey: ["api", "promos"],
   });
 

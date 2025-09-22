@@ -112,13 +112,13 @@ export default function EditPromoForm({ promo, open, onClose }: EditPromoFormPro
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Modifica Promozione</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 text-white w-full max-w-2xl rounded-lg shadow-xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Modifica Promozione</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-zinc-400 hover:text-white text-2xl"
           >
             ×
           </button>
@@ -126,19 +126,19 @@ export default function EditPromoForm({ promo, open, onClose }: EditPromoFormPro
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Titolo</label>
+            <label className="block text-sm font-medium mb-2 text-white">Titolo *</label>
             <input
               {...register("title", { required: true })}
-              className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-400"
               placeholder="Nome della promozione"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Descrizione</label>
+            <label className="block text-sm font-medium mb-2 text-white">Descrizione (max 200) *</label>
             <textarea
               {...register("description", { required: true, maxLength: 200 })}
-              className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-400"
               rows={3}
               placeholder="Descrivi la promozione (max 200 caratteri)"
             />
@@ -146,28 +146,26 @@ export default function EditPromoForm({ promo, open, onClose }: EditPromoFormPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Tipo</label>
+              <label className="block text-sm font-medium mb-2 text-white">Tipologia *</label>
               <select
                 {...register("type")}
-                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
               >
-                <option value="coupon">Sconto/Coupon</option>
-                <option value="event">Evento</option>
-                <option value="visit">Visita</option>
-                <option value="combo">Combo</option>
+                <option value="coupon">Coupon sconto</option>
+                <option value="invito">Invito evento</option>
+                <option value="omaggio">Omaggio</option>
               </select>
             </div>
 
             {type === "coupon" && (
               <div>
-                <label className="block text-sm font-medium mb-1">Tipo Valore</label>
+                <label className="block text-sm font-medium mb-2 text-white">Tipo Valore</label>
                 <select
                   {...register("valueKind")}
-                  className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
                 >
-                  <option value="percent">Percentuale (%)</option>
-                  <option value="euro">Euro (€)</option>
-                  <option value="points">Punti</option>
+                  <option value="percent">% Percentuale</option>
+                  <option value="amount">€ Importo fisso</option>
                 </select>
               </div>
             )}
@@ -175,43 +173,43 @@ export default function EditPromoForm({ promo, open, onClose }: EditPromoFormPro
 
           {type === "coupon" && (
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Valore {valueKind === "percent" ? "(%)" : valueKind === "euro" ? "(€)" : "(punti)"}
+              <label className="block text-sm font-medium mb-2 text-white">
+                Valore {valueKind === "percent" ? "(%)" : "(€)"}
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register("value", { valueAsNumber: true })}
-                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
-                placeholder={valueKind === "percent" ? "es. 20" : valueKind === "euro" ? "es. 5.00" : "es. 100"}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-400"
+                placeholder={valueKind === "percent" ? "es. 20" : "es. 5.00"}
               />
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Data Inizio</label>
+              <label className="block text-sm font-medium mb-2 text-white">Data Inizio *</label>
               <input
                 type="datetime-local"
                 {...register("startAt")}
-                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Data Fine</label>
+              <label className="block text-sm font-medium mb-2 text-white">Data Fine *</label>
               <input
                 type="datetime-local"
                 {...register("endAt")}
-                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
               />
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-4 pt-6">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="flex-1 px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               Annulla
             </button>
