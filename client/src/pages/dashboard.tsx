@@ -216,17 +216,6 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Gestisci i tuoi link e profilo</p>
             </div>
             <div className="flex items-center gap-3">
-              {authData?.user?.role === 'ADMIN' && (
-                <Button 
-                  onClick={() => window.location.href = '/admin'} 
-                  variant="outline" 
-                  className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
-                  data-testid="button-admin-panel"
-                >
-                  <i className="fas fa-cog mr-2"></i>
-                  Admin Panel
-                </Button>
-              )}
               <Button onClick={logout} variant="ghost" data-testid="button-logout">
                 <i className="fas fa-sign-out-alt mr-2"></i>
                 Esci
@@ -238,13 +227,13 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="gestione" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-white/5 border-white/10">
-            <TabsTrigger value="gestione" data-testid="tab-manage">Gestione</TabsTrigger>
-            <TabsTrigger value="promo" data-testid="tab-promo">Promozioni</TabsTrigger>
-            <TabsTrigger value="clienti" data-testid="tab-clienti">Database Clienti</TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="anteprima" data-testid="tab-preview">Anteprima</TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">Impostazioni</TabsTrigger>
+          <TabsList className="flex w-full overflow-x-auto bg-white/5 border-white/10 gap-1 scrollbar-hide px-2 snap-x snap-mandatory">
+            <TabsTrigger value="gestione" data-testid="tab-manage" className="shrink-0 whitespace-nowrap snap-start">Gestione</TabsTrigger>
+            <TabsTrigger value="promo" data-testid="tab-promo" className="shrink-0 whitespace-nowrap snap-start">Promozioni</TabsTrigger>
+            <TabsTrigger value="clienti" data-testid="tab-clienti" className="shrink-0 whitespace-nowrap snap-start">Database Clienti</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics" className="shrink-0 whitespace-nowrap snap-start">Analytics</TabsTrigger>
+            <TabsTrigger value="anteprima" data-testid="tab-preview" className="shrink-0 whitespace-nowrap snap-start">Anteprima</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="shrink-0 whitespace-nowrap snap-start">Impostazioni</TabsTrigger>
           </TabsList>
 
           <TabsContent value="gestione" className="mt-6">
