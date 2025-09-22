@@ -27,7 +27,7 @@ interface AnalyticsData {
 
 const timeRangeLabels: Record<TimeRange, string> = {
   '1d': 'Giorno',
-  '7d': '7 Giorni', 
+  '7d': 'Settimana', 
   '1w': 'Settimana',
   '1m': 'Mese',
   '3m': '3 Mesi',
@@ -36,11 +36,22 @@ const timeRangeLabels: Record<TimeRange, string> = {
   'all': 'Sempre'
 };
 
+const timeRangeOptions: TimeRange[] = ['1d', '7d', '1m', '3m', '6m', '1y', 'all'];
+
 export function AnalyticsChart() {
   const [selectedRange, setSelectedRange] = useState<TimeRange>('7d');
   
   const { data: analyticsData, isLoading } = useQuery<AnalyticsData>({
-    queryKey: ['/api/analytics/clicks', { range: selectedRange }],
+    queryKey: ['/api/analytics/clicks', selectedRange],
+    queryFn: async () => {
+      const response = await fetch(`/api/analytics/clicks?range=${selectedRange}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
+      return response.json();
+    }
   });
 
   const formatDate = (dateStr: string, bucket: string) => {
@@ -81,16 +92,16 @@ export function AnalyticsChart() {
         
         {/* Time range selector */}
         <div className="flex flex-wrap gap-2">
-          {Object.entries(timeRangeLabels).map(([range, label]) => (
+          {timeRangeOptions.map((range) => (
             <Button
               key={range}
               variant={selectedRange === range ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedRange(range as TimeRange)}
+              onClick={() => setSelectedRange(range)}
               className={selectedRange === range ? "bg-gold text-coal" : ""}
               data-testid={`button-range-${range}`}
             >
-              {label}
+              {timeRangeLabels[range]}
             </Button>
           ))}
         </div>

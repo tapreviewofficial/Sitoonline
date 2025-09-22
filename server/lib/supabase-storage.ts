@@ -300,7 +300,7 @@ export class SupabaseStorage implements IStorage {
 
     // Format series data
     const series = result.map(r => ({
-      ts: r.ts?.toISOString() || '',
+      ts: r.ts instanceof Date ? r.ts.toISOString() : (new Date(r.ts)).toISOString(),
       count: Number(r.count)
     }));
 
