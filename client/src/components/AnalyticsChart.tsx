@@ -57,7 +57,10 @@ export function AnalyticsChart() {
   const formatDate = (dateStr: string, bucket: string) => {
     try {
       const date = parseISO(dateStr);
-      if (!isValid(date)) return dateStr;
+      if (!isValid(date)) {
+        console.log('Invalid date:', dateStr);
+        return dateStr;
+      }
       
       switch (bucket) {
         case 'hour':
@@ -72,6 +75,7 @@ export function AnalyticsChart() {
           return format(date, 'd MMM', { locale: it });
       }
     } catch (error) {
+      console.error('Error formatting date:', dateStr, error);
       return dateStr;
     }
   };
@@ -80,6 +84,12 @@ export function AnalyticsChart() {
     ...item,
     formattedDate: formatDate(item.ts, analyticsData.meta.bucket)
   })) || [];
+
+  // Debug logs
+  if (analyticsData) {
+    console.log('Analytics data:', analyticsData);
+    console.log('Chart data:', chartData);
+  }
 
   return (
     <div className="space-y-6">
@@ -176,71 +186,45 @@ export function AnalyticsChart() {
               <div>
                 <i className="fas fa-chart-line text-4xl text-muted-foreground mb-4"></i>
                 <p className="text-muted-foreground">Nessun dato per il periodo selezionato</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Debug: Totale {analyticsData?.totals.clicks || 0} clic, 
+                  Serie: {analyticsData?.series.length || 0} punti
+                </p>
               </div>
             </div>
           ) : (
             <div className="h-80" data-testid="chart-container">
               <ResponsiveContainer width="100%" height="100%">
-                {analyticsData?.meta.bucket === 'hour' || analyticsData?.meta.bucket === 'day' ? (
-                  <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="formattedDate" 
-                      stroke="hsl(var(--foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--foreground))"
-                      fontSize={12}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        color: 'hsl(var(--foreground))'
-                      }}
-                      labelFormatter={(label) => `Data: ${label}`}
-                      formatter={(value) => [`${value} clic`, 'Clic']}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      fill="hsl(var(--gold))" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                ) : (
-                  <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="formattedDate" 
-                      stroke="hsl(var(--foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--foreground))"
-                      fontSize={12}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        color: 'hsl(var(--foreground))'
-                      }}
-                      labelFormatter={(label) => `Data: ${label}`}
-                      formatter={(value) => [`${value} clic`, 'Clic']}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="hsl(var(--gold))" 
-                      strokeWidth={3}
-                      dot={{ fill: 'hsl(var(--gold))', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: 'hsl(var(--gold))', strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                )}
+                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.3} />
+                  <XAxis 
+                    dataKey="formattedDate" 
+                    stroke="#fff"
+                    fontSize={12}
+                    tick={{ fill: '#fff' }}
+                  />
+                  <YAxis 
+                    stroke="#fff"
+                    fontSize={12}
+                    tick={{ fill: '#fff' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                    labelStyle={{ color: '#fff' }}
+                    labelFormatter={(label) => `Data: ${label}`}
+                    formatter={(value) => [`${value} clic`, 'Clic']}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="#CC9900"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}
