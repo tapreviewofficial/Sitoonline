@@ -147,7 +147,7 @@ export class EmailService {
           
           <div style="text-align: center; margin: 30px 0;">
             <div style="background: #ffffff; padding: 20px; border-radius: 12px; display: inline-block;">
-              <img src="${qrCodeUrl}" alt="QR Code Promozione" style="width: 200px; height: 200px; display: block;" />
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code Promozione" style="width: 200px; height: 200px; display: block;" />
             </div>
           </div>
           
