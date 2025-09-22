@@ -18,6 +18,7 @@ import { StatsPanel } from "@/components/StatsPanel";
 import { DraggableLinkList } from "@/components/DraggableLinkList";
 import { LivePreview } from "@/components/LivePreview";
 import NewPromoLite from "@/components/NewPromoLite";
+import { ClientiDatabase } from "@/components/ClientiDatabase";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -235,9 +236,10 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="gestione" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white/5 border-white/10">
+          <TabsList className="grid w-full grid-cols-6 bg-white/5 border-white/10">
             <TabsTrigger value="gestione" data-testid="tab-manage">Gestione</TabsTrigger>
             <TabsTrigger value="promo" data-testid="tab-promo">Promozioni</TabsTrigger>
+            <TabsTrigger value="clienti" data-testid="tab-clienti">Database Clienti</TabsTrigger>
             <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
             <TabsTrigger value="anteprima" data-testid="tab-preview">Anteprima</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Impostazioni</TabsTrigger>
@@ -638,6 +640,23 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="clienti" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <i className="fas fa-address-book text-[#CC9900]"></i>
+                  Database Clienti
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Tutti i clienti che hanno richiesto le tue promozioni
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ClientiDatabase />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
