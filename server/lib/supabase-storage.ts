@@ -224,6 +224,101 @@ export class SupabaseStorage implements IStorage {
     }));
   }
 
+  async getClicksTimeSeries(userId: number, options: {
+    range: '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
+    timezone?: string;
+    groupBy?: 'none' | 'link';
+  }) {
+    const timezone = options.timezone || 'Europe/Rome';
+    
+    // Determine time range and bucket size
+    const now = new Date();
+    let since: Date;
+    let bucket: string;
+    
+    switch (options.range) {
+      case '1d':
+        since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        bucket = 'hour';
+        break;
+      case '7d':
+      case '1w':
+        since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        bucket = 'hour';
+        break;
+      case '1m':
+        since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        bucket = 'day';
+        break;
+      case '3m':
+        since = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        bucket = 'day';
+        break;
+      case '6m':
+        since = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+        bucket = 'week';
+        break;
+      case '1y':
+        since = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        bucket = 'week';
+        break;
+      case 'all':
+      default:
+        since = new Date('2020-01-01'); // Far enough back
+        bucket = 'month';
+        break;
+    }
+
+    // Get aggregated clicks data
+    const bucketSql = sql<Date>`date_trunc('${sql.raw(bucket)}', ${clicks.createdAt})`;
+    
+    const result = await db
+      .select({
+        ts: bucketSql,
+        count: count()
+      })
+      .from(clicks)
+      .leftJoin(links, eq(clicks.linkId, links.id))
+      .where(and(
+        eq(links.userId, userId),
+        gte(clicks.createdAt, since)
+      ))
+      .groupBy(bucketSql)
+      .orderBy(asc(bucketSql));
+
+    // Get total clicks for the period
+    const totalResult = await db
+      .select({ count: count() })
+      .from(clicks)
+      .leftJoin(links, eq(clicks.linkId, links.id))
+      .where(and(
+        eq(links.userId, userId),
+        gte(clicks.createdAt, since)
+      ));
+
+    const totalClicks = totalResult[0]?.count || 0;
+
+    // Format series data
+    const series = result.map(r => ({
+      ts: r.ts?.toISOString() || '',
+      count: Number(r.count)
+    }));
+
+    return {
+      meta: {
+        range: options.range,
+        bucket,
+        since,
+        until: now,
+        timezone
+      },
+      totals: {
+        clicks: totalClicks
+      },
+      series
+    };
+  }
+
   // Password reset methods
   async createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset> {
     const result = await db.insert(passwordResets).values({

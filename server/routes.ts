@@ -416,6 +416,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/analytics/clicks", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { range = '7d', timezone = 'Europe/Rome', groupBy = 'none' } = req.query;
+      
+      // Validate range parameter
+      const validRanges = ['1d', '7d', '1w', '1m', '3m', '6m', '1y', 'all'];
+      if (!validRanges.includes(range as string)) {
+        return res.status(400).json({ message: "Invalid range parameter" });
+      }
+
+      const data = await storage.getClicksTimeSeries(user.userId, {
+        range: range as '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all',
+        timezone: timezone as string,
+        groupBy: groupBy as 'none' | 'link'
+      });
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Analytics clicks time series error:", error);
+      res.status(500).json({ message: "Failed to fetch clicks analytics" });
+    }
+  });
+
   // Stop impersonate route (must be outside admin router to avoid requireAdmin)
   app.post("/api/admin/stop-impersonate", async (req, res) => {
     console.log("Stop impersonate request, cookies:", req.cookies);

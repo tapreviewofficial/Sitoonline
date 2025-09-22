@@ -28,6 +28,15 @@ export interface IStorage {
   incrementLinkClicks(linkId: number): Promise<void>;
   getClickStats(userId: number): Promise<{ totalClicks: number; clicks7d: number; clicks30d: number }>;
   getLinkStats(userId: number): Promise<Array<{ id: number; title: string; clicksAllTime: number; clicks7d: number; clicks30d: number; order: number }>>;
+  getClicksTimeSeries(userId: number, options: {
+    range: '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
+    timezone?: string;
+    groupBy?: 'none' | 'link';
+  }): Promise<{
+    meta: { range: string; bucket: string; since: Date; until: Date; timezone: string };
+    totals: { clicks: number; unique?: number };
+    series: Array<{ ts: string; count: number }>;
+  }>;
 
   // Password reset methods
   createPasswordReset(reset: InsertPasswordReset): Promise<PasswordReset>;
