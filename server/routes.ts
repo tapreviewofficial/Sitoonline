@@ -538,6 +538,26 @@ TapReview - Sistema Email Attivo`
     }
   });
 
+  // Endpoint per contatti promozionali (database clienti)
+  app.get("/api/promotional-contacts", requireAuth, requirePasswordChanged, async (req, res) => {
+    try {
+      const userId = (req as any).user.userId;
+      const contacts = await storage.getPromotionalContacts(userId);
+      
+      res.json({
+        success: true,
+        data: contacts,
+        total: contacts.length
+      });
+    } catch (error) {
+      console.error("Errore recupero contatti promozionali:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Errore interno del server" 
+      });
+    }
+  });
+
   // Routes con endpoint pubblici - NO requirePasswordChanged globale
   app.use("/api", promosRouter);
   app.use("/api", ticketsRouter);
