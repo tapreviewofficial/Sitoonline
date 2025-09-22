@@ -187,7 +187,7 @@ export class EmailService {
               <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
               
               <div style="margin: 20px 0;">
-                <img src="data:image/png;base64,${qrCodeBuffer.toString('base64')}" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px;" />
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px;" />
               </div>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
