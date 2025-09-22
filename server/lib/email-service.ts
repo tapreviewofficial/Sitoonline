@@ -4,9 +4,16 @@ if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
 }
 
-// Configura SendGrid con API key
+// Configura SendGrid con API key e residenza EU
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-// Note: La residenza EU viene gestita tramite configurazione account SendGrid
+
+// Configura residenza dati EU per GDPR compliance
+try {
+  (sgMail as any).setDataResidency('eu');
+  console.log("✅ SendGrid configured with EU data residency");
+} catch (error) {
+  console.warn("⚠️ Could not set EU data residency, check SendGrid configuration");
+}
 
 interface EmailParams {
   to: string;

@@ -470,6 +470,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/me", meRouter);
 
   app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
+
+  // Test email endpoint (rimuovere in produzione)
+  app.post("/api/test/email", requireAuth, async (req, res) => {
+    try {
+      const { EmailService } = await import("./lib/email-service.js");
+      const { to } = req.body;
+      
+      if (!to) {
+        return res.status(400).json({ message: "Email destinatario richiesta" });
+      }
+
+      const success = await EmailService.sendEmail({
+        to,
+        subject: "Test TapReview - Email Funzionante! 🎉",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
+              </div>
+              <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapReview</h1>
+            </div>
+            
+            <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
+              <h2 style="color: #CC9900; margin-top: 0;">✅ Test Email Riuscito!</h2>
+              <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
+                Congratulazioni! Il sistema email di TapReview funziona correttamente.
+              </p>
+              <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
+                Ora puoi ricevere:
+              </p>
+              <ul style="color: #cccccc; line-height: 1.6;">
+                <li>Email di benvenuto per nuovi utenti</li>
+                <li>Email di ripristino password</li>
+                <li>QR Code per promozioni</li>
+              </ul>
+              <p style="color: #888888; font-size: 14px; margin-top: 25px;">
+                Timestamp: ${new Date().toLocaleString('it-IT')}
+              </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
+              <p>TapReview - Sistema Email Attivo</p>
+            </div>
+          </div>
+        `,
+        text: `TapReview - Test Email Riuscito!
+        
+Il sistema email funziona correttamente.
+Timestamp: ${new Date().toLocaleString('it-IT')}
+
+TapReview - Sistema Email Attivo`
+      });
+
+      if (success) {
+        res.json({ 
+          message: "Email di test inviata con successo!",
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({ message: "Errore nell'invio dell'email di test" });
+      }
+    } catch (error) {
+      console.error("Test email error:", error);
+      res.status(500).json({ message: "Errore nel sistema di test email" });
+    }
+  });
+
   app.use("/api", requirePasswordChanged, promosRouter);
   app.use("/api", requirePasswordChanged, ticketsRouter);
   app.use("/api", requirePasswordChanged, publicPagesRouter);
