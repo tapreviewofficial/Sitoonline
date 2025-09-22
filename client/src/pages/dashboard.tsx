@@ -20,6 +20,7 @@ import { LivePreview } from "@/components/LivePreview";
 import NewPromoLite from "@/components/NewPromoLite";
 import EditPromoForm from "@/components/EditPromoForm";
 import { ClientiDatabase } from "@/components/ClientiDatabase";
+import { AnalyticsChart } from "@/components/AnalyticsChart";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -374,7 +375,7 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
-            <StatsPanel />
+            <AnalyticsChart />
           </TabsContent>
 
           <TabsContent value="promo" className="mt-6">
