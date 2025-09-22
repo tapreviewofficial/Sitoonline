@@ -184,10 +184,14 @@ export class EmailService {
             </p>
             
             <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
-              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">📎 Il tuo QR Code è allegato a questa email</p>
+              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
+              
+              <div style="margin: 20px 0;">
+                <img src="data:image/png;base64,${qrCodeBuffer.toString('base64')}" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px;" />
+              </div>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
-                Scarica l'allegato "TapReview-QRCode.png" per visualizzare il codice<br>
+                Mostra questo codice al momento dell'ordine<br>
                 Link diretto: <a href="${qrCodeUrl}" style="color: #CC9900; word-break: break-all;">${qrCodeUrl}</a>
               </p>
             </div>
@@ -247,13 +251,7 @@ export class EmailService {
       to: email,
       subject,
       html,
-      text,
-      attachments: [{
-        content: qrCodeBuffer.toString('base64'),
-        filename: 'TapReview-QRCode.png',
-        type: 'image/png',
-        disposition: 'attachment'
-      }]
+      text
     });
   }
 
