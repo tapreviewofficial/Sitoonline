@@ -18,11 +18,11 @@ export default function PublicProfile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 animate-pulse"></div>
-          <div className="h-6 bg-muted rounded w-48 mx-auto mb-2 animate-pulse"></div>
-          <div className="h-4 bg-muted rounded w-64 mx-auto animate-pulse"></div>
+          <div className="w-20 h-20 bg-[#CC9900]/20 rounded-full mx-auto mb-4 animate-pulse"></div>
+          <div className="h-6 bg-white/10 rounded w-48 mx-auto mb-2 animate-pulse"></div>
+          <div className="h-4 bg-white/10 rounded w-64 mx-auto animate-pulse"></div>
         </div>
       </div>
     );
@@ -30,15 +30,19 @@ export default function PublicProfile() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4" data-testid="text-error-title">
+          <h1 className="text-2xl font-bold mb-4 text-white" data-testid="text-error-title">
             Utente non trovato
           </h1>
-          <p className="text-muted-foreground mb-8">
+          <p className="text-white/60 mb-8">
             La pagina che stai cercando non esiste.
           </p>
-          <Button onClick={() => setLocation("/")} data-testid="button-home">
+          <Button 
+            onClick={() => setLocation("/")} 
+            className="bg-[#CC9900] hover:bg-[#CC9900]/90 text-black"
+            data-testid="button-home"
+          >
             Torna alla Home
           </Button>
         </div>
@@ -47,51 +51,53 @@ export default function PublicProfile() {
   }
 
   const { profile, user, links } = data;
-  const accentColor = profile.accentColor || "#CC9900";
+  const displayName = profile.displayName || user.username;
+  const firstLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          {/* Profile Header */}
-          <div className="text-center mb-8">
-            {/* Avatar */}
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        {/* Main Card */}
+        <div className="bg-[#1a2332] rounded-xl p-8 shadow-2xl border border-white/10">
+          {/* Avatar Circle */}
+          <div className="flex justify-center mb-6">
             {profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
-                alt={profile.displayName || user.username}
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
+                alt={displayName}
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#CC9900]"
                 data-testid="img-avatar"
               />
             ) : (
               <div
-                className="w-24 h-24 bg-gradient-to-br from-gold to-yellow-600 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold text-coal"
+                className="w-20 h-20 bg-[#CC9900] rounded-full flex items-center justify-center"
                 data-testid="div-avatar-placeholder"
               >
-                {(profile.displayName || user.username).charAt(0).toUpperCase()}
+                <span className="text-black text-2xl font-bold">{firstLetter}</span>
               </div>
             )}
-            
+          </div>
+
+          {/* Business Name */}
+          <div className="text-center mb-8">
             <h1
-              className="text-2xl font-bold mb-2"
-              style={{ color: accentColor }}
+              className="text-[#CC9900] text-2xl font-bold"
               data-testid="text-display-name"
             >
-              {profile.displayName || user.username}
+              {displayName}
             </h1>
-            
             {profile.bio && (
-              <p className="text-muted-foreground" data-testid="text-bio">
+              <p className="text-white/70 text-sm mt-2" data-testid="text-bio">
                 {profile.bio}
               </p>
             )}
           </div>
 
           {/* Links */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {links.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground" data-testid="text-no-links">
+                <p className="text-white/60" data-testid="text-no-links">
                   Nessun link disponibile
                 </p>
               </div>
@@ -102,8 +108,7 @@ export default function PublicProfile() {
                   href={`/r/${user.username}/${link.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full p-4 bg-card rounded-lg border border-border hover:border-gold transition-colors text-center font-medium"
-                  style={{ borderColor: accentColor }}
+                  className="block w-full p-4 bg-[#2a3441] hover:bg-[#334155] rounded-lg border border-white/20 hover:border-[#CC9900]/50 transition-all duration-200 text-center font-medium text-white"
                   data-testid={`link-${link.id}`}
                 >
                   {link.title}
@@ -112,14 +117,14 @@ export default function PublicProfile() {
             )}
           </div>
 
-          {/* Powered by */}
-          <div className="text-center mt-12">
+          {/* Footer */}
+          <div className="text-center mt-8 pt-6 border-t border-white/10">
             <button
               onClick={() => setLocation("/")}
-              className="text-sm text-muted-foreground hover:text-gold transition-colors"
+              className="text-white/40 text-xs hover:text-[#CC9900] transition-colors"
               data-testid="link-powered-by"
             >
-              Powered by <span className="font-bold">TapReview</span>
+              Powered by <span className="text-[#CC9900]">TapReview</span>
             </button>
           </div>
         </div>
