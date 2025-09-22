@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { hashPassword } from "../lib/auth.js";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { EmailService } from "../lib/email-service.js";
 
 const router = Router();
 
@@ -112,6 +113,19 @@ router.post("/users", async (req, res) => {
 
     console.log("Admin created user:", { id: user.id, email: user.email, role: user.role });
 
+    // Invia email di benvenuto con credenziali (fire-and-forget)
+    EmailService.sendWelcomeEmail(user.email, user.username, tempPassword)
+      .then((success) => {
+        if (success) {
+          console.log(`Welcome email sent to ${user.email}`);
+        } else {
+          console.error(`Failed to send welcome email to ${user.email}`);
+        }
+      })
+      .catch((error) => {
+        console.error(`Welcome email error for ${user.email}:`, error);
+      });
+
     // Restituisci utente creato (senza password_hash)
     res.status(201).json({
       user: {
@@ -128,9 +142,9 @@ router.post("/users", async (req, res) => {
     console.error("Admin create user error:", error);
     
     // Type guard per errori PostgreSQL
-    function isPgError(e: unknown): e is { code?: string; constraint?: string; message?: string } {
+    const isPgError = (e: unknown): e is { code?: string; constraint?: string; message?: string } => {
       return typeof e === 'object' && e !== null;
-    }
+    };
     
     // Gestione errori specifici di unicità con constraint detection type-safe
     if (isPgError(error) && error.code === '23505') {

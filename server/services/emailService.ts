@@ -20,7 +20,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     await sgMail.send({
       to: params.to,
-      from: 'noreply@tapreview.app', // Sostituire con il dominio verificato
+      from: 'noreply@tapreview.it', // Dominio verificato SendGrid
       subject: params.subject,
       html: params.html,
       text: params.text,
