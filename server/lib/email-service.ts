@@ -122,50 +122,81 @@ export class EmailService {
     validUntil?: Date;
   }): Promise<boolean> {
     
-    const subject = `🎉 ${promotionDetails.title} - Il tuo QR Code TapReview`;
+    const subject = `${promotionDetails.title} - Il tuo QR Code TapReview`;
     const validUntilText = promotionDetails.validUntil 
       ? `Valido fino al ${promotionDetails.validUntil.toLocaleDateString('it-IT')}`
       : 'Sempre valido';
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
-          </div>
-          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapReview</h1>
-        </div>
-        
-        <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
-          <h2 style="color: #CC9900; margin-top: 0;">🎉 ${promotionDetails.title}</h2>
-          <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
-            Ciao <strong style="color: #CC9900;">${username}</strong>!
-          </p>
-          <p style="color: #cccccc; line-height: 1.6; margin-bottom: 25px;">
-            ${promotionDetails.description}
-          </p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>TapReview - ${promotionDetails.title}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;">
           
-          <div style="text-align: center; margin: 30px 0;">
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; display: inline-block;">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code Promozione" style="width: 200px; height: 200px; display: block;" />
+          <div style="background-color: #0a0a0a; color: #ffffff; padding: 30px; text-align: center;">
+            <h1 style="color: #CC9900; margin: 0 0 10px 0; font-size: 24px;">TapReview</h1>
+            <p style="margin: 0; color: #cccccc;">Il tuo QR Code per la promozione è pronto!</p>
+          </div>
+          
+          <div style="padding: 30px; background-color: #ffffff;">
+            <h2 style="color: #333333; margin-top: 0;">Ciao ${username},</h2>
+            
+            <p style="color: #333333; line-height: 1.6; margin-bottom: 20px;">
+              La tua richiesta per partecipare alla promozione "<strong>${promotionDetails.title}</strong>" è stata confermata con successo.
+            </p>
+            
+            <p style="color: #333333; line-height: 1.6; margin-bottom: 20px;">
+              ${promotionDetails.description}
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
+              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
+              
+              <div style="margin: 20px 0;">
+                <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(qrCodeUrl)}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;" />
+              </div>
+              
+              <p style="color: #666666; margin: 15px 0; font-size: 14px;">
+                Non riesci a visualizzare il QR Code? Usa questo link diretto:<br>
+                <a href="${qrCodeUrl}" style="color: #CC9900; word-break: break-all;">${qrCodeUrl}</a>
+              </p>
             </div>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #CC9900; margin: 20px 0;">
+              <p style="color: #333333; margin: 0; font-size: 14px;">
+                <strong>Come usare il QR Code:</strong><br>
+                Mostra questo codice al momento del pagamento o dell'ordine per usufruire della promozione.
+              </p>
+            </div>
+            
+            <p style="color: #333333; line-height: 1.6;">
+              <strong>Validità:</strong> ${validUntilText}<br>
+              <strong>Dettagli promozione:</strong> ${promotionDetails.description}
+            </p>
+            
+            <p style="color: #333333; line-height: 1.6; margin-top: 30px;">
+              Grazie per aver scelto TapReview. Se hai domande o problemi con il tuo QR Code, 
+              non esitare a contattarci rispondendo a questa email.
+            </p>
           </div>
           
-          <div style="background: #CC9900; color: #000000; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <strong>📱 Mostra questo QR Code per usufruire della promozione</strong>
+          <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+            <p style="color: #666666; font-size: 12px; margin: 0 0 10px 0;">
+              Questa email è stata inviata da TapReview<br>
+              Via Roma 123, 00100 Roma RM, Italia
+            </p>
+            <p style="color: #666666; font-size: 12px; margin: 0;">
+              Non vuoi più ricevere queste email? <a href="#" style="color: #CC9900;">Disiscriviti qui</a>
+            </p>
           </div>
           
-          <p style="color: #888888; font-size: 14px; margin-bottom: 0;">
-            <strong>Validità:</strong> ${validUntilText}<br>
-            <strong>Come usarlo:</strong> Mostra il QR Code al momento del pagamento o dell'ordine.
-          </p>
         </div>
-        
-        <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
-          <p>TapReview - Gestione Recensioni NFC</p>
-          <p>Grazie per essere parte della nostra community!</p>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     const text = `
