@@ -414,8 +414,8 @@ router.post("/public/:username/claim", async (req, res) => {
     if (!promo.length) return res.status(400).json({ error: "Nessuna promozione attiva" });
     
     const code = nanoid();
-    const origin = process.env.PUBLIC_ORIGIN || "http://localhost:5000";
-    const qrUrl = `${origin}/q/${code}`;
+    const publicOrigin = process.env.PUBLIC_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5000";
+    const qrUrl = `${publicOrigin}/q/${code}`;
     
     await db
       .insert(tickets)

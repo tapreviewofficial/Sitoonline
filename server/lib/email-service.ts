@@ -21,9 +21,16 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  attachments?: Array<{
+    content: string;
+    filename: string;
+    type?: string;
+    disposition?: string;
+    content_id?: string;
+  }>;
 }
 
-const FROM_EMAIL = 'tapreviewofficial@gmail.com'; // Sender verificato
+const FROM_EMAIL = 'tapreviewofficial@gmail.com'; // Sender verificato in SendGrid
 
 export class EmailService {
   
@@ -32,15 +39,21 @@ export class EmailService {
    */
   static async sendEmail(params: EmailParams): Promise<boolean> {
     try {
-      const msg = {
+      // Struttura IDENTICA al test che funziona
+      const msg: any = {
         to: params.to,
         from: FROM_EMAIL,
         subject: params.subject,
-        ...(params.text && { text: params.text }),
-        ...(params.html && { html: params.html }),
+        text: params.text || 'TapReview notification',
+        html: params.html || `<p>TapReview notification</p>`
       };
+      
+      // Aggiungi attachment solo se presente
+      if (params.attachments && params.attachments.length > 0) {
+        msg.attachments = params.attachments;
+      }
 
-      await sgMail.send(msg as any);
+      await sgMail.send(msg);
       console.log(`Email sent successfully to ${params.to}`);
       return true;
     } catch (error) {
@@ -171,15 +184,11 @@ export class EmailService {
             </p>
             
             <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
-              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
-              
-              <div style="margin: 20px 0;">
-                <img src="cid:qrcode" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;" />
-              </div>
+              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">📎 Il tuo QR Code è allegato a questa email</p>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
-                Non riesci a visualizzare il QR Code? Usa questo link diretto:<br>
-                <a href="${qrCodeUrl}" style="color: #CC9900; word-break: break-all;">${qrCodeUrl}</a>
+                Scarica l'allegato "TapReview-QRCode.png" per visualizzare il codice<br>
+                Link diretto: <a href="${qrCodeUrl}" style="color: #CC9900; word-break: break-all;">${qrCodeUrl}</a>
               </p>
             </div>
             
@@ -207,7 +216,7 @@ export class EmailService {
               Via Roma 123, 00100 Roma RM, Italia
             </p>
             <p style="color: #666666; font-size: 12px; margin: 0;">
-              Non vuoi più ricevere queste email? <a href="#" style="color: #CC9900;">Disiscriviti qui</a>
+              Email transazionale per richiesta promozione
             </p>
           </div>
           
@@ -241,10 +250,9 @@ export class EmailService {
       text,
       attachments: [{
         content: qrCodeBuffer.toString('base64'),
-        filename: 'qrcode.png',
+        filename: 'TapReview-QRCode.png',
         type: 'image/png',
-        disposition: 'inline',
-        cid: 'qrcode'
+        disposition: 'attachment'
       }]
     });
   }
