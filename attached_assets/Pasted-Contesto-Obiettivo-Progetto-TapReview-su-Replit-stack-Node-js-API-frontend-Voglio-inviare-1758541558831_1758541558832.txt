@@ -1,0 +1,190 @@
+Contesto & Obiettivo
+
+Progetto: TapReview su Replit, stack Node.js (API + frontend).
+
+Voglio inviare email promozionali che:
+
+Mostrino un QR Code direttamente nell’email (non link esterno).
+
+Usino SendGrid con dominio autenticato (SPF/DKIM/DMARC, link branding).
+
+Abbiano anche un link diretto alla promo/QR (https://tapreview.app/q/:code
+).
+
+Non finiscano in spam (best practice minime).
+
+Logghino richiesta promo (nome, email, codice, timestamp, stato invio) in Supabase.
+
+Vincoli & Requisiti
+
+Linguaggio: Node.js. Pacchetti: @sendgrid/mail, qrcode, @supabase/supabase-js, (dev) nodemon.
+
+Secrets Replit: SENDGRID_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY.
+
+From email: promo@tapreview.app (dominio già/verrà autenticato in SendGrid).
+
+URL pubblici https (mai localhost).
+
+Email multipart: HTML + plain text.
+
+Inclusi: footer con indirizzo postale e link unsubscribe (placeholder).
+
+Implementare CID inline per il QR (attachment “inline”).
+
+Struttura pulita, funzioni testabili, error handling con log.
+
+Non toccare parti non necessarie del progetto.
+
+Task
+
+Setup pacchetti & scripts
+
+Aggiungi dipendenze: npm i @sendgrid/mail qrcode @supabase/supabase-js
+
+Dev: npm i -D nodemon
+
+In package.json aggiungi script:
+
+"scripts": {
+  "dev": "nodemon server.js"
+}
+
+
+Supabase – tabella logging
+
+Crea (se non esiste) tabella promo_emails con campi:
+
+id uuid pk default gen_random_uuid()
+
+name text
+
+email text
+
+code text
+
+promo_title text
+
+status text -- (queued|sent|failed)
+
+error text
+
+created_at timestamptz default now()
+
+Scrivi un piccolo modulo lib/db.js che inizializza Supabase con i secrets e esporta un helper logPromoEmail(entry).
+
+Modulo email
+
+File lib/email.js con funzione sendPromoEmail({ toEmail, toName, codeUrl, promoTitle }) che:
+
+Genera QR PNG buffer da codeUrl con qrcode (512px, margin 1).
+
+Costruisce messaggio SendGrid con:
+
+from: { email: 'promo@tapreview.app', name: 'TapReview' }
+
+to: { email: toEmail, name: toName }
+
+subject: "Il tuo QR Code per la promozione TapReview"
+
+text coerente (incluso link e istruzioni brevi)
+
+html responsive, brand semplice (header scuro, titolo oro #CC9900), QR via <img src="cid:qr1" ...>
+
+attachment inline:
+
+{
+  content: <buffer base64>,
+  filename: 'qrcode.png',
+  type: 'image/png',
+  disposition: 'inline',
+  content_id: 'qr1'
+}
+
+
+Inserisci footer con indirizzo e link disiscrizione placeholder:
+“Ricevi questa email perché hai richiesto una promozione con TapReview.
+Disiscriviti: https://tapreview.app/unsubscribe?email=
+...
+Indirizzo: TapReview S.r.l., Via Esempio 1, 30100 Venezia (IT)”
+
+Gestisci errori (catch) e ritorna { ok: true } oppure { ok: false, error }.
+
+Endpoint API
+
+Crea routes/api/sendPromo.js (o una route equivalente) che accetti POST con body:
+
+{
+  "name": "Roberto La Rosa",
+  "email": "destinatario@example.com",
+  "promoTitle": "SCONTO 10€",
+  "code": "XLKUELTF9J"
+}
+
+
+Calcola codeUrl = "https://tapreview.app/q/" + code (mai localhost).
+
+Prima di inviare, salva log con status='queued'.
+
+Chiama sendPromoEmail(...).
+
+Aggiorna log a sent o failed con error.
+
+Rispondi JSON { success: true } o { success: false, error }.
+
+Server
+
+Se non esiste, crea server.js con Express (porta da process.env.PORT || 3000), mount delle routes API, healthcheck /health.
+
+Abilita CORS se serve dall’UI.
+
+Template Email
+
+Crea file templates/promoEmail.html.js che esporta una funzione che genera l’HTML (pulito, mobile-first, <600px width).
+
+Usa stili inline, niente font esterni, evita CSS complessi.
+
+Includi un box col QR (<img src="cid:qr1" width="256" height="256" alt="QR Code TapReview" />) e sotto il link cliccabile a codeUrl.
+
+Best practice deliverability
+
+Verifica che i link usino https.
+
+Aggiungi List-Unsubscribe nell’header:
+
+via header List-Unsubscribe: <mailto:unsubscribe@tapreview.app>, <https://tapreview.app/unsubscribe?email=...>
+
+Prevedi Reply-To configurabile (es. ristorante).
+
+Prepara README con istruzioni DNS:
+
+SPF: v=spf1 include:sendgrid.net ~all
+
+DKIM: 2 CNAME forniti da SendGrid
+
+DMARC: v=DMARC1; p=none; rua=mailto:dmarc@tapreview.app; fo=1
+
+Link Branding/CNAME tracking: em.tapreview.app → SendGrid
+
+Test
+
+Aggiungi script scripts/test-send.sh con curl POST all’endpoint per prova.
+
+Log console chiari.
+
+Verifica che l’email arrivi su Gmail/Outlook nella Inbox; in caso spam, loggare i Message-Id.
+
+Inserisci nel README una checklist “anti-spam”.
+
+Deliverable attesi
+
+File creati/aggiornati: server.js, routes/api/sendPromo.js, lib/email.js, lib/db.js, templates/promoEmail.html.js, README_EMAIL.md, scripts/test-send.sh, package.json aggiornato.
+
+Funzione funzionante: lancio npm run dev, colpo curl e ricevo email con QR visibile inline + link, e riga scritta su promo_emails.
+
+Nota finale
+
+Non utilizzare immagini hostate su localhost in nessun template.
+
+Mantieni il codice modulare e commentato.
+
+Se il progetto usa Next.js, implementa route API in /pages/api/sendPromo.ts o /app/api/sendPromo/route.ts con lo stesso comportamento.
