@@ -245,7 +245,7 @@ export class SupabaseStorage implements IStorage {
       case '7d':
       case '1w':
         since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        bucket = 'hour';
+        bucket = 'day';
         break;
       case '1m':
         since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
