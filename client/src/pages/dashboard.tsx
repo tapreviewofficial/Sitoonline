@@ -669,6 +669,15 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Promo Modal */}
+      {editingPromo && (
+        <EditPromoForm
+          promo={editingPromo}
+          open={!!editingPromo}
+          onClose={() => setEditingPromo(null)}
+        />
+      )}
     </div>
   );
 }
