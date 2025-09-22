@@ -22,7 +22,7 @@ interface EmailParams {
   html?: string;
 }
 
-const FROM_EMAIL = 'noreply@tapreview.it'; // Sender verificato
+const FROM_EMAIL = 'tapreviewofficial@gmail.com'; // Sender verificato
 
 export class EmailService {
   
