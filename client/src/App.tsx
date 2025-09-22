@@ -31,6 +31,7 @@ function Router() {
       <Route path="/u/:username" component={PublicProfile} />
       <Route path="/invite/:slug" component={InvitePage} />
       <Route path="/ticket/:code" component={TicketPage} />
+      <Route path="/q/:code" component={TicketPage} />
       <Route path="/scan" component={ScanPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
