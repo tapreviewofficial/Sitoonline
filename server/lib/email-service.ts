@@ -141,17 +141,16 @@ export class EmailService {
       ? `Valido fino al ${promotionDetails.validUntil.toLocaleDateString('it-IT')}`
       : 'Sempre valido';
 
-    // Genera QR code come attachment
-    let qrCodeBuffer: Buffer;
+    // Genera QR code come JPEG per email
+    let qrBase64: string;
     try {
-      qrCodeBuffer = await QRCode.toBuffer(qrCodeUrl, {
+      const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, {
+        type: 'image/jpeg',
         width: 300,
         margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
+        rendererOpts: { quality: 0.95 }
       });
+      qrBase64 = qrDataUrl.split(',')[1]; // Rimuove "data:image/jpeg;base64,"
     } catch (error) {
       console.error('Error generating QR code:', error);
       return false;
@@ -187,7 +186,7 @@ export class EmailService {
               <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
               
               <div style="margin: 20px 0;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px;" />
+                <img src="cid:qrcode" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px; display: block; margin: 0 auto;" />
               </div>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
@@ -251,7 +250,14 @@ export class EmailService {
       to: email,
       subject,
       html,
-      text
+      text,
+      attachments: [{
+        content: qrBase64,
+        filename: 'tapreview-qr.jpg',
+        type: 'image/jpeg',
+        disposition: 'inline',
+        content_id: 'qrcode'
+      }]
     });
   }
 
