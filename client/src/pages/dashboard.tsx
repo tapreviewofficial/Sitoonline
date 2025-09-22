@@ -18,6 +18,7 @@ import { StatsPanel } from "@/components/StatsPanel";
 import { DraggableLinkList } from "@/components/DraggableLinkList";
 import { LivePreview } from "@/components/LivePreview";
 import NewPromoLite from "@/components/NewPromoLite";
+import EditPromoForm from "@/components/EditPromoForm";
 import { ClientiDatabase } from "@/components/ClientiDatabase";
 import type { Link, Profile } from "@shared/schema";
 
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingPromo, setEditingPromo] = useState<any>(null);
 
   // Check authentication
   const { data: authData, isLoading: authLoading } = useQuery<{ user: { id: number; email: string; username: string } }>({
@@ -436,6 +438,13 @@ export default function Dashboard() {
                                     >
                                       {promo.active ? "ATTIVA" : "Inattiva"}
                                     </label>
+                                    <button
+                                      onClick={() => setEditingPromo(promo)}
+                                      className="ml-2 px-2 py-1 text-xs bg-[#CC9900] hover:bg-[#CC9900]/90 text-black rounded font-medium"
+                                      data-testid={`button-edit-promo-${promo.id}`}
+                                    >
+                                      Modifica
+                                    </button>
                                   </div>
                                 </div>
                               </div>
