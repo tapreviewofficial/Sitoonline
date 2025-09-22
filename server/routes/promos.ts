@@ -4,6 +4,7 @@ import { eq, and, desc, count, sql } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
 import { customAlphabet } from "nanoid";
+import { EmailService } from "../lib/email-service.js";
 
 const router = Router();
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
@@ -428,7 +429,29 @@ router.post("/public/:username/claim", async (req, res) => {
         expiresAt: promo[0].endAt
       });
       
-    console.log(`[EMAIL STUB] To:${email} | Subject:Il tuo QR | Body:${qrUrl}`);
+    // Invia email con QR code tramite SendGrid
+    try {
+      const emailSent = await EmailService.sendPromotionQRCode(
+        email,
+        name ? `${name} ${surname || ''}`.trim() : email.split('@')[0],
+        qrUrl,
+        {
+          title: promo[0].title,
+          description: promo[0].description ?? 'Partecipa alla nostra promozione speciale!',
+          validUntil: promo[0].endAt ?? undefined
+        }
+      );
+      
+      if (emailSent) {
+        console.log(`✅ QR Code email sent successfully to ${email}`);
+      } else {
+        console.log(`⚠️ Failed to send QR Code email to ${email}`);
+      }
+    } catch (emailError) {
+      console.error('Error sending QR Code email:', emailError);
+      // Non bloccare la risposta anche se l'email fallisce
+    }
+    
     res.json({ ok: true, code, qrUrl });
   } catch (e: any) {
     res.status(400).json({ error: e?.message || "Errore" });

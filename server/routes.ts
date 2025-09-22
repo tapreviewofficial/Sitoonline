@@ -538,9 +538,10 @@ TapReview - Sistema Email Attivo`
     }
   });
 
-  app.use("/api", requirePasswordChanged, promosRouter);
-  app.use("/api", requirePasswordChanged, ticketsRouter);
-  app.use("/api", requirePasswordChanged, publicPagesRouter);
+  // Routes con endpoint pubblici - NO requirePasswordChanged globale
+  app.use("/api", promosRouter);
+  app.use("/api", ticketsRouter);
+  app.use("/api", publicPagesRouter);
   
   // QR route breve
   const qRouter = (await import("./routes/q.js")).default;
