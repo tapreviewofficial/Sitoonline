@@ -5,6 +5,7 @@ import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
 import { customAlphabet } from "nanoid";
 import { EmailService } from "../lib/email-service.js";
+import { logPromoEmail, updatePromoEmailStatus } from "../lib/db.js";
 
 const router = Router();
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
@@ -445,8 +446,18 @@ router.post("/public/:username/claim", async (req, res) => {
       // Non bloccare il flusso principale se il salvataggio del contatto fallisce
     }
       
-    // Invia email con QR code tramite SendGrid
+    // Invia email con QR code tramite SendGrid e logga l'operazione
+    let emailLogId: string | null = null;
     try {
+      // Logga prima dell'invio
+      emailLogId = await logPromoEmail({
+        name: name ? `${name} ${surname || ''}`.trim() : undefined,
+        email,
+        code,
+        promoTitle: promo[0].title,
+        status: 'queued'
+      });
+
       const emailSent = await EmailService.sendPromotionQRCode(
         email,
         name ? `${name} ${surname || ''}`.trim() : email.split('@')[0],
@@ -460,11 +471,16 @@ router.post("/public/:username/claim", async (req, res) => {
       
       if (emailSent) {
         console.log(`✅ QR Code email sent successfully to ${email}`);
+        if (emailLogId) await updatePromoEmailStatus(emailLogId, 'sent');
       } else {
         console.log(`⚠️ Failed to send QR Code email to ${email}`);
+        if (emailLogId) await updatePromoEmailStatus(emailLogId, 'failed', 'SendGrid returned false');
       }
     } catch (emailError) {
       console.error('Error sending QR Code email:', emailError);
+      if (emailLogId) {
+        await updatePromoEmailStatus(emailLogId, 'failed', emailError instanceof Error ? emailError.message : 'Unknown email error');
+      }
       // Non bloccare la risposta anche se l'email fallisce
     }
     
