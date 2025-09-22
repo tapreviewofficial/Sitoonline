@@ -195,7 +195,7 @@ export function AnalyticsChart() {
           ) : (
             <div className="h-80" data-testid="chart-container">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.3} />
                   <XAxis 
                     dataKey="formattedDate" 
@@ -219,12 +219,15 @@ export function AnalyticsChart() {
                     labelFormatter={(label) => `Data: ${label}`}
                     formatter={(value) => [`${value} clic`, 'Clic']}
                   />
-                  <Bar 
+                  <Line 
+                    type="monotone" 
                     dataKey="count" 
-                    fill="#CC9900"
-                    radius={[4, 4, 0, 0]}
+                    stroke="#CC9900" 
+                    strokeWidth={3}
+                    dot={{ fill: '#CC9900', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: '#CC9900', strokeWidth: 2, fill: '#CC9900' }}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           )}
