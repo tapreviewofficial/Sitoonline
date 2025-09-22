@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/clicks", requireAuth, async (req, res) => {
     try {
       const user = (req as any).user;
-      const { range = '7d', timezone = 'Europe/Rome', groupBy = 'none' } = req.query;
+      const { range = '7d', timezone = 'Europe/Rome', groupBy = 'none', linkId } = req.query;
       
       // Validate range parameter
       const validRanges = ['1d', '7d', '1w', '1m', '3m', '6m', '1y', 'all'];
@@ -430,7 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = await storage.getClicksTimeSeries(user.userId, {
         range: range as '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all',
         timezone: timezone as string,
-        groupBy: groupBy as 'none' | 'link'
+        groupBy: groupBy as 'none' | 'link',
+        linkId: linkId ? parseInt(linkId as string) : undefined
       });
       
       res.json(data);

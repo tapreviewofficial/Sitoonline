@@ -228,6 +228,7 @@ export class SupabaseStorage implements IStorage {
     range: '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
     timezone?: string;
     groupBy?: 'none' | 'link';
+    linkId?: number;
   }) {
     const timezone = options.timezone || 'Europe/Rome';
     
@@ -272,6 +273,15 @@ export class SupabaseStorage implements IStorage {
     // Get aggregated clicks data
     const bucketSql = sql<Date>`date_trunc('${sql.raw(bucket)}', ${clicks.createdAt})`;
     
+    // Build WHERE conditions
+    const whereConditions = [
+      eq(links.userId, userId),
+      gte(clicks.createdAt, since)
+    ];
+    if (options.linkId) {
+      whereConditions.push(eq(clicks.linkId, options.linkId));
+    }
+    
     const result = await db
       .select({
         ts: bucketSql,
@@ -279,10 +289,7 @@ export class SupabaseStorage implements IStorage {
       })
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
-      .where(and(
-        eq(links.userId, userId),
-        gte(clicks.createdAt, since)
-      ))
+      .where(and(...whereConditions))
       .groupBy(bucketSql)
       .orderBy(asc(bucketSql));
 
@@ -291,10 +298,7 @@ export class SupabaseStorage implements IStorage {
       .select({ count: count() })
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
-      .where(and(
-        eq(links.userId, userId),
-        gte(clicks.createdAt, since)
-      ));
+      .where(and(...whereConditions));
 
     const totalClicks = totalResult[0]?.count || 0;
 

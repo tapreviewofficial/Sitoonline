@@ -32,6 +32,7 @@ export interface IStorage {
     range: '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
     timezone?: string;
     groupBy?: 'none' | 'link';
+    linkId?: number;
   }): Promise<{
     meta: { range: string; bucket: string; since: Date; until: Date; timezone: string };
     totals: { clicks: number; unique?: number };

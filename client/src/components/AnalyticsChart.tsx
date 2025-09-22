@@ -2,11 +2,20 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 type TimeRange = '1d' | '7d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
+
+interface Link {
+  id: number;
+  title: string;
+  url: string;
+  userId: number;
+  createdAt: string;
+}
 
 interface AnalyticsData {
   meta: {
@@ -40,11 +49,22 @@ const timeRangeOptions: TimeRange[] = ['1d', '7d', '1m', '3m', '6m', '1y', 'all'
 
 export function AnalyticsChart() {
   const [selectedRange, setSelectedRange] = useState<TimeRange>('7d');
+  const [selectedLink, setSelectedLink] = useState<string>('all');
   
+  // Fetch user links
+  const { data: linksData } = useQuery<Link[]>({
+    queryKey: ['/api/links'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   const { data: analyticsData, isLoading } = useQuery<AnalyticsData>({
-    queryKey: ['/api/analytics/clicks', selectedRange],
+    queryKey: ['/api/analytics/clicks', selectedRange, selectedLink],
     queryFn: async () => {
-      const response = await fetch(`/api/analytics/clicks?range=${selectedRange}`, {
+      let url = `/api/analytics/clicks?range=${selectedRange}`;
+      if (selectedLink !== 'all') {
+        url += `&linkId=${selectedLink}`;
+      }
+      const response = await fetch(url, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -85,35 +105,52 @@ export function AnalyticsChart() {
     formattedDate: formatDate(item.ts, analyticsData.meta.bucket)
   })) || [];
 
-  // Debug logs
-  if (analyticsData) {
-    console.log('Analytics data:', analyticsData);
-    console.log('Chart data:', chartData);
-  }
 
   return (
     <div className="space-y-6">
-      {/* Header with time range selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold" data-testid="text-analytics-title">Analytics Avanzate</h2>
-          <p className="text-muted-foreground">Visualizza i clic nel tempo con filtri personalizzabili</p>
+      {/* Header with filters */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold" data-testid="text-analytics-title">Analytics Avanzate</h2>
+            <p className="text-muted-foreground">Visualizza i clic nel tempo con filtri personalizzabili</p>
+          </div>
+          
+          {/* Time range selector */}
+          <div className="flex flex-wrap gap-2">
+            {timeRangeOptions.map((range) => (
+              <Button
+                key={range}
+                variant={selectedRange === range ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedRange(range)}
+                className={selectedRange === range ? "bg-gold text-coal" : ""}
+                data-testid={`button-range-${range}`}
+              >
+                {timeRangeLabels[range]}
+              </Button>
+            ))}
+          </div>
         </div>
-        
-        {/* Time range selector */}
-        <div className="flex flex-wrap gap-2">
-          {timeRangeOptions.map((range) => (
-            <Button
-              key={range}
-              variant={selectedRange === range ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedRange(range)}
-              className={selectedRange === range ? "bg-gold text-coal" : ""}
-              data-testid={`button-range-${range}`}
-            >
-              {timeRangeLabels[range]}
-            </Button>
-          ))}
+
+        {/* Link filter selector */}
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium">Filtra per link:</label>
+          <Select value={selectedLink} onValueChange={setSelectedLink}>
+            <SelectTrigger className="w-64" data-testid="select-link-filter">
+              <SelectValue placeholder="Seleziona un link" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" data-testid="option-all-links">
+                📊 Tutti i link
+              </SelectItem>
+              {linksData?.map((link) => (
+                <SelectItem key={link.id} value={link.id.toString()} data-testid={`option-link-${link.id}`}>
+                  🔗 {link.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
