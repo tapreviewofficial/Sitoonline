@@ -1,5 +1,5 @@
 import { SupabaseStorage } from "./lib/supabase-storage";
-import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
+import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -34,6 +34,11 @@ export interface IStorage {
   getPasswordResetByToken(token: string): Promise<(PasswordReset & { user: User }) | undefined>;
   markPasswordResetAsUsed(id: number): Promise<void>;
   invalidateUserPasswordResets(userId: number): Promise<void>;
+
+  // Promotional contacts methods
+  createOrUpdatePromotionalContact(contact: InsertPromotionalContact): Promise<PromotionalContact>;
+  getPromotionalContacts(userId: number): Promise<PromotionalContact[]>;
+  getAllPromotionalContacts(): Promise<PromotionalContact[]>;
 }
 
 // Ora usiamo Supabase invece di Prisma

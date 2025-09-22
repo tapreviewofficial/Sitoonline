@@ -105,6 +105,18 @@ export const scanLogs = pgTable("scan_logs", {
   meta: text("meta"),
 });
 
+export const promotionalContacts = pgTable("promotional_contacts", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  firstName: varchar("first_name", { length: 255 }),
+  lastName: varchar("last_name", { length: 255 }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Il business owner che ha ricevuto la richiesta
+  lastPromoRequested: varchar("last_promo_requested", { length: 255 }),
+  totalPromoRequests: integer("total_promo_requests").default(1),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -167,6 +179,12 @@ export const insertScanLogSchema = createInsertSchema(scanLogs).omit({
   at: true,
 });
 
+export const insertPromotionalContactSchema = createInsertSchema(promotionalContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertUserDb = z.infer<typeof insertUserDbSchema>;
@@ -187,3 +205,5 @@ export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type Ticket = typeof tickets.$inferSelect;
 export type InsertScanLog = z.infer<typeof insertScanLogSchema>;
 export type ScanLog = typeof scanLogs.$inferSelect;
+export type InsertPromotionalContact = z.infer<typeof insertPromotionalContactSchema>;
+export type PromotionalContact = typeof promotionalContacts.$inferSelect;

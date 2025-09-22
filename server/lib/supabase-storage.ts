@@ -1,8 +1,8 @@
 // Storage layer per Supabase usando Drizzle ORM
 import { eq, and, desc, asc, gte, lte, count, sql } from 'drizzle-orm';
-import { db, users, profiles, links, clicks, passwordResets } from './supabase';
+import { db, users, profiles, links, clicks, passwordResets, promotionalContacts } from './supabase';
 import type { IStorage } from '../storage';
-import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset } from "@shared/schema";
+import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "@shared/schema";
 
 export class SupabaseStorage implements IStorage {
   // Helper per monitorare performance query
@@ -257,5 +257,58 @@ export class SupabaseStorage implements IStorage {
 
   async invalidateUserPasswordResets(userId: number): Promise<void> {
     await db.update(passwordResets).set({ used: true }).where(eq(passwordResets.userId, userId));
+  }
+
+  // Promotional contacts methods
+  async createOrUpdatePromotionalContact(contact: InsertPromotionalContact): Promise<PromotionalContact> {
+    // Try to find existing contact by email and userId
+    const existingContact = await db
+      .select()
+      .from(promotionalContacts)
+      .where(and(
+        eq(promotionalContacts.email, contact.email),
+        eq(promotionalContacts.userId, contact.userId)
+      ))
+      .limit(1);
+
+    if (existingContact.length > 0) {
+      // Update existing contact
+      const updated = await db
+        .update(promotionalContacts)
+        .set({
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          lastPromoRequested: contact.lastPromoRequested,
+          totalPromoRequests: sql`${promotionalContacts.totalPromoRequests} + 1`,
+          updatedAt: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(promotionalContacts.id, existingContact[0].id))
+        .returning();
+      
+      return updated[0] as PromotionalContact;
+    } else {
+      // Create new contact
+      const result = await db.insert(promotionalContacts).values(contact).returning();
+      return result[0] as PromotionalContact;
+    }
+  }
+
+  async getPromotionalContacts(userId: number): Promise<PromotionalContact[]> {
+    const result = await db
+      .select()
+      .from(promotionalContacts)
+      .where(eq(promotionalContacts.userId, userId))
+      .orderBy(desc(promotionalContacts.createdAt));
+    
+    return result as PromotionalContact[];
+  }
+
+  async getAllPromotionalContacts(): Promise<PromotionalContact[]> {
+    const result = await db
+      .select()
+      .from(promotionalContacts)
+      .orderBy(desc(promotionalContacts.createdAt));
+    
+    return result as PromotionalContact[];
   }
 }

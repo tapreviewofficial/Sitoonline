@@ -429,6 +429,22 @@ router.post("/public/:username/claim", async (req, res) => {
         expiresAt: promo[0].endAt
       });
       
+    // Salva contatto promozionale per future campagne marketing
+    try {
+      await storage.createOrUpdatePromotionalContact({
+        email,
+        firstName: name || null,
+        lastName: surname || null,
+        userId: user[0].id,
+        lastPromoRequested: promo[0].title || 'Promozione',
+        totalPromoRequests: 1 // Il metodo gestisce l'incremento automaticamente se esiste già
+      });
+      console.log(`📧 Contatto promozionale salvato: ${email}`);
+    } catch (contactError) {
+      console.error('Error saving promotional contact:', contactError);
+      // Non bloccare il flusso principale se il salvataggio del contatto fallisce
+    }
+      
     // Invia email con QR code tramite SendGrid
     try {
       const emailSent = await EmailService.sendPromotionQRCode(
