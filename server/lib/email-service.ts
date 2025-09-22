@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail';
+import QRCode from 'qrcode';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
@@ -127,6 +128,22 @@ export class EmailService {
       ? `Valido fino al ${promotionDetails.validUntil.toLocaleDateString('it-IT')}`
       : 'Sempre valido';
 
+    // Genera QR code come attachment
+    let qrCodeBuffer: Buffer;
+    try {
+      qrCodeBuffer = await QRCode.toBuffer(qrCodeUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      return false;
+    }
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -157,7 +174,7 @@ export class EmailService {
               <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
               
               <div style="margin: 20px 0;">
-                <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(qrCodeUrl)}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;" />
+                <img src="cid:qrcode" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;" />
               </div>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
@@ -221,7 +238,14 @@ export class EmailService {
       to: email,
       subject,
       html,
-      text
+      text,
+      attachments: [{
+        content: qrCodeBuffer.toString('base64'),
+        filename: 'qrcode.png',
+        type: 'image/png',
+        disposition: 'inline',
+        cid: 'qrcode'
+      }]
     });
   }
 
