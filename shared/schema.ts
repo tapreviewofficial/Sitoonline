@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -117,6 +117,17 @@ export const promotionalContacts = pgTable("promotional_contacts", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const promoEmails = pgTable("promo_emails", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name"),
+  email: text("email"),
+  code: text("code"),
+  promoTitle: text("promo_title"),
+  status: text("status").default("queued"), // queued, sent, failed
+  error: text("error"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -185,6 +196,11 @@ export const insertPromotionalContactSchema = createInsertSchema(promotionalCont
   updatedAt: true,
 });
 
+export const insertPromoEmailSchema = createInsertSchema(promoEmails).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertUserDb = z.infer<typeof insertUserDbSchema>;
@@ -207,3 +223,5 @@ export type InsertScanLog = z.infer<typeof insertScanLogSchema>;
 export type ScanLog = typeof scanLogs.$inferSelect;
 export type InsertPromotionalContact = z.infer<typeof insertPromotionalContactSchema>;
 export type PromotionalContact = typeof promotionalContacts.$inferSelect;
+export type InsertPromoEmail = z.infer<typeof insertPromoEmailSchema>;
+export type PromoEmail = typeof promoEmails.$inferSelect;
