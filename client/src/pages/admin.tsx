@@ -56,7 +56,7 @@ export default function Admin() {
     mutationFn: async (data: CreateUserForm) => {
       return await apiRequest("POST", "/api/admin/users", data);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Utente creato",
         description: `Account creato per ${data.user.username}. L'utente dovrà cambiare password al primo accesso.`,
@@ -91,6 +91,8 @@ export default function Admin() {
       })
       .then(d => { 
         if (d) {
+          console.log('Admin users data received:', d);
+          console.log('First user structure:', d.users?.[0]);
           setUsers(d.users || []); 
           setTotal(d.total || 0); 
         }
@@ -133,9 +135,8 @@ export default function Admin() {
   const pages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-6 text-[#CC9900]">Admin Panel</h1>
+    <div className="w-full">
+      <div className="space-y-6">
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-5 gap-4 mb-8">
@@ -279,30 +280,31 @@ export default function Admin() {
             value={query}
             onChange={e => { setQuery(e.target.value); setPage(1); }}
             placeholder="Cerca per email / username / display name"
-            className="w-full rounded-xl border border-white/20 bg-black/50 px-4 py-2 outline-none focus:border-[#CC9900]"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid="input-search-users"
           />
         </div>
 
         {/* Users Table */}
-        <div className="rounded-2xl border border-white/10 overflow-hidden">
+        <div className="rounded-md border border-border overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-white/5 text-white/60">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="p-3">Email</th>
-                <th className="p-3">Username</th>
-                <th className="p-3">Ruolo</th>
-                <th className="p-3"># Link</th>
-                <th className="p-3 w-1">Azioni</th>
+                <th className="p-3 text-muted-foreground font-medium">Email</th>
+                <th className="p-3 text-muted-foreground font-medium">Username</th>
+                <th className="p-3 text-muted-foreground font-medium">Ruolo</th>
+                <th className="p-3 text-muted-foreground font-medium"># Link</th>
+                <th className="p-3 w-1 text-muted-foreground font-medium">Azioni</th>
               </tr>
             </thead>
             <tbody>
               {users.map(u => (
-                <tr key={u.id} className="border-t border-white/10 hover:bg-white/5">
+                <tr key={u.id} className="border-t border-border hover:bg-muted/50">
                   <td className="p-3">{u.email}</td>
                   <td className="p-3">{u.username}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                      u.role === 'ADMIN' ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                      u.role === 'ADMIN' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                     }`}>
                       {u.role}
                     </span>
@@ -311,7 +313,8 @@ export default function Admin() {
                   <td className="p-3">
                     <button 
                       onClick={() => impersona(u.id)} 
-                      className="px-3 py-1 rounded-lg bg-[#CC9900] hover:bg-[#CC9900]/80 text-black text-sm font-medium transition-colors"
+                      className="px-3 py-1 rounded-md bg-[#CC9900] hover:bg-[#CC9900]/80 text-black text-sm font-medium transition-colors"
+                      data-testid={`button-impersonate-${u.id}`}
                     >
                       Impersona
                     </button>
@@ -320,7 +323,7 @@ export default function Admin() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td className="p-6 text-center text-white/60" colSpan={5}>
+                  <td className="p-6 text-center text-muted-foreground" colSpan={5}>
                     Nessun utente trovato
                   </td>
                 </tr>
@@ -331,24 +334,24 @@ export default function Admin() {
 
         {/* Pagination */}
         <div className="mt-6 flex items-center justify-between">
-          <div className="text-white/60 text-sm">
+          <div className="text-muted-foreground text-sm">
             Mostrati {users.length} di {total} utenti
           </div>
           <div className="flex items-center gap-2">
             <button 
               disabled={page<=1} 
               onClick={() => setPage(p=>p-1)} 
-              className="px-3 py-1 rounded-lg border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
+              className="px-3 py-1 rounded-lg border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             >
               « Prev
             </button>
-            <span className="text-white/60 mx-2">
+            <span className="text-muted-foreground mx-2">
               Pagina {page} di {pages}
             </span>
             <button 
               disabled={page>=pages} 
               onClick={() => setPage(p=>p+1)} 
-              className="px-3 py-1 rounded-lg border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
+              className="px-3 py-1 rounded-lg border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             >
               Next »
             </button>
@@ -361,8 +364,8 @@ export default function Admin() {
 
 function StatCard({ title, value }: { title: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 p-4 bg-white/5 hover:bg-white/10 transition-colors">
-      <div className="text-white/60 text-sm mb-1">{title}</div>
+    <div className="rounded-lg border border-border p-4 bg-card hover:bg-muted/50 transition-colors">
+      <div className="text-muted-foreground text-sm mb-1">{title}</div>
       <div className="text-2xl font-bold text-[#CC9900]">
         {value.toLocaleString()}
       </div>
