@@ -1,19 +1,17 @@
 {
   "version": 2,
+  "buildCommand": "vite build --config vite.vercel.config.ts",
   "builds": [
     {
       "src": "server/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/**", "shared/**", "client/dist/**"]
+        "includeFiles": ["shared/**", "dist/public/**"]
       }
     },
     {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "src": "dist/public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -23,7 +21,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/$1"
+      "dest": "/dist/public/$1"
     }
   ],
   "env": {
