@@ -21,6 +21,7 @@ import NewPromoLite from "@/components/NewPromoLite";
 import EditPromoForm from "@/components/EditPromoForm";
 import { ClientiDatabase } from "@/components/ClientiDatabase";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
+import AdminPanel from "@/pages/admin";
 import type { Link, Profile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -55,7 +56,7 @@ export default function Dashboard() {
   const [editingPromo, setEditingPromo] = useState<any>(null);
 
   // Check authentication
-  const { data: authData, isLoading: authLoading } = useQuery<{ user: { id: number; email: string; username: string } }>({
+  const { data: authData, isLoading: authLoading } = useQuery<{ user: { id: number; email: string; username: string; role?: string } }>({
     queryKey: ["api", "auth", "me"],
   });
 
@@ -235,6 +236,9 @@ export default function Dashboard() {
             <TabsTrigger value="analytics" data-testid="tab-analytics" className="shrink-0 whitespace-nowrap snap-start">Analytics</TabsTrigger>
             <TabsTrigger value="anteprima" data-testid="tab-preview" className="shrink-0 whitespace-nowrap snap-start">Anteprima</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings" className="shrink-0 whitespace-nowrap snap-start">Impostazioni</TabsTrigger>
+            {authData?.user?.role === "ADMIN" && (
+              <TabsTrigger value="admin" data-testid="tab-admin" className="shrink-0 whitespace-nowrap snap-start text-red-400">Admin</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="gestione" className="mt-6">
@@ -657,6 +661,25 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {authData?.user?.role === "ADMIN" && (
+            <TabsContent value="admin" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-400 flex items-center gap-2">
+                    <i className="fas fa-cog"></i>
+                    Pannello Amministrazione
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Accesso completo alla gestione del sistema
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <AdminPanel />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
