@@ -1,0 +1,53 @@
+# Development files
+node_modules
+.env.local
+.env.development
+.env.test
+*.log
+npm-debug.log*
+
+# Replit specific files
+.replit
+replit.nix
+.replitignore
+.upm
+
+# Build artifacts (excluded since we build on Vercel)
+dist/
+client/dist/
+
+# Source maps and debug files
+*.map
+.vscode/
+.idea/
+
+# Test files
+**/*.test.*
+**/*.spec.*
+coverage/
+
+# Database files (local SQLite)
+*.db
+*.sqlite
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+replit.md
+docs/
+
+# Package lock files (let Vercel handle)
+package-lock.json
+yarn.lock
