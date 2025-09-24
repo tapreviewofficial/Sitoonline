@@ -17,7 +17,8 @@ type UserRow = {
   email: string;
   username: string;
   role: "USER" | "ADMIN";
-  _count: { links: number };
+  linksCount: number;
+  _count?: { links: number };
 };
 
 const createUserSchema = z.object({
@@ -63,9 +64,10 @@ export default function Admin() {
       });
       form.reset();
       setShowCreateForm(false);
-      // Ricarica la lista utenti
+      // Ricarica la lista utenti e stats
       setPage(1);
-      window.location.reload(); // Semplice reload per aggiornare stats e lista
+      // Triggera ricaricamento di entrambi gli useEffect
+      window.location.hash = '#refresh-' + Date.now();
     },
     onError: (error) => {
       toast({
@@ -309,7 +311,7 @@ export default function Admin() {
                       {u.role}
                     </span>
                   </td>
-                  <td className="p-3">{u._count?.links ?? 0}</td>
+                  <td className="p-3">{u.linksCount ?? u._count?.links ?? 0}</td>
                   <td className="p-3">
                     <button 
                       onClick={() => impersona(u.id)} 
