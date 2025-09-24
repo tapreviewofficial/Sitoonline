@@ -3,7 +3,22 @@
   "buildCommand": "vite build --config vite.vercel.config.ts",
   "outputDirectory": "dist/public",
   "installCommand": "npm ci",
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/public/$1"
+    }
+  ]
 }
