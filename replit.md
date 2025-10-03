@@ -4,6 +4,8 @@
 
 TapReview is a full-stack web application designed to help businesses collect customer reviews through NFC technology. The platform enables users to create personalized public profiles where customers can easily leave reviews by tapping an NFC card. The application combines a luxury black and gold theme (#0a0a0a / #CC9900) with modern React components to deliver a premium user experience.
 
+**Deployment Status:** Fully converted to Vercel serverless architecture with 30 complete API routes covering all functionality (auth, profiles, links, analytics, admin panel, promotions, tickets, public pages, promotional contacts).
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -14,21 +16,34 @@ Preferred communication style: Simple, everyday language.
 The client-side application is built with React, TypeScript, and Vite, providing a modern development experience with hot module replacement. The UI is constructed using shadcn/ui components built on top of Radix UI primitives, ensuring accessibility and consistency. TailwindCSS provides utility-first styling with custom CSS variables for the luxury theme. State management is handled by TanStack React Query for server state synchronization, while Wouter provides lightweight client-side routing.
 
 ### Backend Architecture  
-The server runs on Express.js with TypeScript, following a RESTful API design pattern. Routes are modularized in the routes.ts file, with authentication middleware protecting secured endpoints. The storage layer implements an interface-based design (IStorage) with a Prisma implementation, allowing for future database provider flexibility. Error handling is centralized with proper HTTP status codes and JSON responses.
+The application uses **Vercel serverless functions** for backend operations, with all API logic converted from Express to individual Vercel API routes. The serverless architecture includes:
+- **Shared Utilities** (`/lib/shared`): Database client with connection pooling (Neon serverless driver), JWT auth helpers, storage layer, email service
+- **30 API Routes** (`/api/*`): Complete REST API covering auth (7), profile/links (4), analytics (3), admin (4), promos/tickets (7), public (4), and other features (1)
+- **Stateless Design**: All functions are stateless, using connection pooling for database access and JWT for authentication
+- **Error Handling**: Centralized with proper HTTP status codes and JSON responses across all serverless functions
 
 ### Authentication & Authorization
 Authentication uses JWT tokens stored in HTTP-only cookies with a 30-day expiration. Passwords are hashed using bcryptjs with a salt rounds of 12. The system includes middleware for protected routes (requireAuth) and optional authentication checking (getCurrentUser). Cookie security adapts to environment - secure:false in development, secure:true in production.
 
 ### Database Design
-The application uses Drizzle ORM with SQLite as the database, defined with a clear schema in shared/schema.ts. The data model consists of three main entities:
-- Users: Core authentication and identification
-- Profiles: Public-facing user information with customization options  
-- Links: User-managed collection of review links with ordering support
+The application uses Drizzle ORM with **Supabase PostgreSQL** as the database (Neon-backed for serverless compatibility), defined with a clear schema in shared/schema.ts. The data model consists of:
+- **Users & Profiles**: Core authentication and public-facing user information
+- **Links & Clicks**: User-managed review links with click tracking and analytics
+- **Promos, Tickets & PublicPages**: Promotional campaigns with ticket generation and custom landing pages
+- **PromotionalContacts**: Database of customers who requested promotions
+- **PasswordResets & ScanLogs**: Supporting tables for password recovery and ticket scanning
 
-All schemas include proper foreign key relationships and cascade deletion for data integrity.
+All schemas include proper foreign key relationships with cascade deletion for data integrity. Connection pooling is enabled via Neon serverless driver for optimal serverless performance.
 
 ### Development & Build Pipeline
-The monorepo structure separates client and server concerns while sharing TypeScript types through a shared directory. Vite handles frontend bundling with proxy configuration for API routes during development. The production build compiles both client (static assets) and server (ESM bundle) with appropriate optimizations.
+The monorepo structure separates client, server, and shared concerns:
+- **Client**: Vite-powered React app with TypeScript, builds to static assets for Vercel hosting
+- **API**: Serverless functions in `/api` directory, auto-deployed as Vercel Functions
+- **Shared**: Common types, schemas, and utilities shared between client and serverless backend
+- **Database**: Drizzle ORM with Neon PostgreSQL (connection pooling for serverless)
+
+**Local Development**: `npm run dev` starts Express server (for local testing). 
+**Production Deployment**: Vercel automatically builds frontend and deploys serverless functions. See `VERCEL_DEPLOY.md` for complete deployment instructions.
 
 ## External Dependencies
 
