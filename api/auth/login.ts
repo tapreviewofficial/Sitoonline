@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../../server/storage';
-import { hashPassword, comparePassword, signToken } from '../../server/lib/auth';
+import type { VercelRequest, VercelResponse} from '@vercel/node';
+import { storage } from '../../lib/shared/storage';
+import { comparePassword, signToken, createAuthCookie } from '../../lib/shared/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -24,11 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       userId: user.id,
       email: user.email,
       username: user.username,
+      role: user.role
     });
 
-    // Set cookie
-    res.setHeader('Set-Cookie', `token=${token}; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure;' : ''} SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
-
+    res.setHeader('Set-Cookie', createAuthCookie(token));
     res.json({ 
       user: { 
         id: user.id, 
