@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, gte, count, sql } from 'drizzle-orm';
-import { getDatabase } from './db';
-import { users, profiles, links, clicks, passwordResets, promotionalContacts } from '@shared/schema';
-import type { User, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "@shared/schema";
+import { getDatabase } from './db.js';
+import { users, profiles, links, clicks, passwordResets, promotionalContacts } from '../../shared/schema.js';
+import type { User, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "../../shared/schema.js";
 
 export class Storage {
   // User methods

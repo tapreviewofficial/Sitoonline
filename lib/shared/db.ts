@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema.js';
 
 // Funzione per creare connessione database serverless-friendly
 let cachedDb: ReturnType<typeof drizzle> | null = null;
@@ -37,4 +37,4 @@ export function getDatabase() {
 }
 
 // Export schema
-export * from '@shared/schema';
+export * from '../../shared/schema.js';
