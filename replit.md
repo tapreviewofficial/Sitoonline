@@ -36,7 +36,55 @@ The application uses **Vercel serverless functions** optimized for Free Tier con
 - **Error Handling**: Consistent HTTP status codes and JSON responses
 
 ### Authentication & Authorization
-Authentication uses JWT tokens stored in HTTP-only cookies with a 30-day expiration. Passwords are hashed using bcryptjs with a salt rounds of 12. The system includes middleware for protected routes (requireAuth) and optional authentication checking (getCurrentUser). Cookie security adapts to environment - secure:false in development, secure:true in production.
+Authentication uses JWT tokens stored in HTTP-only cookies with a 30-day expiration. Passwords are hashed using bcryptjs with a salt rounds of 12. The system includes middleware for protected routes (requireAuth) and optional authentication checking (getCurrentUser). Cookie security is **production-hardened** with:
+- **SameSite=Strict** for CSRF protection (prevents cookie transmission in cross-site requests)
+- **Secure flag** in production (HTTPS-only cookie transmission)
+- **HttpOnly flag** (prevents JavaScript access, mitigates XSS)
+- **JWT_SECRET validation** at startup (throws error if missing, no hardcoded fallback)
+
+### Security Hardening (October 2025)
+TapReview implements **comprehensive security measures** to protect user data and prevent common web vulnerabilities:
+
+**1. CSRF Protection:**
+- All authentication cookies use `SameSite=Strict` to prevent cross-site request forgery
+- Admin impersonation cookies also use `SameSite=Strict` with audit logging
+
+**2. Security Headers** (via `vercel.json`):
+- `Content-Security-Policy`: Strict policy allowing only trusted sources (self, Supabase, Replit fonts)
+- `Strict-Transport-Security`: HSTS with 1-year max-age and includeSubDomains
+- `X-Frame-Options: DENY`: Prevents clickjacking attacks
+- `X-Content-Type-Options: nosniff`: Prevents MIME sniffing
+- `Referrer-Policy: strict-origin-when-cross-origin`: Limits referrer information leakage
+- `Permissions-Policy`: Blocks camera, microphone, geolocation access
+
+**3. Rate Limiting** (`lib/shared/rateLimit.ts`):
+- **Login endpoint**: 5 attempts per 15 minutes (prevents brute force)
+- **Password reset**: 3 attempts per hour (prevents email flooding)
+- **Ticket redemption**: 10 attempts per minute (prevents abuse)
+- In-memory per-function instance tracking with automatic cleanup
+
+**4. Input Validation & Sanitization** (`lib/shared/validation.ts`):
+- XSS pattern detection and removal (script tags, event handlers, javascript: URLs)
+- SQL injection pattern detection (defense in depth, Drizzle ORM already prevents)
+- Email, username, URL, and HTML sanitization functions
+- Applied to all user inputs at API boundaries
+
+**5. Ticket Redemption Idempotency** (`api/tickets.ts`):
+- **Atomic conditional updates**: `UPDATE WHERE status='ACTIVE'` prevents race conditions
+- Transaction-based redemption ensures only one successful redemption per ticket
+- Audit logging in `scanLogs` with IP address and user agent tracking
+- Proper error handling for "already used" vs "not found" states
+
+**6. Admin Audit Logging** (`api/admin.ts`):
+- Console warn logs for all admin impersonation attempts (start and stop)
+- Logged data: timestamp, action type, admin ID/email, target user ID/email, IP address, user agent
+- Structured JSON format for easy parsing by external logging services (Datadog, Sentry, etc.)
+
+**Performance Optimizations:**
+- Database indexes on critical queries (8 indexes on tickets, promos, clicks, users)
+- HTTP cache headers for public endpoints (5min profiles, 1min promotions)
+- Code splitting with React.lazy and Suspense for reduced initial bundle size
+- Single Google Font (Inter) instead of 25 families (~60% LCP improvement)
 
 ### Database Design
 The application uses Drizzle ORM with **Supabase PostgreSQL** as the database (Neon-backed for serverless compatibility), defined with a clear schema in shared/schema.ts. The data model consists of:
