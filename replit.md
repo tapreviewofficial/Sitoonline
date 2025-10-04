@@ -4,7 +4,7 @@
 
 TapReview is a full-stack web application designed to help businesses collect customer reviews through NFC technology. The platform enables users to create personalized public profiles where customers can easily leave reviews by tapping an NFC card. The application combines a luxury black and gold theme (#0a0a0a / #CC9900) with modern React components to deliver a premium user experience.
 
-**Deployment Status:** Fully converted to Vercel serverless architecture with 30 complete API routes covering all functionality (auth, profiles, links, analytics, admin panel, promotions, tickets, public pages, promotional contacts).
+**Deployment Status:** Fully optimized for Vercel Free Tier with **8 consolidated serverless functions** (under 12 function limit) covering all 31 API routes. Architecture uses pathname-based routing within consolidated handlers to maximize functionality while minimizing function count.
 
 ## User Preferences
 
@@ -16,11 +16,24 @@ Preferred communication style: Simple, everyday language.
 The client-side application is built with React, TypeScript, and Vite, providing a modern development experience with hot module replacement. The UI is constructed using shadcn/ui components built on top of Radix UI primitives, ensuring accessibility and consistency. TailwindCSS provides utility-first styling with custom CSS variables for the luxury theme. State management is handled by TanStack React Query for server state synchronization, while Wouter provides lightweight client-side routing.
 
 ### Backend Architecture  
-The application uses **Vercel serverless functions** for backend operations, with all API logic converted from Express to individual Vercel API routes. The serverless architecture includes:
-- **Shared Utilities** (`/lib/shared`): Database client with connection pooling (Neon serverless driver), JWT auth helpers, storage layer, email service
-- **30 API Routes** (`/api/*`): Complete REST API covering auth (7), profile/links (4), analytics (3), admin (4), promos/tickets (7), public (4), and other features (1)
-- **Stateless Design**: All functions are stateless, using connection pooling for database access and JWT for authentication
-- **Error Handling**: Centralized with proper HTTP status codes and JSON responses across all serverless functions
+The application uses **Vercel serverless functions** optimized for Free Tier constraints. Architecture consolidates 31 API routes into 8 serverless functions:
+
+**Consolidated API Functions** (`/api`):
+- `auth.ts` (7 routes): login, logout, register, password reset flows, change password
+- `user.ts` (4 routes): me, profile, links CRUD operations
+- `analytics.ts` (3 routes): summary stats, clicks analytics, links performance
+- `admin.ts` (4 routes): user management, stats, impersonation system
+- `promos.ts` (5 routes): promotions CRUD, activation, ticket generation
+- `tickets.ts` (2 routes): ticket status checking, redemption
+- `public.ts` (3 routes): public profiles, active promotions, claiming
+- `other.ts` (3 routes): link redirects, promotional contacts, public pages
+
+**Technical Implementation**:
+- **Pathname-based Routing**: Each consolidated file uses URL path matching to handle multiple endpoints
+- **Vercel Rewrites**: `vercel.json` maps incoming paths to consolidated handlers (e.g., `/api/auth/login` → `/api/auth.ts`)
+- **Shared Utilities** (`/lib/shared`): Database pooling, JWT auth, storage layer, email service
+- **Stateless Design**: All functions stateless with connection pooling and JWT authentication
+- **Error Handling**: Consistent HTTP status codes and JSON responses
 
 ### Authentication & Authorization
 Authentication uses JWT tokens stored in HTTP-only cookies with a 30-day expiration. Passwords are hashed using bcryptjs with a salt rounds of 12. The system includes middleware for protected routes (requireAuth) and optional authentication checking (getCurrentUser). Cookie security adapts to environment - secure:false in development, secure:true in production.
@@ -42,8 +55,14 @@ The monorepo structure separates client, server, and shared concerns:
 - **Shared**: Common types, schemas, and utilities shared between client and serverless backend
 - **Database**: Drizzle ORM with Neon PostgreSQL (connection pooling for serverless)
 
-**Local Development**: `npm run dev` starts Express server (for local testing). 
-**Production Deployment**: Vercel automatically builds frontend and deploys serverless functions. See `VERCEL_DEPLOY.md` for complete deployment instructions.
+**Local Development**: `npm run dev` starts Express server with full routing (for local testing). 
+**Production Deployment**: Vercel builds frontend and deploys 8 consolidated serverless functions. See `VERCEL_DEPLOY_COMPLETE.md` for complete deployment instructions.
+
+**Vercel Free Tier Compliance**:
+- ✅ 8/12 serverless functions (66% capacity)
+- ✅ Pathname-based routing for route consolidation
+- ✅ Automatic rewrites configured in `vercel.json`
+- ✅ All 31 API endpoints functional
 
 ## External Dependencies
 
