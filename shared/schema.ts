@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -32,7 +32,9 @@ export const links = pgTable("links", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   clicks: integer("clicks").default(0),
-});
+}, (table) => ({
+  userIdIdx: index("links_user_id_idx").on(table.userId),
+}));
 
 export const clicks = pgTable("clicks", {
   id: serial("id").primaryKey(),
@@ -80,7 +82,11 @@ export const promos = pgTable("promos", {
   active: boolean("active").default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  userIdIdx: index("promos_user_id_idx").on(table.userId),
+  activeIdx: index("promos_active_idx").on(table.active),
+  userActiveIdx: index("promos_user_active_idx").on(table.userId, table.active),
+}));
 
 export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
@@ -94,7 +100,11 @@ export const tickets = pgTable("tickets", {
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   expiresAt: timestamp("expires_at"),
-});
+}, (table) => ({
+  statusIdx: index("tickets_status_idx").on(table.status),
+  promoIdIdx: index("tickets_promo_id_idx").on(table.promoId),
+  promoStatusIdx: index("tickets_promo_status_idx").on(table.promoId, table.status),
+}));
 
 export const scanLogs = pgTable("scan_logs", {
   id: serial("id").primaryKey(),
@@ -103,7 +113,9 @@ export const scanLogs = pgTable("scan_logs", {
   result: varchar("result", { length: 20 }).notNull(),
   at: timestamp("at").default(sql`CURRENT_TIMESTAMP`),
   meta: text("meta"),
-});
+}, (table) => ({
+  ticketIdIdx: index("scan_logs_ticket_id_idx").on(table.ticketId),
+}));
 
 export const promotionalContacts = pgTable("promotional_contacts", {
   id: serial("id").primaryKey(),

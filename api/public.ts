@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
       res.json({
         profile: {
           displayName: profile?.displayName || user.username,
@@ -68,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ active: false });
     }
     
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
     res.json({ 
       active: true, 
       title: promo[0].title, 
