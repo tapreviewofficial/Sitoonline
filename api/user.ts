@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCurrentUser } from '../lib/shared/auth';
-import { storage } from '../lib/shared/storage';
-import { insertProfileSchema, insertLinkSchema } from '@shared/schema';
+import { getCurrentUser } from '../lib/shared/auth.js';
+import { storage } from '../lib/shared/storage.js';
+import { insertProfileSchema, insertLinkSchema } from '../shared/schema.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await getCurrentUser(req.headers.cookie);

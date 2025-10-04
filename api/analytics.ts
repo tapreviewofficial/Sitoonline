@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCurrentUser } from '../lib/shared/auth';
-import { storage } from '../lib/shared/storage';
+import { getCurrentUser } from '../lib/shared/auth.js';
+import { storage } from '../lib/shared/storage.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

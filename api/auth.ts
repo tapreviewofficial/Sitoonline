@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../lib/shared/storage';
-import { comparePassword, signToken, createAuthCookie, createLogoutCookie, getCurrentUser, hashPassword } from '../lib/shared/auth';
+import { storage } from '../lib/shared/storage.js';
+import { comparePassword, signToken, createAuthCookie, createLogoutCookie, getCurrentUser, hashPassword } from '../lib/shared/auth.js';
 import { nanoid } from 'nanoid';
-import { sendEmail, generatePasswordResetEmail } from '../lib/shared/emailService';
+import { sendEmail, generatePasswordResetEmail } from '../lib/shared/emailService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);

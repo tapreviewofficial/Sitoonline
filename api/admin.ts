@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCurrentUser, hashPassword, signToken, createAuthCookie } from '../lib/shared/auth';
-import { getDatabase } from '../lib/shared/db';
-import { users, profiles, links, clicks } from '@shared/schema';
+import { getCurrentUser, hashPassword, signToken, createAuthCookie } from '../lib/shared/auth.js';
+import { getDatabase } from '../lib/shared/db.js';
+import { users, profiles, links, clicks } from '../shared/schema.js';
 import { or, ilike, desc, count, eq, gte } from 'drizzle-orm';
-import { insertUserSchema } from '@shared/schema';
+import { insertUserSchema } from '../shared/schema.js';
 import { z } from 'zod';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

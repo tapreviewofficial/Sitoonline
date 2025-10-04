@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import { getCurrentUser } from '../lib/shared/auth';
-import { storage } from '../lib/shared/storage';
-import { getDatabase } from '../lib/shared/db';
-import { publicPages, users } from '@shared/schema';
+import { getCurrentUser } from '../lib/shared/auth.js';
+import { storage } from '../lib/shared/storage.js';
+import { getDatabase } from '../lib/shared/db.js';
+import { publicPages, users } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

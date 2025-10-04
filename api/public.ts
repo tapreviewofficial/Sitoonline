@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../lib/shared/storage';
-import { getDatabase } from '../lib/shared/db';
-import { users, promos, tickets, publicPages } from '@shared/schema';
+import { storage } from '../lib/shared/storage.js';
+import { getDatabase } from '../lib/shared/db.js';
+import { users, promos, tickets, publicPages } from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 

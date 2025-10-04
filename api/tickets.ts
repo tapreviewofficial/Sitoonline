@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCurrentUser } from '../lib/shared/auth';
-import { getDatabase } from '../lib/shared/db';
-import { tickets } from '@shared/schema';
+import { getCurrentUser } from '../lib/shared/auth.js';
+import { getDatabase } from '../lib/shared/db.js';
+import { tickets } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
