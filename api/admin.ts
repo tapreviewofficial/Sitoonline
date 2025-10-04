@@ -13,7 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/admin', '');
+  let pathname = url.pathname.replace('/api/admin', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
   // /api/admin/users - GET & POST
   if (pathname === '/users' && req.method === 'GET') {

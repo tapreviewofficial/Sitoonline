@@ -10,7 +10,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/user', '');
+  // Handle both direct calls (/api/user/...) and Vercel rewrites (/api/links, /api/me, etc.)
+  let pathname = url.pathname.replace('/api/user', '');
+  if (pathname.startsWith('/api/')) {
+    pathname = pathname.replace('/api', '');
+  }
 
   // /api/user/me
   if (pathname === '/me' && req.method === 'GET') {

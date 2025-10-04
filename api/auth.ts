@@ -8,7 +8,8 @@ import { sanitizeEmail, sanitizeUsername, sanitizeText } from '../lib/shared/val
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/auth', '');
+  let pathname = url.pathname.replace('/api/auth', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
   
   // /api/auth/login
   if (pathname === '/login' && req.method === 'POST') {

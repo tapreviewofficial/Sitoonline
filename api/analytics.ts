@@ -13,7 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/analytics', '');
+  let pathname = url.pathname.replace('/api/analytics', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
   // /api/analytics/summary
   if (pathname === '/summary') {

@@ -7,7 +7,8 @@ import { nanoid } from 'nanoid';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/public', '');
+  let pathname = url.pathname.replace('/api/public', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
   // /api/public/:username - GET (profilo pubblico)
   const usernameMatch = pathname.match(/^\/([^/]+)$/);

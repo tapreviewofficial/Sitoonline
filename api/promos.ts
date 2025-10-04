@@ -13,7 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const db = getDatabase();
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/promos', '');
+  let pathname = url.pathname.replace('/api/promos', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
   // /api/promos - GET & POST (lista e creazione)
   if (pathname === '' || pathname === '/') {

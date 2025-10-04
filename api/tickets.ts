@@ -7,7 +7,8 @@ import { checkRateLimit, RATE_LIMITS } from '../lib/shared/rateLimit.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
-  const pathname = url.pathname.replace('/api/tickets', '');
+  let pathname = url.pathname.replace('/api/tickets', '');
+  if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
   // /api/tickets/:code/status - GET
   const statusMatch = pathname.match(/^\/([^/]+)\/status$/);
