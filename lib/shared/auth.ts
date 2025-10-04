@@ -1,7 +1,12 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+// Verify JWT_SECRET is set - critical security requirement
+if (!process.env.JWT_SECRET) {
+  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not set. Application cannot start without a secure secret.');
+}
+
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export interface JWTPayload {
   userId: number;
@@ -50,14 +55,17 @@ export async function getCurrentUser(cookieHeader?: string): Promise<JWTPayload 
   }
 }
 
-// Helper per creare cookie header
+// Helper per creare cookie header con massima sicurezza
 export function createAuthCookie(token: string): string {
   const isProduction = process.env.NODE_ENV === 'production';
   const maxAge = 30 * 24 * 60 * 60; // 30 giorni
   
-  return `token=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax${isProduction ? '; Secure' : ''}`;
+  // SameSite=Strict per protezione CSRF completa
+  // Secure flag sempre attivo in production, opzionale in dev per test locali
+  return `token=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`;
 }
 
 export function createLogoutCookie(): string {
-  return 'token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax';
+  const isProduction = process.env.NODE_ENV === 'production';
+  return `token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${isProduction ? '; Secure' : ''}`;
 }

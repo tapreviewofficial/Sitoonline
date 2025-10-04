@@ -3,6 +3,8 @@ import { storage } from '../lib/shared/storage.js';
 import { comparePassword, signToken, createAuthCookie, createLogoutCookie, getCurrentUser, hashPassword } from '../lib/shared/auth.js';
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from '../lib/shared/emailService.js';
+import { checkRateLimit, RATE_LIMITS } from '../lib/shared/rateLimit.js';
+import { sanitizeEmail, sanitizeUsername, sanitizeText } from '../lib/shared/validation.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -13,7 +15,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { email, password } = req.body;
 
-      const user = await storage.getUserByEmail(email);
+      // Input validation and sanitization
+      const sanitizedEmail = sanitizeEmail(email);
+
+      // Rate limiting: prevent brute force attacks
+      const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.headers['x-real-ip']?.toString() || 'unknown';
+      const rateLimitKey = `login:${clientIp}:${sanitizedEmail}`;
+      const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.AUTH_LOGIN);
+      
+      if (!rateLimit.allowed) {
+        res.setHeader('Retry-After', rateLimit.retryAfter?.toString() || '900');
+        return res.status(429).json({ 
+          message: 'Too many login attempts. Please try again later.',
+          retryAfter: rateLimit.retryAfter 
+        });
+      }
+
+      const user = await storage.getUserByEmail(sanitizedEmail);
       if (!user) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
@@ -139,6 +157,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ error: 'Email richiesta' });
+      }
+
+      // Rate limiting: prevent password reset abuse
+      const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.headers['x-real-ip']?.toString() || 'unknown';
+      const rateLimitKey = `password-reset:${clientIp}:${email}`;
+      const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PASSWORD_RESET);
+      
+      if (!rateLimit.allowed) {
+        res.setHeader('Retry-After', rateLimit.retryAfter?.toString() || '3600');
+        return res.status(429).json({ 
+          error: 'Too many password reset attempts. Please try again later.',
+          retryAfter: rateLimit.retryAfter 
+        });
       }
 
       const user = await storage.getUserByEmail(email.toLowerCase());

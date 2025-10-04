@@ -190,7 +190,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // /api/admin/impersonate/:id
+  // /api/admin/impersonate/:id (with audit logging and enhanced security)
   if (pathname.startsWith('/impersonate/') && req.method === 'POST') {
     const targetId = parseInt(pathname.replace('/impersonate/', ''));
     const db = getDatabase();
@@ -202,12 +202,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ message: 'Utente non trovato' });
     }
 
+    // SECURITY AUDIT: Log impersonation attempt
+    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown';
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      action: 'ADMIN_IMPERSONATION',
+      adminId: user.userId,
+      adminEmail: user.email,
+      targetUserId: targetUser.id,
+      targetUserEmail: targetUser.email,
+      ip: clientIp,
+      userAgent: req.headers['user-agent'] || 'unknown'
+    };
+    
+    // Log to console for audit trail (in production, send to logging service)
+    console.warn('[SECURITY AUDIT]', JSON.stringify(auditLog));
+
     const userToken = signToken({ userId: targetUser.id, email: targetUser.email, username: targetUser.username, role: targetUser.role });
     const adminToken = signToken({ userId: user.userId, email: user.email, username: user.username, role: 'ADMIN' });
 
+    // Use SameSite=Strict for enhanced CSRF protection
+    const isProduction = process.env.NODE_ENV === 'production';
     res.setHeader('Set-Cookie', [
       createAuthCookie(userToken),
-      `impersonator=${adminToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
+      `impersonator=${adminToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Strict${isProduction ? '; Secure' : ''}`
     ]);
     
     res.json({ ok: true });
@@ -225,9 +243,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const impersonatorToken = impersonatorMatch[1];
 
+    // SECURITY AUDIT: Log stop impersonation
+    console.warn('[SECURITY AUDIT]', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      action: 'ADMIN_STOP_IMPERSONATION',
+      adminId: user.userId,
+      ip: req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown'
+    }));
+
+    const isProduction = process.env.NODE_ENV === 'production';
     res.setHeader('Set-Cookie', [
       createAuthCookie(impersonatorToken),
-      'impersonator=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax'
+      `impersonator=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${isProduction ? '; Secure' : ''}`
     ]);
     
     res.json({ ok: true });
