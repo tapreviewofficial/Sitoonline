@@ -90,10 +90,16 @@
     {
       "source": "/api/public-pages/:path*",
       "destination": "/api/other"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
