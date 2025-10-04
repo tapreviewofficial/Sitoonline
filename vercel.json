@@ -76,6 +76,10 @@
       "destination": "/api/user"
     },
     {
+      "source": "/api/links",
+      "destination": "/api/user"
+    },
+    {
       "source": "/api/links/:path*",
       "destination": "/api/user"
     },
