@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCurrentUser, hashPassword } from '../../lib/shared/auth';
-import { getDatabase } from '../../lib/shared/db';
-import { users, profiles, links } from '@shared/schema';
-import { or, ilike, desc, count, eq } from 'drizzle-orm';
+import { getCurrentUser, hashPassword, signToken, createAuthCookie } from '../lib/shared/auth';
+import { getDatabase } from '../lib/shared/db';
+import { users, profiles, links, clicks } from '@shared/schema';
+import { or, ilike, desc, count, eq, gte } from 'drizzle-orm';
 import { insertUserSchema } from '@shared/schema';
 import { z } from 'zod';
 
@@ -12,7 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ message: 'Admin access required' });
   }
 
-  if (req.method === 'GET') {
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const pathname = url.pathname.replace('/api/admin', '');
+
+  // /api/admin/users - GET & POST
+  if (pathname === '/users' && req.method === 'GET') {
     try {
       const db = getDatabase();
       const q = String(req.query.query || '').trim();
@@ -61,7 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('Admin users query error:', error);
       res.status(500).json({ message: 'Errore nel caricamento utenti' });
     }
-  } else if (req.method === 'POST') {
+    return;
+  }
+
+  if (pathname === '/users' && req.method === 'POST') {
     try {
       const db = getDatabase();
       const adminCreateUserSchema = insertUserSchema.omit({
@@ -124,12 +131,108 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (constraint.includes('username') || message.includes('username')) {
           return res.status(409).json({ message: 'Username già in uso' });
         }
-        return res.status(409).json({ message: 'Email o username già in uso' });
       }
       
       res.status(500).json({ message: 'Errore nella creazione dell\'utente' });
     }
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
+    return;
   }
+
+  // /api/admin/stats/summary
+  if (pathname === '/stats/summary' && req.method === 'GET') {
+    try {
+      const db = getDatabase();
+      const [usersCountResult, linksCountResult] = await Promise.all([
+        db.select({ count: count() }).from(users),
+        db.select({ count: count() }).from(links),
+      ]);
+
+      const usersCount = usersCountResult[0].count;
+      const linksCount = linksCountResult[0].count;
+
+      let clicksAllTime = 0;
+      try {
+        const linksResult = await db.select({ clicks: links.clicks }).from(links);
+        if (linksResult.length) {
+          clicksAllTime = linksResult.reduce((a: number, b: any) => a + (b.clicks || 0), 0);
+        }
+      } catch {
+        try {
+          const clicksResult = await db.select({ count: count() }).from(clicks);
+          clicksAllTime = clicksResult[0].count;
+        } catch {
+          clicksAllTime = 0;
+        }
+      }
+
+      let clicks7d = 0, clicks30d = 0;
+      try {
+        const now = new Date();
+        const d7 = new Date(now); d7.setDate(now.getDate() - 7);
+        const d30 = new Date(now); d30.setDate(now.getDate() - 30);
+        
+        const [clicks7dResult, clicks30dResult] = await Promise.all([
+          db.select({ count: count() }).from(clicks).where(gte(clicks.createdAt, d7)),
+          db.select({ count: count() }).from(clicks).where(gte(clicks.createdAt, d30))
+        ]);
+        
+        clicks7d = clicks7dResult[0].count;
+        clicks30d = clicks30dResult[0].count;
+      } catch {
+        clicks7d = 0; clicks30d = 0;
+      }
+
+      res.json({ usersCount, linksCount, clicksAllTime, clicks7d, clicks30d });
+    } catch (error) {
+      console.error('Admin stats error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+    return;
+  }
+
+  // /api/admin/impersonate/:id
+  if (pathname.startsWith('/impersonate/') && req.method === 'POST') {
+    const targetId = parseInt(pathname.replace('/impersonate/', ''));
+    const db = getDatabase();
+    
+    const userResult = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
+    const targetUser = userResult.length ? userResult[0] : null;
+    
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Utente non trovato' });
+    }
+
+    const userToken = signToken({ userId: targetUser.id, email: targetUser.email, username: targetUser.username, role: targetUser.role });
+    const adminToken = signToken({ userId: user.userId, email: user.email, username: user.username, role: 'ADMIN' });
+
+    res.setHeader('Set-Cookie', [
+      createAuthCookie(userToken),
+      `impersonator=${adminToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
+    ]);
+    
+    res.json({ ok: true });
+    return;
+  }
+
+  // /api/admin/stop-impersonate
+  if (pathname === '/stop-impersonate' && req.method === 'POST') {
+    const cookies = req.headers.cookie || '';
+    const impersonatorMatch = cookies.match(/impersonator=([^;]+)/);
+    
+    if (!impersonatorMatch) {
+      return res.status(400).json({ message: 'No impersonator cookie found' });
+    }
+
+    const impersonatorToken = impersonatorMatch[1];
+
+    res.setHeader('Set-Cookie', [
+      createAuthCookie(impersonatorToken),
+      'impersonator=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax'
+    ]);
+    
+    res.json({ ok: true });
+    return;
+  }
+
+  res.status(404).json({ message: 'Not found' });
 }
