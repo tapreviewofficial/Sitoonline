@@ -46,6 +46,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // /api/auth/me - Get current user
+  if (pathname === '/me' && req.method === 'GET') {
+    const user = await getCurrentUser(req.headers.cookie);
+    
+    const cookies = req.headers.cookie || '';
+    const impersonatorToken = cookies.match(/impersonator=([^;]+)/)?.[1];
+    const impersonating = !!impersonatorToken;
+    
+    if (!user) {
+      return res.json({ user: null, impersonating: false });
+    }
+    
+    const fullUser = await storage.getUserById(user.userId);
+    if (!fullUser) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    
+    res.json({ 
+      user: { 
+        id: fullUser.id,
+        email: fullUser.email, 
+        username: fullUser.username,
+        role: fullUser.role,
+        mustChangePassword: fullUser.mustChangePassword
+      },
+      impersonating
+    });
+    return;
+  }
+
   // /api/auth/logout
   if (pathname === '/logout' && req.method === 'POST') {
     res.setHeader('Set-Cookie', createLogoutCookie());
