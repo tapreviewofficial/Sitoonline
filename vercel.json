@@ -5,6 +5,58 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/admin"
+    },
+    {
+      "source": "/api/analytics/:path*",
+      "destination": "/api/analytics"
+    },
+    {
+      "source": "/api/promos/:path*",
+      "destination": "/api/promos"
+    },
+    {
+      "source": "/api/tickets/:path*",
+      "destination": "/api/tickets"
+    },
+    {
+      "source": "/api/public/:path*",
+      "destination": "/api/public"
+    },
+    {
+      "source": "/api/user/:path*",
+      "destination": "/api/user"
+    },
+    {
+      "source": "/api/me",
+      "destination": "/api/user"
+    },
+    {
+      "source": "/api/profile",
+      "destination": "/api/user"
+    },
+    {
+      "source": "/api/links/:path*",
+      "destination": "/api/user"
+    },
+    {
+      "source": "/api/r/:path*",
+      "destination": "/api/other"
+    },
+    {
+      "source": "/api/promotional-contacts",
+      "destination": "/api/other"
+    },
+    {
+      "source": "/api/public-pages/:path*",
+      "destination": "/api/other"
+    },
+    {
       "source": "/(.*)",
       "destination": "/$1"
     }
