@@ -54,12 +54,12 @@ export function LivePreview({ username }: LivePreviewProps) {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-xl font-bold text-white">Anteprima Live</h2>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Button
             onClick={() => window.open(`/u/${username}`, '_blank')}
-            className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
+            className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black w-full sm:w-auto"
             data-testid="button-open-links-page"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
@@ -67,7 +67,7 @@ export function LivePreview({ username }: LivePreviewProps) {
           </Button>
           <Button
             onClick={() => window.open(`/p/${username}`, '_blank')}
-            className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
+            className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black w-full sm:w-auto"
             data-testid="button-open-promo-page"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
