@@ -69,48 +69,50 @@ function SortableLinkRow({ link, onUpdate, onDelete, isUpdating, isDeleting }: L
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-lg" 
+      className="p-4 bg-white/5 border border-white/10 rounded-lg space-y-3" 
       data-testid={`link-row-${link.id}`}
     >
-      <div {...attributes} {...listeners} className="text-white/40 hover:text-white/80 cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-5 w-5" />
-      </div>
-      <div className="flex-1 grid md:grid-cols-2 gap-4">
-        <div>
-          <Label className="text-sm font-medium mb-1 text-white/60">Titolo</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="bg-white/10 border-white/20 text-white"
-            data-testid={`input-edit-title-${link.id}`}
-          />
+      <div className="flex items-center gap-3">
+        <div {...attributes} {...listeners} className="text-white/40 hover:text-white/80 cursor-grab active:cursor-grabbing flex-shrink-0">
+          <GripVertical className="h-5 w-5" />
         </div>
-        <div>
-          <Label className="text-sm font-medium mb-1 text-white/60">URL</Label>
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="bg-white/10 border-white/20 text-white"
-            data-testid={`input-edit-url-${link.id}`}
-          />
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-sm font-medium mb-1 text-white/60">Titolo</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="bg-white/10 border-white/20 text-white"
+              data-testid={`input-edit-title-${link.id}`}
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1 text-white/60">URL</Label>
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="bg-white/10 border-white/20 text-white"
+              data-testid={`input-edit-url-${link.id}`}
+            />
+          </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
         <Button
           onClick={handleSave}
           disabled={isUpdating || (title === link.title && url === link.url)}
-          className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black"
+          className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black font-medium"
           data-testid={`button-save-link-${link.id}`}
         >
-          <i className="fas fa-save"></i>
+          Salva
         </Button>
         <Button
           onClick={() => onDelete(link.id)}
           disabled={isDeleting}
-          className="bg-red-600 text-white hover:bg-red-700"
+          className="bg-red-600 text-white hover:bg-red-700 font-medium"
           data-testid={`button-delete-link-${link.id}`}
         >
-          <i className="fas fa-trash"></i>
+          Elimina
         </Button>
       </div>
     </div>
