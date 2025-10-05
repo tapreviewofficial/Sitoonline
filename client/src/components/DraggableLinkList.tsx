@@ -127,7 +127,11 @@ export function DraggableLinkList({ links }: DraggableLinkListProps) {
   }, [links]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Permette lo scroll, drag si attiva dopo 8px di movimento
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
