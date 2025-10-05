@@ -61,8 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // /api/r/:username/:linkId - GET (redirect tracciato)
-  const redirectMatch = pathname.match(/^\/api\/r\/([^/]+)\/(\d+)$/);
+  // /r/:username/:linkId or /api/r/:username/:linkId - GET (redirect tracciato)
+  const redirectMatch = pathname.match(/^\/(?:api\/)?r\/([^/]+)\/(\d+)$/);
   if (redirectMatch && req.method === 'GET') {
     try {
       const username = redirectMatch[1];

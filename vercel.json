@@ -88,6 +88,10 @@
       "destination": "/api/other"
     },
     {
+      "source": "/r/:path*",
+      "destination": "/api/other"
+    },
+    {
       "source": "/api/promotional-contacts",
       "destination": "/api/other"
     },
