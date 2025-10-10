@@ -146,7 +146,7 @@ export function LivePreview({ username }: LivePreviewProps) {
               {/* Powered by Preview */}
               <div className="text-center mt-6">
                 <p className="text-xs text-white/40">
-                  Powered by <span className="font-bold text-white/60">TapReview</span>
+                  Powered by <span className="font-bold text-white/60">TapTrust</span>
                 </p>
               </div>
             </div>
@@ -223,7 +223,7 @@ export function LivePreview({ username }: LivePreviewProps) {
               {/* Powered by Preview */}
               <div className="text-center mt-6">
                 <p className="text-xs text-white/40">
-                  Powered by <span className="font-bold text-white/60">TapReview</span>
+                  Powered by <span className="font-bold text-white/60">TapTrust</span>
                 </p>
               </div>
             </div>

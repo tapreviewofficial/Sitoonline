@@ -1,8 +1,8 @@
-# TapReview - Full-Stack Review Collection Platform
+# TapTrust - Full-Stack Review Collection Platform
 
 ## Overview
 
-TapReview is a full-stack web application designed to help businesses collect customer reviews through NFC technology. The platform enables users to create personalized public profiles where customers can easily leave reviews by tapping an NFC card. The application combines a luxury black and gold theme (#0a0a0a / #CC9900) with modern React components to deliver a premium user experience.
+TapTrust is a full-stack web application designed to help businesses collect customer reviews through NFC technology. The platform enables users to create personalized public profiles where customers can easily leave reviews by tapping an NFC card. The application combines a luxury black and gold theme (#0a0a0a / #CC9900) with modern React components to deliver a premium user experience.
 
 **Deployment Status:** Fully optimized for Vercel Free Tier with **8 consolidated serverless functions** (under 12 function limit) covering all 31 API routes. Architecture uses pathname-based routing within consolidated handlers to maximize functionality while minimizing function count.
 

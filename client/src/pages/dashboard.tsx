@@ -307,7 +307,7 @@ export default function Dashboard() {
                         className="text-gold hover:underline text-sm font-medium"
                         data-testid="link-public-profile"
                       >
-                        tapreview.it/u/{authData.user.username}
+                        taptrust.it/u/{authData.user.username}
                       </button>
                     </div>
                   </CardContent>
@@ -572,7 +572,7 @@ export default function Dashboard() {
                         className="text-gold hover:underline text-sm font-medium"
                         data-testid="link-public-profile"
                       >
-                        tapreview.it/u/{authData.user.username}
+                        taptrust.it/u/{authData.user.username}
                       </button>
                     </div>
                   </CardContent>

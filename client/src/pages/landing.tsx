@@ -16,7 +16,7 @@ export default function Landing() {
             <div className="space-y-8">
               <div className="space-y-6 text-center lg:text-left">
                 <h1 className="text-4xl md:text-6xl font-bold leading-tight" data-testid="text-hero-title">
-                  <span className="text-gold">TapReview</span>
+                  <span className="text-gold">TapTrust</span>
                 </h1>
                 <h2 className="text-2xl md:text-3xl font-semibold leading-tight">
                   Le recensioni sono il tuo{" "}
@@ -29,7 +29,7 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Link href="/register">
                   <Button className="btn-gold text-lg px-8 py-4 w-full sm:w-auto" data-testid="button-activate">
-                    Attiva TapReview Oggi Stesso
+                    Attiva TapTrust Oggi Stesso
                   </Button>
                 </Link>
                 <Link href="/login">
@@ -102,12 +102,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* TapReview: La Soluzione Section */}
+      {/* TapTrust: La Soluzione Section */}
       <section className="px-4 py-16">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-solution-title">
-              TapReview: La Soluzione che <span className="text-gold">Cambia Tutto</span>
+              TapTrust: La Soluzione che <span className="text-gold">Cambia Tutto</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Un sistema semplice, elegante e potente che rivoluziona il modo in cui raccogli recensioni:
@@ -161,7 +161,7 @@ export default function Landing() {
             <Card className="p-6 text-center">
               <CardContent className="p-0">
                 <div className="bg-gold text-coal w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto mb-4">01</div>
-                <h3 className="text-lg font-bold mb-2">Il cliente riceve la card TapReview</h3>
+                <h3 className="text-lg font-bold mb-2">Il cliente riceve la card TapTrust</h3>
                 <p className="text-muted-foreground">Al tavolo o alla cassa, un gesto elegante che fa la differenza</p>
               </CardContent>
             </Card>
@@ -202,7 +202,7 @@ export default function Landing() {
               <CardContent className="p-0">
                 <div className="bg-gold text-coal w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto mb-4">06</div>
                 <h3 className="text-lg font-bold mb-2">Effetto moltiplicatore</h3>
-                <p className="text-muted-foreground">I passanti vedono la targhetta TapReview → fiducia immediata</p>
+                <p className="text-muted-foreground">I passanti vedono la targhetta TapTrust → fiducia immediata</p>
               </CardContent>
             </Card>
           </div>
@@ -259,7 +259,7 @@ export default function Landing() {
                   <div className="text-gold text-4xl">🚀</div>
                   <div>
                     <h3 className="text-2xl font-bold mb-3 text-gold">Differenziazione Immediata</h3>
-                    <p className="text-lg">Chi non ha TapReview appare meno affidabile. Tu sarai sempre un passo avanti.</p>
+                    <p className="text-lg">Chi non ha TapTrust appare meno affidabile. Tu sarai sempre un passo avanti.</p>
                   </div>
                 </div>
               </CardContent>
@@ -282,7 +282,7 @@ export default function Landing() {
                   <div className="text-gold text-3xl">👥</div>
                   <p className="text-xl font-semibold">I tuoi clienti già guardano le recensioni</p>
                 </div>
-                <p className="text-lg text-muted-foreground mt-2 ml-16">TapReview ti rende più visibile di tutti i concorrenti</p>
+                <p className="text-lg text-muted-foreground mt-2 ml-16">TapTrust ti rende più visibile di tutti i concorrenti</p>
               </CardContent>
             </Card>
 
@@ -302,7 +302,7 @@ export default function Landing() {
                   <div className="text-gold text-3xl">⭐</div>
                   <p className="text-xl font-semibold">Effetto "status symbol"</p>
                 </div>
-                <p className="text-lg text-muted-foreground mt-2 ml-16">Se non hai TapReview, sembri indietro rispetto ai concorrenti</p>
+                <p className="text-lg text-muted-foreground mt-2 ml-16">Se non hai TapTrust, sembri indietro rispetto ai concorrenti</p>
               </CardContent>
             </Card>
           </div>
@@ -316,7 +316,7 @@ export default function Landing() {
             Porta il Tuo Locale al <span className="text-gold">Livello Successivo</span>
           </h2>
           <h3 className="text-2xl md:text-3xl font-bold mb-8 text-gold">
-            Attiva TapReview Oggi Stesso
+            Attiva TapTrust Oggi Stesso
           </h3>
           
           <div className="grid md:grid-cols-2 gap-8 mb-8 text-left">
@@ -343,7 +343,7 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
               <Button className="btn-gold text-xl px-12 py-6 w-full sm:w-auto font-bold" data-testid="button-final-cta">
-                Attiva TapReview Ora
+                Attiva TapTrust Ora
               </Button>
             </Link>
             <Link href="/login">
@@ -361,21 +361,21 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded bg-gradient-to-br from-gold to-yellow-600"></div>
-              <span className="text-xl font-bold text-gold">TapReview</span>
+              <span className="text-xl font-bold text-gold">TapTrust</span>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <span>📧</span>
-                <span>tapreviewofficial@gmail.com</span>
+                <span>taptrustofficial1@gmail.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>🌐</span>
-                <span>www.tapreview.it</span>
+                <span>www.taptrust.it</span>
               </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 TapReview. Tutti i diritti riservati.</p>
+          <p className="text-sm text-muted-foreground">© 2024 TapTrust. Tutti i diritti riservati.</p>
         </div>
       </footer>
     </div>

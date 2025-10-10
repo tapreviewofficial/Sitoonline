@@ -79,7 +79,7 @@ export function AuthForm({ type }: AuthFormProps) {
             {isLogin ? "Accedi al tuo account" : "Crea il tuo account"}
           </CardTitle>
           <p className="text-muted-foreground">
-            {isLogin ? "Gestisci i tuoi link TapReview" : "Inizia a raccogliere più recensioni oggi"}
+            {isLogin ? "Gestisci i tuoi link TapTrust" : "Inizia a raccogliere più recensioni oggi"}
           </p>
         </CardHeader>
         <CardContent>
@@ -109,7 +109,7 @@ export function AuthForm({ type }: AuthFormProps) {
                   data-testid="input-username"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Il tuo username sarà usato per la pagina pubblica: tapreview.it/u/username
+                  Il tuo username sarà usato per la pagina pubblica: taptrust.it/u/username
                 </p>
                 {form.formState.errors.username && (
                   <p className="text-sm text-destructive mt-1">{form.formState.errors.username.message}</p>

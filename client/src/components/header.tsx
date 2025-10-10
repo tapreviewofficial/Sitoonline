@@ -9,7 +9,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2" data-testid="link-home">
           <div className="h-8 w-8 rounded bg-gradient-to-br from-gold to-yellow-600"></div>
-          <span className="text-xl font-bold text-gold">TapReview</span>
+          <span className="text-xl font-bold text-gold">TapTrust</span>
         </Link>
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" data-testid="link-home-nav">

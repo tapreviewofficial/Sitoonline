@@ -124,7 +124,7 @@ export default function PublicProfile() {
               className="text-white/40 text-xs hover:text-[#CC9900] transition-colors"
               data-testid="link-powered-by"
             >
-              Powered by <span className="text-[#CC9900]">TapReview</span>
+              Powered by <span className="text-[#CC9900]">TapTrust</span>
             </button>
           </div>
         </div>

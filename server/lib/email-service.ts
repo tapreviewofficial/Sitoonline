@@ -30,7 +30,7 @@ interface EmailParams {
   }>;
 }
 
-const FROM_EMAIL = 'tapreviewofficial@gmail.com'; // Sender verificato in SendGrid
+const FROM_EMAIL = 'taptrustofficial1@gmail.com'; // Sender verificato in SendGrid
 
 export class EmailService {
   
@@ -44,8 +44,8 @@ export class EmailService {
         to: params.to,
         from: FROM_EMAIL,
         subject: params.subject,
-        text: params.text || 'TapReview notification',
-        html: params.html || `<p>TapReview notification</p>`
+        text: params.text || 'TapTrust notification',
+        html: params.html || `<p>TapTrust notification</p>`
       };
       
       // Aggiungi attachment solo se presente
@@ -68,20 +68,20 @@ export class EmailService {
   static async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
     
-    const subject = 'TapReview - Ripristino Password';
+    const subject = 'TapTrust - Ripristino Password';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
             <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
           </div>
-          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapReview</h1>
+          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
         </div>
         
         <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
           <h2 style="color: #CC9900; margin-top: 0;">Ripristino Password</h2>
           <p style="color: #cccccc; line-height: 1.6; margin-bottom: 25px;">
-            Hai richiesto il ripristino della password per il tuo account TapReview.
+            Hai richiesto il ripristino della password per il tuo account TapTrust.
             Clicca sul pulsante qui sotto per impostare una nuova password:
           </p>
           
@@ -99,16 +99,16 @@ export class EmailService {
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
-          <p>TapReview - Gestione Recensioni NFC</p>
+          <p>TapTrust - Gestione Recensioni NFC</p>
           <p>Email automatica, non rispondere.</p>
         </div>
       </div>
     `;
 
     const text = `
-      TapReview - Ripristino Password
+      TapTrust - Ripristino Password
       
-      Hai richiesto il ripristino della password per il tuo account TapReview.
+      Hai richiesto il ripristino della password per il tuo account TapTrust.
       
       Vai a questo link per impostare una nuova password:
       ${resetUrl}
@@ -116,7 +116,7 @@ export class EmailService {
       Questo link scadrà tra 1 ora per motivi di sicurezza.
       Se non hai richiesto il ripristino, ignora questa email.
       
-      TapReview - Gestione Recensioni NFC
+      TapTrust - Gestione Recensioni NFC
     `;
 
     return this.sendEmail({
@@ -136,7 +136,7 @@ export class EmailService {
     validUntil?: Date;
   }): Promise<boolean> {
     
-    const subject = `${promotionDetails.title} - Il tuo QR Code TapReview`;
+    const subject = `${promotionDetails.title} - Il tuo QR Code TapTrust`;
     const validUntilText = promotionDetails.validUntil 
       ? `Valido fino al ${promotionDetails.validUntil.toLocaleDateString('it-IT')}`
       : 'Sempre valido';
@@ -161,13 +161,13 @@ export class EmailService {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>TapReview - ${promotionDetails.title}</title>
+        <title>TapTrust - ${promotionDetails.title}</title>
       </head>
       <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;">
           
           <div style="background-color: #0a0a0a; color: #ffffff; padding: 30px; text-align: center;">
-            <h1 style="color: #CC9900; margin: 0 0 10px 0; font-size: 24px;">TapReview</h1>
+            <h1 style="color: #CC9900; margin: 0 0 10px 0; font-size: 24px;">TapTrust</h1>
             <p style="margin: 0; color: #cccccc;">Il tuo QR Code per la promozione è pronto!</p>
           </div>
           
@@ -186,7 +186,7 @@ export class EmailService {
               <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
               
               <div style="margin: 20px 0;">
-                <img src="cid:qrcode" alt="QR Code TapReview" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px; display: block; margin: 0 auto;" />
+                <img src="cid:qrcode" alt="QR Code TapTrust" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px; display: block; margin: 0 auto;" />
               </div>
               
               <p style="color: #666666; margin: 15px 0; font-size: 14px;">
@@ -208,14 +208,14 @@ export class EmailService {
             </p>
             
             <p style="color: #333333; line-height: 1.6; margin-top: 30px;">
-              Grazie per aver scelto TapReview. Se hai domande o problemi con il tuo QR Code, 
+              Grazie per aver scelto TapTrust. Se hai domande o problemi con il tuo QR Code, 
               non esitare a contattarci rispondendo a questa email.
             </p>
           </div>
           
           <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
             <p style="color: #666666; font-size: 12px; margin: 0 0 10px 0;">
-              Questa email è stata inviata da TapReview<br>
+              Questa email è stata inviata da TapTrust<br>
               Via Roma 123, 00100 Roma RM, Italia
             </p>
             <p style="color: #666666; font-size: 12px; margin: 0;">
@@ -229,7 +229,7 @@ export class EmailService {
     `;
 
     const text = `
-      TapReview - ${promotionDetails.title}
+      TapTrust - ${promotionDetails.title}
       
       Ciao ${username}!
       
@@ -243,7 +243,7 @@ export class EmailService {
       Mostra il QR Code al momento del pagamento o dell'ordine per usufruire della promozione.
       
       Grazie per essere parte della nostra community!
-      TapReview - Gestione Recensioni NFC
+      TapTrust - Gestione Recensioni NFC
     `;
 
     return this.sendEmail({
@@ -267,23 +267,23 @@ export class EmailService {
   static async sendWelcomeEmail(email: string, username: string, tempPassword: string): Promise<boolean> {
     const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/login`;
     
-    const subject = 'Benvenuto in TapReview - Account Attivato';
+    const subject = 'Benvenuto in TapTrust - Account Attivato';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
             <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
           </div>
-          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapReview</h1>
+          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
         </div>
         
         <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
-          <h2 style="color: #CC9900; margin-top: 0;">🎉 Benvenuto in TapReview!</h2>
+          <h2 style="color: #CC9900; margin-top: 0;">🎉 Benvenuto in TapTrust!</h2>
           <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
             Ciao <strong style="color: #CC9900;">${username}</strong>!
           </p>
           <p style="color: #cccccc; line-height: 1.6; margin-bottom: 25px;">
-            Il tuo account TapReview è stato attivato con successo. Ecco le tue credenziali di accesso:
+            Il tuo account TapTrust è stato attivato con successo. Ecco le tue credenziali di accesso:
           </p>
           
           <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -304,23 +304,23 @@ export class EmailService {
           
           <p style="color: #888888; font-size: 14px; margin-bottom: 0;">
             Conserva questa email fino al primo accesso.<br>
-            Per supporto, contatta: tapreviewofficial@gmail.com
+            Per supporto, contatta: taptrustofficial1@gmail.com
           </p>
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
-          <p>TapReview - Gestione Recensioni NFC</p>
+          <p>TapTrust - Gestione Recensioni NFC</p>
           <p>Email automatica, non rispondere.</p>
         </div>
       </div>
     `;
 
     const text = `
-      TapReview - Benvenuto!
+      TapTrust - Benvenuto!
       
       Ciao ${username}!
       
-      Il tuo account TapReview è stato attivato con successo.
+      Il tuo account TapTrust è stato attivato con successo.
       
       Credenziali di accesso:
       Email: ${email}
@@ -331,9 +331,9 @@ export class EmailService {
       Accedi al tuo account: ${loginUrl}
       
       Conserva questa email fino al primo accesso.
-      Per supporto, contatta: tapreviewofficial@gmail.com
+      Per supporto, contatta: taptrustofficial1@gmail.com
       
-      TapReview - Gestione Recensioni NFC
+      TapTrust - Gestione Recensioni NFC
     `;
 
     return this.sendEmail({

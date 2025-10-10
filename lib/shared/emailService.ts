@@ -20,7 +20,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     await sgMail.send({
       to: params.to,
-      from: 'tapreviewofficial@gmail.com',
+      from: 'taptrustofficial1@gmail.com',
       subject: params.subject,
       html: params.html,
       text: params.text,
@@ -38,7 +38,7 @@ export function generatePasswordResetEmail(resetLink: string, username: string) 
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Reimposta Password - TapReview</title>
+      <title>Reimposta Password - TapTrust</title>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -51,12 +51,12 @@ export function generatePasswordResetEmail(resetLink: string, username: string) 
     <body>
       <div class="container">
         <div class="header">
-          <h1>TapReview</h1>
+          <h1>TapTrust</h1>
         </div>
         <div class="content">
           <h2>Reimpostazione Password</h2>
           <p>Ciao <strong>${username}</strong>,</p>
-          <p>Hai richiesto la reimpostazione della password per il tuo account TapReview.</p>
+          <p>Hai richiesto la reimpostazione della password per il tuo account TapTrust.</p>
           <p>Clicca sul pulsante qui sotto per creare una nuova password:</p>
           <p style="text-align: center; margin: 30px 0;">
             <a href="${resetLink}" class="button">Reimposta Password</a>
@@ -66,7 +66,7 @@ export function generatePasswordResetEmail(resetLink: string, username: string) 
           <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 3px;">${resetLink}</p>
         </div>
         <div class="footer">
-          <p>© 2024 TapReview. Tutti i diritti riservati.</p>
+          <p>© 2024 TapTrust. Tutti i diritti riservati.</p>
           <p>Questa è una email automatica, non rispondere a questo messaggio.</p>
         </div>
       </div>
@@ -75,18 +75,18 @@ export function generatePasswordResetEmail(resetLink: string, username: string) 
   `;
 
   const text = `
-TapReview - Reimpostazione Password
+TapTrust - Reimpostazione Password
 
 Ciao ${username},
 
-Hai richiesto la reimpostazione della password per il tuo account TapReview.
+Hai richiesto la reimpostazione della password per il tuo account TapTrust.
 
 Clicca su questo link per creare una nuova password:
 ${resetLink}
 
 Questo link è valido per 1 ora. Se non hai richiesto tu questa reimpostazione, ignora questa email.
 
-© 2024 TapReview
+© 2024 TapTrust
   `;
 
   return { html, text };

@@ -139,7 +139,7 @@ export default function PublicClaimPage() {
           {/* Footer */}
           <div className="text-center mt-8 pt-6 border-t border-white/10">
             <p className="text-white/40 text-xs">
-              Powered by <span className="text-[#CC9900]">TapReview</span>
+              Powered by <span className="text-[#CC9900]">TapTrust</span>
             </p>
           </div>
         </div>

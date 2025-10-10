@@ -105,8 +105,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /api/auth/register
   if (pathname === '/register' && req.method === 'POST') {
     res.status(403).json({ 
-      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta tapreviewofficial@gmail.com",
-      contactEmail: "tapreviewofficial@gmail.com",
+      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta taptrustofficial1@gmail.com",
+      contactEmail: "taptrustofficial1@gmail.com",
       code: "REGISTRATION_DISABLED"
     });
     return;
@@ -200,7 +200,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       await sendEmail({
         to: user.email,
-        subject: 'TapReview - Reimpostazione Password',
+        subject: 'TapTrust - Reimpostazione Password',
         html: emailContent.html,
         text: emailContent.text
       });

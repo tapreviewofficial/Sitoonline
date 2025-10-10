@@ -28,8 +28,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Registration disabled - users must contact admin for account creation
   app.post("/api/auth/register", async (req, res) => {
     res.status(403).json({ 
-      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta tapreviewofficial@gmail.com",
-      contactEmail: "tapreviewofficial@gmail.com",
+      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta taptrustofficial1@gmail.com",
+      contactEmail: "taptrustofficial1@gmail.com",
       code: "REGISTRATION_DISABLED"
     });
   });
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invia email
       const emailSent = await sendEmail({
         to: user.email,
-        subject: 'TapReview - Reimpostazione Password',
+        subject: 'TapTrust - Reimpostazione Password',
         html: emailContent.html,
         text: emailContent.text
       });
@@ -508,20 +508,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const success = await EmailService.sendEmail({
         to,
-        subject: "Test TapReview - Email Funzionante! 🎉",
+        subject: "Test TapTrust - Email Funzionante! 🎉",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
                 <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
               </div>
-              <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapReview</h1>
+              <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
             </div>
             
             <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
               <h2 style="color: #CC9900; margin-top: 0;">✅ Test Email Riuscito!</h2>
               <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
-                Congratulazioni! Il sistema email di TapReview funziona correttamente.
+                Congratulazioni! Il sistema email di TapTrust funziona correttamente.
               </p>
               <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
                 Ora puoi ricevere:
@@ -537,16 +537,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
             
             <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
-              <p>TapReview - Sistema Email Attivo</p>
+              <p>TapTrust - Sistema Email Attivo</p>
             </div>
           </div>
         `,
-        text: `TapReview - Test Email Riuscito!
+        text: `TapTrust - Test Email Riuscito!
         
 Il sistema email funziona correttamente.
 Timestamp: ${new Date().toLocaleString('it-IT')}
 
-TapReview - Sistema Email Attivo`
+TapTrust - Sistema Email Attivo`
       });
 
       if (success) {
