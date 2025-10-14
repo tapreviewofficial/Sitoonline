@@ -4,6 +4,7 @@ import { getDatabase } from '../lib/shared/db.js';
 import { users, promos, tickets, publicPages } from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { sendPromotionQRCode } from '../lib/shared/emailService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -126,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           expiresAt: promo[0].endAt
         });
         
+      // Salva contatto promozionale
       try {
         await storage.createOrUpdatePromotionalContact({
           email,
@@ -135,8 +137,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           lastPromoRequested: promo[0].title || 'Promozione',
           totalPromoRequests: 1
         });
+        console.log(`📧 Contatto promozionale salvato: ${email}`);
       } catch (contactError) {
         console.error('Error saving promotional contact:', contactError);
+      }
+      
+      // Invia email con QR code
+      try {
+        const emailSent = await sendPromotionQRCode(
+          email,
+          name ? `${name} ${surname || ''}`.trim() : email.split('@')[0],
+          qrUrl,
+          {
+            title: promo[0].title,
+            description: promo[0].description ?? 'Partecipa alla nostra promozione speciale!',
+            validUntil: promo[0].endAt ?? undefined
+          }
+        );
+        
+        if (emailSent) {
+          console.log(`✅ QR Code email sent successfully to ${email}`);
+        } else {
+          console.log(`⚠️ Failed to send QR Code email to ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Error sending QR Code email:', emailError);
       }
       
       res.json({ ok: true, code, qrUrl });
