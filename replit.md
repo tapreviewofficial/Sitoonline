@@ -149,15 +149,23 @@ The monorepo structure separates client, server, and shared concerns:
 The application uses **OVH SMTP** with nodemailer for sending transactional emails:
 - **Password Reset Emails**: Secure token-based password recovery with 1-hour expiration
 - **Promotional Invitations**: QR code generation and email delivery for customer engagement
-- **Promotional Offers**: Automated campaign notifications with custom HTML templates
+- **Promotional Offers**: Luxury "Gold Invitation" template with refined, exclusive design
 
 **Email Configuration**:
 - SMTP Server: `ssl0.ovh.net:465` (SSL)
 - From Address: `info@taptrust.it`
+- From Name (Promos): `TapTrust™ Concierge` (premium positioning)
 - Compatible with Vercel serverless functions
 - Nodemailer transporter with TLS security
 
-All email templates follow the TapTrust brand theme (black/gold #0a0a0a/#CC9900) with responsive HTML design.
+**Premium Promotional Email Design**:
+- **Template**: "TapTrust™ Gold Invitation" luxury template
+- **Color Palette**: Pearl background (#f5f4f2), Gold gradient (#d4af37 → #b8860b)
+- **Typography**: Helvetica Neue (refined, professional)
+- **Tone**: Exclusive and prestigious (not promotional)
+- **Subject**: "Il tuo invito personale TapTrust™ Gold è pronto."
+- **CTA**: "Attiva il tuo invito" (elegant gold gradient button)
+- **Footer**: "TapTrust™ Concierge" signature
 
 ### Environment Configuration
 The application expects the following environment variables:

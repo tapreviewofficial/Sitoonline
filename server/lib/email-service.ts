@@ -6,6 +6,7 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  fromName?: string;
   attachments?: Array<{
     content: string;
     filename: string;
@@ -52,8 +53,9 @@ export class EmailService {
     }
 
     try {
+      const fromName = params.fromName || 'TapTrust';
       const mailOptions: any = {
-        from: `"TapTrust" <${FROM_EMAIL}>`,
+        from: `"${fromName}" <${FROM_EMAIL}>`,
         to: params.to,
         subject: params.subject,
         text: params.text || 'TapTrust notification',
@@ -240,7 +242,7 @@ export class EmailService {
   }
 
   /**
-   * Invia email di promozione attiva
+   * Invia email di promozione attiva - Template Luxury Gold
    */
   static async sendPromotionEmail(
     email: string,
@@ -249,67 +251,116 @@ export class EmailService {
     claimUrl: string,
     businessName: string
   ): Promise<boolean> {
-    const subject = `🎁 ${businessName} - Promozione Esclusiva`;
+    const subject = `Il tuo invito personale TapTrust™ Gold è pronto.`;
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
-          </div>
-          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
-        </div>
-
-        <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
-          <h2 style="color: #CC9900; margin-top: 0;">🎁 Promozione Esclusiva!</h2>
-          <p style="color: #cccccc; line-height: 1.6;">
-            <strong style="color: #CC9900;">${businessName}</strong> ha una sorpresa per te!
-          </p>
-
-          <div style="background: #0a0a0a; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #CC9900;">
-            <h3 style="color: #CC9900; margin: 0 0 10px 0;">${promotionTitle}</h3>
-            <p style="color: #cccccc; margin: 0; line-height: 1.6;">${promotionDescription}</p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${claimUrl}" 
-               style="background-color: #CC9900; color: #000000; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
-              Richiedi la Tua Promozione
-            </a>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>TapTrust™ Gold Invitation</title>
+      </head>
+      <body style="margin:0;padding:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+                    background-color:#f5f4f2;
+                    color:#1a1a1a;
+                    max-width:600px;
+                    margin:auto;
+                    padding:40px 30px;
+                    border-radius:20px;">
+          
+          <div style="text-align:center;margin-bottom:30px;">
+            <div style="width:80px;height:80px;background:linear-gradient(135deg,#d4af37,#b8860b);border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(212,175,55,0.3);">
+              <span style="color:#000;font-size:32px;font-weight:700;letter-spacing:-1px;">TT</span>
+            </div>
+            <h2 style="margin:0;font-weight:600;font-size:22px;letter-spacing:0.5px;color:#000;">TapTrust™ Gold Invitation</h2>
           </div>
 
-          <p style="color: #888888; font-size: 14px; text-align: center; margin-bottom: 0;">
-            Affrettati! L'offerta potrebbe scadere presto.
-          </p>
-        </div>
+          <div style="background-color:#fff;
+                      border-radius:16px;
+                      padding:30px;
+                      box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+            
+            <p style="font-size:16px;line-height:1.6;margin-bottom:20px;color:#1a1a1a;">
+              Ti diamo il benvenuto in un'esperienza riservata.
+            </p>
 
-        <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
-          <p>TapTrust - Gestione Recensioni NFC</p>
-          <p>Email automatica, non rispondere.</p>
+            <p style="font-size:15px;line-height:1.6;margin-bottom:25px;color:#333;">
+              La tua <strong style="background:linear-gradient(90deg,#d4af37,#b8860b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">TapTrust™ Gold Card</strong> è un invito personale, dedicato solo a pochi membri selezionati.
+            </p>
+
+            <div style="background:linear-gradient(135deg,rgba(212,175,55,0.05),rgba(184,134,11,0.05));
+                        border-left:3px solid #d4af37;
+                        padding:20px;
+                        border-radius:8px;
+                        margin:25px 0;">
+              <h3 style="margin:0 0 10px 0;font-size:17px;font-weight:600;color:#000;">${promotionTitle}</h3>
+              <p style="margin:0;font-size:15px;line-height:1.5;color:#555;">${promotionDescription}</p>
+            </div>
+
+            <p style="font-size:15px;line-height:1.6;margin-bottom:25px;color:#333;">
+              Con questa card potrai accedere a <strong>vantaggi esclusivi</strong> e a un canale preferenziale nei locali partner TapTrust™.
+            </p>
+
+            <div style="text-align:center;margin:40px 0;">
+              <a href="${claimUrl}"
+                 style="background:linear-gradient(90deg,#d4af37,#b8860b);
+                        color:#000;
+                        font-weight:600;
+                        text-decoration:none;
+                        padding:14px 36px;
+                        border-radius:12px;
+                        font-size:15px;
+                        letter-spacing:0.4px;
+                        display:inline-block;
+                        box-shadow:0 4px 12px rgba(212,175,55,0.3);
+                        transition:all 0.3s ease;">
+                 Attiva il tuo invito
+              </a>
+            </div>
+
+            <p style="font-size:13px;color:#666;text-align:center;margin-top:40px;line-height:1.5;">
+              Questo invito è personale e non trasferibile.<br>
+              <span style="font-weight:500;color:#888;">— TapTrust™ Concierge</span>
+            </p>
+          </div>
+
+          <div style="text-align:center;margin-top:25px;">
+            <p style="font-size:12px;color:#999;margin:5px 0;">www.taptrust.it</p>
+            <p style="font-size:11px;color:#aaa;margin:5px 0;">Questa comunicazione è destinata esclusivamente a te.</p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     const text = `
-      TapTrust - Promozione Esclusiva
+TapTrust™ Gold Invitation
 
-      ${businessName} ha una sorpresa per te!
+Ti diamo il benvenuto in un'esperienza riservata.
 
-      ${promotionTitle}
-      ${promotionDescription}
+La tua TapTrust™ Gold Card è un invito personale, dedicato solo a pochi membri selezionati.
 
-      Richiedi la tua promozione qui:
-      ${claimUrl}
+${promotionTitle}
+${promotionDescription}
 
-      Affrettati! L'offerta potrebbe scadere presto.
+Con questa card potrai accedere a vantaggi esclusivi e a un canale preferenziale nei locali partner TapTrust™.
 
-      TapTrust - Gestione Recensioni NFC
+Attiva il tuo invito:
+${claimUrl}
+
+Questo invito è personale e non trasferibile.
+— TapTrust™ Concierge
+
+www.taptrust.it
     `;
 
     return this.sendEmail({
       to: email,
       subject,
       html,
-      text
+      text,
+      fromName: 'TapTrust™ Concierge'
     });
   }
 

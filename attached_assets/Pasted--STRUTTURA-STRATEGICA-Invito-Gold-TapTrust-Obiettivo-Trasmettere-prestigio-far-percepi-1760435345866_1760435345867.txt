@@ -1,0 +1,98 @@
+💎 STRUTTURA STRATEGICA — “Invito Gold TapTrust™”
+🎯 Obiettivo:
+
+Trasmettere prestigio → far percepire che l’utente ha ricevuto qualcosa di limitato, selettivo e fisico (la card oro).
+Il tono dev’essere raffinato, non promozionale.
+
+✉️ OGGETTO MAIL
+Il tuo invito personale TapTrust™ Gold è pronto.
+
+
+(alternativa più evocativa: “Un’esperienza esclusiva ti attende — TapTrust™ Gold”)
+
+🧠 STRUTTURA DEL TESTO
+
+Apertura breve, autorevole
+→ “Ti diamo il benvenuto in un’esperienza riservata.”
+
+Descrizione della card oro
+→ “La TapTrust™ Gold Card è un invito personale, non acquistabile, che ti consente accesso prioritario, eventi dedicati e vantaggi riservati nei locali partner.”
+
+CTA elegante, minimale
+→ “Attiva il tuo invito” (pulsante nero/oro)
+
+Chiusura sobria
+→ “Questa comunicazione è destinata esclusivamente a te.”
+→ firma semplice: TapTrust™ Team
+
+🌟 TEMPLATE HTML “Luxury Gold”
+
+Puoi inserirlo direttamente nel html: del tuo script Nodemailer.
+
+<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+            background-color:#f5f4f2;
+            color:#1a1a1a;
+            max-width:600px;
+            margin:auto;
+            padding:40px 30px;
+            border-radius:20px;">
+  <div style="text-align:center;margin-bottom:30px;">
+    <img src="https://taptrust.it/logo-gold.png" alt="TapTrust™ Gold" style="width:120px;margin-bottom:10px;">
+    <h2 style="margin:0;font-weight:600;font-size:22px;letter-spacing:0.5px;color:#000;">TapTrust™ Gold Invitation</h2>
+  </div>
+
+  <div style="background-color:#fff;
+              border-radius:16px;
+              padding:30px;
+              box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+    <p style="font-size:16px;line-height:1.6;margin-bottom:20px;">
+      Ciao <b>{{NOME}}</b>,
+      <br><br>
+      ti diamo il benvenuto in un’esperienza riservata.<br>
+      La tua <b>TapTrust™ Gold Card</b> è un invito personale, dedicato solo a pochi membri selezionati.
+    </p>
+
+    <p style="font-size:15px;line-height:1.6;margin-bottom:25px;">
+      Con questa card potrai accedere a <b>eventi privati, vantaggi esclusivi</b> e a un canale preferenziale nei locali partner TapTrust™.
+    </p>
+
+    <div style="text-align:center;margin:40px 0;">
+      <a href="{{CTA_URL}}"
+         style="background:linear-gradient(90deg,#d4af37,#b8860b);
+                color:#000;
+                font-weight:600;
+                text-decoration:none;
+                padding:14px 36px;
+                border-radius:12px;
+                font-size:15px;
+                letter-spacing:0.4px;
+                display:inline-block;">
+         Attiva il tuo invito
+      </a>
+    </div>
+
+    <p style="font-size:13px;color:#666;text-align:center;margin-top:40px;">
+      Questo invito è personale e non trasferibile.<br>
+      — TapTrust™ Concierge
+    </p>
+  </div>
+</div>
+
+🎨 LINEE DI DESIGN
+
+Sfondo neutro perla (#f5f4f2) → eleganza e contrasto con l’oro.
+
+Accenti oro realistici: #d4af37 e #b8860b (gradient).
+
+Font: Helvetica Neue o Inter, no serif.
+
+Layout: ampio respiro, spazi generosi, niente troppi paragrafi.
+
+💡 CONSIGLI PER L’INVIO
+
+Mittente: info@taptrust.it (per ora)
+Nome visualizzato: TapTrust™ Concierge
+
+Oggetto: “Il tuo invito personale TapTrust™ Gold è pronto.”
+
+Link CTA: a una pagina dedicata tipo https://taptrust.it/invito/<token>
