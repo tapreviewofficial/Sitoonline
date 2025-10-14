@@ -272,6 +272,8 @@ router.get("/tickets", requireAuth, async (req, res) => {
       return res.status(401).json({ error: "Non autorizzato" });
     }
 
+    const now = new Date();
+
     // Ottieni tutti i tickets collegati alle promozioni dell'utente
     const userTickets = await db
       .select({
@@ -297,7 +299,21 @@ router.get("/tickets", requireAuth, async (req, res) => {
       .where(eq(promos.userId, userId))
       .orderBy(desc(tickets.createdAt));
 
-    res.json({ tickets: userTickets });
+    // Calcola lo stato effettivo considerando la scadenza
+    const ticketsWithStatus = userTickets.map(ticket => {
+      let effectiveStatus = ticket.status;
+      
+      if (ticket.expiresAt && now > ticket.expiresAt && ticket.status === 'ACTIVE') {
+        effectiveStatus = 'EXPIRED';
+      }
+      
+      return {
+        ...ticket,
+        effectiveStatus
+      };
+    });
+
+    res.json({ tickets: ticketsWithStatus });
   } catch (error) {
     console.error("Errore recupero tickets:", error);
     res.status(500).json({ error: "Errore interno del server" });
