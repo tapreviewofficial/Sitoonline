@@ -12,6 +12,7 @@ interface Ticket {
   code: string;
   qrUrl: string;
   status: string;
+  effectiveStatus?: string; // Server-calculated status (ACTIVE/USED/EXPIRED)
   customerName: string | null;
   customerSurname: string | null;
   customerEmail: string;
@@ -54,14 +55,16 @@ export default function MyTickets() {
     }
   };
 
-  const getStatusBadge = (status: string, usedAt: string | null, expiresAt: string | null) => {
+  const getStatusBadge = (ticket: Ticket) => {
+    // Usa effectiveStatus se disponibile (server-calculated), altrimenti calcola lato client
+    const effectiveStatus = ticket.effectiveStatus || ticket.status;
     const now = new Date();
-    const expired = expiresAt && new Date(expiresAt) < now;
+    const expired = ticket.expiresAt && new Date(ticket.expiresAt) < now;
 
-    if (status === "USED" || usedAt) {
+    if (effectiveStatus === "USED" || ticket.usedAt) {
       return <Badge variant="secondary" className="bg-green-950/50 text-green-400 border-green-800"><CheckCircle className="w-3 h-3 mr-1" />Utilizzato</Badge>;
     }
-    if (expired) {
+    if (effectiveStatus === "EXPIRED" || (effectiveStatus === "ACTIVE" && expired)) {
       return <Badge variant="secondary" className="bg-red-950/50 text-red-400 border-red-800"><XCircle className="w-3 h-3 mr-1" />Scaduto</Badge>;
     }
     return <Badge variant="secondary" className="bg-yellow-950/50 text-yellow-400 border-yellow-800"><Clock className="w-3 h-3 mr-1" />Attivo</Badge>;
@@ -120,7 +123,13 @@ export default function MyTickets() {
         {/* Tickets Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {tickets.map((ticket) => {
-            const isActive = ticket.status === "ACTIVE" && !ticket.usedAt && (!ticket.expiresAt || new Date(ticket.expiresAt) > new Date());
+            // Calcola effectiveStatus: usa server se disponibile, altrimenti calcola lato client
+            let effectiveStatus = ticket.effectiveStatus;
+            if (!effectiveStatus) {
+              const expired = ticket.expiresAt && new Date(ticket.expiresAt) < new Date();
+              effectiveStatus = ticket.usedAt ? "USED" : (expired ? "EXPIRED" : ticket.status);
+            }
+            const isActive = effectiveStatus === "ACTIVE";
 
             return (
               <Card 
@@ -140,7 +149,7 @@ export default function MyTickets() {
                         {ticket.customerEmail}
                       </CardDescription>
                     </div>
-                    {getStatusBadge(ticket.status, ticket.usedAt, ticket.expiresAt)}
+                    {getStatusBadge(ticket)}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

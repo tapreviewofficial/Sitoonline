@@ -392,12 +392,12 @@ export default function Dashboard() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => setLocation("/my-tickets")}
+                    onClick={() => setLocation("/qr-dashboard")}
                     className="border-gold/30 text-gold hover:bg-gold/10"
-                    data-testid="button-my-tickets"
+                    data-testid="button-qr-dashboard"
                   >
                     <i className="fas fa-qrcode mr-2"></i>
-                    I Miei QR Code
+                    Dashboard QR Rilasciati
                   </Button>
                   <NewPromoLite />
                 </div>

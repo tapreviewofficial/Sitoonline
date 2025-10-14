@@ -10,6 +10,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let pathname = url.pathname.replace('/api/tickets', '');
   if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
+  // /api/tickets - GET (tutti i ticket dell'utente con filtri)
+  if (pathname === '' && req.method === 'GET') {
+    const user = await getCurrentUser(req.headers.cookie);
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const db = getDatabase();
+    const now = new Date();
+    
+    const userTickets = await db
+      .select({
+        id: tickets.id,
+        code: tickets.code,
+        qrUrl: tickets.qrUrl,
+        status: tickets.status,
+        usedAt: tickets.usedAt,
+        expiresAt: tickets.expiresAt,
+        createdAt: tickets.createdAt,
+        promo: {
+          id: promos.id,
+          title: promos.title,
+          description: promos.description,
+          type: promos.type
+        }
+      })
+      .from(tickets)
+      .innerJoin(promos, eq(tickets.promoId, promos.id))
+      .where(eq(promos.userId, user.userId))
+      .orderBy(sql`${tickets.createdAt} DESC`);
+
+    // Calcola lo stato effettivo considerando la scadenza
+    const ticketsWithStatus = userTickets.map(ticket => {
+      let effectiveStatus = ticket.status;
+      
+      if (ticket.expiresAt && now > ticket.expiresAt && ticket.status === 'ACTIVE') {
+        effectiveStatus = 'EXPIRED';
+      }
+      
+      return {
+        ...ticket,
+        effectiveStatus
+      };
+    });
+
+    // Mantieni compatibilità con formato precedente { tickets: [...] }
+    return res.json({ tickets: ticketsWithStatus });
+  }
+
   // /api/tickets/:code/status - GET
   const statusMatch = pathname.match(/^\/([^/]+)\/status$/);
   if (statusMatch && req.method === 'GET') {

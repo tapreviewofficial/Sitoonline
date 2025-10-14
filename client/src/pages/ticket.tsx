@@ -122,8 +122,19 @@ export default function TicketPage() {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          <div className="text-center space-y-2">
-            <div className="text-2xl font-bold tracking-wider bg-muted rounded-lg py-2 px-4">
+          {/* STATUS BADGE GRANDE E EVIDENTE */}
+          <div className="text-center">
+            <div className={`
+              text-5xl font-black tracking-tight mb-3 uppercase
+              ${ticket.status === "valid" ? "text-green-500" : ""}
+              ${ticket.status === "used" ? "text-blue-500" : ""}
+              ${ticket.status === "expired" ? "text-orange-500" : ""}
+            `}>
+              {ticket.status === "valid" && "✓ VALIDO"}
+              {ticket.status === "used" && "✓ UTILIZZATO"}
+              {ticket.status === "expired" && "⏱ SCADUTO"}
+            </div>
+            <div className="text-2xl font-bold tracking-wider bg-muted rounded-lg py-2 px-4 mb-2">
               {params.code}
             </div>
             {getStatusBadge()}
