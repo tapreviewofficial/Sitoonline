@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, QrCode, CheckCircle, Clock, XCircle, Download } from "lucide-react";
 import { useLocation } from "wouter";
-import QRCodeReact from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Ticket {
   id: number;
@@ -34,13 +34,23 @@ export default function MyTickets() {
   });
 
   const downloadQR = (code: string, qrUrl: string) => {
-    const canvas = document.getElementById(`qr-${code}`) as HTMLCanvasElement;
-    if (canvas) {
-      const url = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = `taptrust-qr-${code}.png`;
-      link.href = url;
-      link.click();
+    const svg = document.querySelector(`[data-qr-code="${code}"]`);
+    if (svg) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx?.drawImage(img, 0, 0);
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `taptrust-qr-${code}.png`;
+        downloadLink.click();
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
     }
   };
 
@@ -136,13 +146,13 @@ export default function MyTickets() {
                 <CardContent className="space-y-4">
                   {/* QR Code */}
                   <div className={`bg-white p-4 rounded-lg flex items-center justify-center ${!isActive && 'grayscale'}`}>
-                    <QRCodeReact
-                      id={`qr-${ticket.code}`}
+                    <QRCodeSVG
                       value={ticket.qrUrl}
                       size={180}
                       level="M"
                       fgColor={isActive ? "#d4af37" : "#666666"}
                       bgColor="#ffffff"
+                      data-qr-code={ticket.code}
                     />
                   </div>
 

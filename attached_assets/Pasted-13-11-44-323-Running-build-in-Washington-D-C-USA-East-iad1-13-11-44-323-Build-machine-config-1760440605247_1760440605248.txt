@@ -1,0 +1,58 @@
+13:11:44.323 Running build in Washington, D.C., USA (East) – iad1
+13:11:44.323 Build machine configuration: 2 cores, 8 GB
+13:11:44.338 Cloning github.com/tapreviewofficial/Sitoonline (Branch: main, Commit: e941265)
+13:11:45.302 Cloning completed: 964.000ms
+13:11:45.345 Found .vercelignore
+13:11:45.356 Removed 29 ignored files defined in .vercelignore
+13:11:45.356   /.git/config
+13:11:45.356   /.git/description
+13:11:45.356   /.git/FETCH_HEAD
+13:11:45.356   /.git/HEAD
+13:11:45.356   /.git/hooks/applypatch-msg.sample
+13:11:45.356   /.git/hooks/commit-msg.sample
+13:11:45.356   /.git/hooks/fsmonitor-watchman.sample
+13:11:45.356   /.git/hooks/post-update.sample
+13:11:45.356   /.git/hooks/pre-applypatch.sample
+13:11:45.356   /.git/hooks/pre-commit.sample
+13:11:45.503 Restored build cache from previous deployment (32tXRGFvQ6yDq6WzH7C95Bhb94ks)
+13:11:46.077 Running "vercel build"
+13:11:46.458 Vercel CLI 48.2.9
+13:11:47.145 Running "install" command: `npm install`...
+13:11:54.784 
+13:11:54.785 added 83 packages, and audited 745 packages in 7s
+13:11:54.785 
+13:11:54.785 79 packages are looking for funding
+13:11:54.785   run `npm fund` for details
+13:11:54.823 
+13:11:54.823 8 vulnerabilities (6 moderate, 2 high)
+13:11:54.823 
+13:11:54.823 To address all issues (including breaking changes), run:
+13:11:54.824   npm audit fix --force
+13:11:54.824 
+13:11:54.824 Run `npm audit` for details.
+13:11:55.313 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+13:11:55.366 transforming...
+13:12:01.470 [32m✓[39m 3610 modules transformed.
+13:12:01.472 [31mx[39m Build failed in 6.13s
+13:12:01.473 [31merror during build:
+13:12:01.473 [31mclient/src/pages/my-tickets.tsx (8:7): "default" is not exported by "node_modules/qrcode.react/lib/esm/index.js", imported by "client/src/pages/my-tickets.tsx".[31m
+13:12:01.473 file: [36m/vercel/path0/client/src/pages/my-tickets.tsx:8:7[31m
+13:12:01.473 [33m
+13:12:01.473  6: import { ArrowLeft, QrCode, CheckCircle, Clock, XCircle, Download } from "lucide-react";
+13:12:01.473  7: import { useLocation } from "wouter";
+13:12:01.473  8: import QRCodeReact from "qrcode.react";
+13:12:01.473            ^
+13:12:01.474  9: 
+13:12:01.474 10: interface Ticket {
+13:12:01.474 [31m
+13:12:01.474     at getRollupError (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+13:12:01.474     at error (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+13:12:01.474     at Module.error (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:16939:16)
+13:12:01.474     at Module.traceVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:17391:29)
+13:12:01.474     at ModuleScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:15061:39)
+13:12:01.475     at FunctionScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5642:38)
+13:12:01.475     at FunctionBodyScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5642:38)
+13:12:01.475     at ReturnValueScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5642:38)
+13:12:01.475     at FunctionBodyScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5642:38)
+13:12:01.475     at Identifier.bind (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5413:40)[39m
+13:12:01.501 Error: Command "vite build" exited with 1
