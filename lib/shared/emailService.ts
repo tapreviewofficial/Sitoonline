@@ -182,7 +182,7 @@ export async function sendPromotionQRCode(
           
           <div style="text-align:center;margin-bottom:30px;">
             <div style="width:80px;height:80px;background:linear-gradient(135deg,#d4af37,#b8860b);border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(212,175,55,0.3);">
-              <span style="color:#000;font-size:32px;font-weight:700;letter-spacing:-1px;">TT</span>
+              <span style="color:#000;font-size:42px;">✨</span>
             </div>
             <h2 style="margin:0;font-weight:600;font-size:22px;letter-spacing:0.5px;color:#000;">TapTrust™ Gold Invitation</h2>
           </div>

@@ -266,7 +266,7 @@ router.post("/tickets/:code/use", async (req, res) => {
 // GET /tickets -> Ottieni tutti i tickets delle promozioni dell'utente loggato
 router.get("/tickets", requireAuth, async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId; // Fix: JWT payload usa userId, non id
     
     if (!userId) {
       return res.status(401).json({ error: "Non autorizzato" });

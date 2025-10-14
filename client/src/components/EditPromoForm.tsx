@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type FormData = {
   title: string;
@@ -42,6 +44,23 @@ async function updatePromoApi(id: number, data: any) {
 
 export default function EditPromoForm({ promo, open, onClose }: EditPromoFormProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/promos/${promo.id}`);
+    },
+    onSuccess: () => {
+      // Invalida tutte le query relative alle promozioni
+      queryClient.invalidateQueries({ queryKey: ["api", "promos"] });
+      queryClient.invalidateQueries({ queryKey: ["api", "promos", promo.id] });
+      toast({ title: "Promozione eliminata con successo" });
+      onClose();
+    },
+    onError: () => {
+      toast({ title: "Errore eliminazione promozione", variant: "destructive" });
+    },
+  });
 
   const {
     register,
@@ -206,6 +225,19 @@ export default function EditPromoForm({ promo, open, onClose }: EditPromoFormPro
           </div>
 
           <div className="flex gap-4 pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Sei sicuro di voler eliminare questa promozione? Questa azione è irreversibile.")) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-semibold disabled:opacity-50"
+              data-testid="button-delete-promo"
+            >
+              {deleteMutation.isPending ? "Eliminando..." : "Elimina"}
+            </button>
             <button
               type="button"
               onClick={onClose}
