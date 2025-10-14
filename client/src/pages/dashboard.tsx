@@ -384,12 +384,23 @@ export default function Dashboard() {
 
           <TabsContent value="promo" className="mt-6">
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
                   <h2 className="text-2xl font-bold">Gestione Promozioni</h2>
                   <p className="text-muted-foreground">Crea e gestisci i tuoi inviti e biglietti digitali</p>
                 </div>
-                <NewPromoLite />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/my-tickets")}
+                    className="border-gold/30 text-gold hover:bg-gold/10"
+                    data-testid="button-my-tickets"
+                  >
+                    <i className="fas fa-qrcode mr-2"></i>
+                    I Miei QR Code
+                  </Button>
+                  <NewPromoLite />
+                </div>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-6">

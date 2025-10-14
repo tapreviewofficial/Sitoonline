@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, promos, tickets, scanLogs } from "../lib/supabase.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
 import { customAlphabet } from "nanoid";
@@ -251,6 +251,47 @@ router.post("/tickets/:code/use", async (req, res) => {
 
   } catch (error) {
     console.error("Errore utilizzo ticket:", error);
+    res.status(500).json({ error: "Errore interno del server" });
+  }
+});
+
+// GET /tickets -> Ottieni tutti i tickets delle promozioni dell'utente loggato
+router.get("/tickets", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Non autorizzato" });
+    }
+
+    // Ottieni tutti i tickets collegati alle promozioni dell'utente
+    const userTickets = await db
+      .select({
+        id: tickets.id,
+        code: tickets.code,
+        qrUrl: tickets.qrUrl,
+        status: tickets.status,
+        customerName: tickets.customerName,
+        customerSurname: tickets.customerSurname,
+        customerEmail: tickets.customerEmail,
+        usedAt: tickets.usedAt,
+        createdAt: tickets.createdAt,
+        expiresAt: tickets.expiresAt,
+        promo: {
+          id: promos.id,
+          title: promos.title,
+          description: promos.description,
+          type: promos.type,
+        }
+      })
+      .from(tickets)
+      .innerJoin(promos, eq(tickets.promoId, promos.id))
+      .where(eq(promos.userId, userId))
+      .orderBy(desc(tickets.createdAt));
+
+    res.json({ tickets: userTickets });
+  } catch (error) {
+    console.error("Errore recupero tickets:", error);
     res.status(500).json({ error: "Errore interno del server" });
   }
 });

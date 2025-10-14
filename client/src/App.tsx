@@ -22,6 +22,7 @@ const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password"));
 const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
 const ForceChangePassword = lazy(() => import("@/pages/force-change-password"));
 const PublicClaimPage = lazy(() => import("@/pages/PublicClaim"));
+const MyTicketsPage = lazy(() => import("@/pages/my-tickets"));
 
 function PageSkeleton() {
   return (
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/force-change-password" component={ForceChangePassword} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/admin" component={Admin} />
+        <Route path="/my-tickets" component={MyTicketsPage} />
         <Route path="/u/:username" component={PublicProfile} />
         <Route path="/invite/:slug" component={InvitePage} />
         <Route path="/ticket/:code" component={TicketPage} />
