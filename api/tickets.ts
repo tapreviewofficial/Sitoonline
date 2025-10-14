@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getCurrentUser } from '../lib/shared/auth.js';
 import { getDatabase } from '../lib/shared/db.js';
-import { tickets, scanLogs } from '../shared/schema.js';
+import { tickets, scanLogs, promos } from '../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { checkRateLimit, RATE_LIMITS } from '../lib/shared/rateLimit.js';
 
@@ -16,18 +16,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const code = statusMatch[1];
     const db = getDatabase();
     
-    const ticket = await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.code, code))
-      .limit(1);
+    const ticket = await db.select({
+      id: tickets.id,
+      code: tickets.code,
+      qrUrl: tickets.qrUrl,
+      status: tickets.status,
+      usedAt: tickets.usedAt,
+      expiresAt: tickets.expiresAt,
+      promo: {
+        title: promos.title,
+        description: promos.description,
+        type: promos.type
+      }
+    })
+    .from(tickets)
+    .innerJoin(promos, eq(tickets.promoId, promos.id))
+    .where(eq(tickets.code, code))
+    .limit(1);
       
     if (!ticket.length) {
-      return res.status(404).json({ error: 'Ticket non trovato' });
+      return res.status(404).json({ status: "not_found" });
+    }
+
+    const ticketData = ticket[0];
+    const now = new Date();
+    
+    // Controlla se scaduto
+    if (ticketData.expiresAt && now > ticketData.expiresAt) {
+      return res.json({ 
+        status: "expired", 
+        usedAt: ticketData.usedAt,
+        qrUrl: ticketData.qrUrl,
+        code: ticketData.code,
+        promo: ticketData.promo 
+      });
     }
     
-    res.json(ticket[0]);
-    return;
+    // Controlla se già usato
+    if (ticketData.status === "USED") {
+      return res.json({ 
+        status: "used", 
+        usedAt: ticketData.usedAt,
+        qrUrl: ticketData.qrUrl,
+        code: ticketData.code,
+        promo: ticketData.promo 
+      });
+    }
+
+    // Ticket valido
+    return res.json({ 
+      status: "valid", 
+      expiresAt: ticketData.expiresAt,
+      qrUrl: ticketData.qrUrl,
+      code: ticketData.code,
+      promo: ticketData.promo 
+    });
   }
 
   // /api/tickets/:code/use - POST (with idempotency, rate limiting, audit logging)

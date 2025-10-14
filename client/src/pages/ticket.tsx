@@ -3,12 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Gift } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Gift, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface TicketData {
   status: "valid" | "used" | "expired" | "not_found";
   usedAt?: string;
   expiresAt?: string;
+  qrUrl?: string;
+  code?: string;
   promo?: {
     title: string;
     description: string;
@@ -125,6 +128,50 @@ export default function TicketPage() {
             </div>
             {getStatusBadge()}
           </div>
+
+          {ticket.qrUrl && (
+            <div className="flex flex-col items-center space-y-4 p-4 bg-white dark:bg-muted rounded-lg">
+              <div className={ticket.status !== "valid" ? "opacity-40 grayscale" : ""}>
+                <QRCodeSVG
+                  value={ticket.qrUrl}
+                  size={200}
+                  level="M"
+                  bgColor="#ffffff"
+                  fgColor="#CC9900"
+                  data-testid="qr-code-display"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const svg = document.querySelector('[data-testid="qr-code-display"]');
+                  if (svg) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const svgData = new XMLSerializer().serializeToString(svg);
+                    const img = new Image();
+                    img.onload = () => {
+                      canvas.width = img.width;
+                      canvas.height = img.height;
+                      ctx?.drawImage(img, 0, 0);
+                      const pngUrl = canvas.toDataURL('image/png');
+                      const downloadLink = document.createElement('a');
+                      downloadLink.href = pngUrl;
+                      downloadLink.download = `ticket-${params.code}.png`;
+                      downloadLink.click();
+                    };
+                    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+                  }
+                }}
+                className="gap-2"
+                data-testid="button-download-qr"
+              >
+                <Download className="h-4 w-4" />
+                Scarica QR Code
+              </Button>
+            </div>
+          )}
 
           {ticket.promo && (
             <div className="space-y-2">

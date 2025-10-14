@@ -110,6 +110,8 @@ router.get("/tickets/:code/status", async (req, res) => {
     
     const ticket = await db.select({
       id: tickets.id,
+      code: tickets.code,
+      qrUrl: tickets.qrUrl,
       status: tickets.status,
       usedAt: tickets.usedAt,
       expiresAt: tickets.expiresAt,
@@ -136,6 +138,8 @@ router.get("/tickets/:code/status", async (req, res) => {
       return res.json({ 
         status: "expired", 
         usedAt: ticketData.usedAt,
+        qrUrl: ticketData.qrUrl,
+        code: ticketData.code,
         promo: ticketData.promo 
       });
     }
@@ -145,6 +149,8 @@ router.get("/tickets/:code/status", async (req, res) => {
       return res.json({ 
         status: "used", 
         usedAt: ticketData.usedAt,
+        qrUrl: ticketData.qrUrl,
+        code: ticketData.code,
         promo: ticketData.promo 
       });
     }
@@ -153,6 +159,8 @@ router.get("/tickets/:code/status", async (req, res) => {
     return res.json({ 
       status: "valid", 
       expiresAt: ticketData.expiresAt,
+      qrUrl: ticketData.qrUrl,
+      code: ticketData.code,
       promo: ticketData.promo 
     });
 
