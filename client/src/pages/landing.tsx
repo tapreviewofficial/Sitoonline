@@ -367,7 +367,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-4 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <span>📧</span>
-                <span>taptrustofficial1@gmail.com</span>
+                <span>info@taptrust.it</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>🌐</span>

@@ -1,0 +1,150 @@
+Packages → installa:
+
+nodemailer
+
+express (se vuoi una route HTTP di test)
+
+2) Codice “plug-and-play” (server HTTP + invio)
+
+Crea index.js con questo:
+
+// index.js  (Node 18+, ESM disattivato: usa require)
+const express = require("express");
+const nodemailer = require("nodemailer");
+
+const app = express();
+app.use(express.json());
+
+// Transporter SMTP OVH (Zimbra)
+const transporter = nodemailer.createTransport({
+  host: "ssl0.ovh.net",
+  port: 465,
+  secure: true, // SSL
+  auth: {
+    user: process.env.MAIL_USER,      // info@taptrust.it
+    pass: process.env.MAIL_PASSWORD   // secret replit
+  },
+  tls: { rejectUnauthorized: true }   // sicurezza
+});
+
+// Healthcheck
+app.get("/", (_req, res) => res.send("TapTrust™ Mail API OK"));
+
+// Endpoint di invio
+app.post("/send", async (req, res) => {
+  try {
+    const { to, subject, html } = req.body;
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ ok: false, error: "Missing to/subject/html" });
+    }
+
+    const info = await transporter.sendMail({
+      from: `"TapTrust™" <${process.env.MAIL_USER}>`,
+      to,
+      subject,
+      html,
+      headers: {
+        "X-TapTrust-App": "inviti-1.0"
+      }
+    });
+
+    res.json({ ok: true, messageId: info.messageId });
+  } catch (err) {
+    console.error("Mail error:", err);
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 TapTrust Mail API on :${PORT}`));
+
+
+Se il tuo Repl usa ESM (import/export), rinomina in server.mjs e sostituisci i require con import.
+
+3) package.json (script di avvio)
+
+Apri/crea package.json e assicurati di avere:
+
+{
+  "name": "taptrust-mail",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.13"
+  }
+}
+
+
+In Replit → Run deve eseguire npm start.
+
+4) Test immediato
+
+Con il Repl in esecuzione, dalla tua macchina:
+
+curl -X POST https://<TUO-REPL-URL>.repl.co/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "tua.gmail@...com",
+    "subject": "Invito TapTrust™ – test",
+    "html": "<h2>Benvenuto</h2><p>Questo è un test SMTP OVH.</p>"
+  }'
+
+
+Ricevi in inbox (non spam) se SPF/DKIM/DMARC sono corretti (come abbiamo settato).
+
+5) Template HTML pronto (minimal premium)
+
+Usalo nel campo html:
+
+<div style="font-family:Helvetica,Arial,sans-serif;max-width:640px;margin:auto;line-height:1.5">
+  <h2 style="margin:0 0 8px 0">Il tuo invito esclusivo ✨</h2>
+  <p style="margin:0 0 16px 0"><b>{{NOME_LOCALE}}</b> ti ha riservato un invito tramite <b>TapTrust™</b>.</p>
+  <div style="padding:16px;border:1px solid #eee;border-radius:12px">
+    <p style="margin:0 0 8px 0"><b>Offerta:</b> {{OFFERTA}}</p>
+    <p style="margin:0 0 16px 0"><b>Valido fino a:</b> {{SCADENZA}}</p>
+    <a href="{{CTA_URL}}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#000;color:#fff;text-decoration:none">Attiva il tuo invito</a>
+  </div>
+  <p style="color:#777;font-size:12px;margin-top:16px">Ricevi questa email perché ti sei registrato tramite TapTrust™.</p>
+</div>
+
+
+Sostituisci i {{…}} nel tuo backend prima di inviare.
+
+6) Integrazione dal front-end (fetch)
+
+Dal tuo sito/app, per chiamare l’API di Replit:
+
+await fetch("https://<TUO-REPL-URL>.repl.co/send", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: emailCliente,
+    subject: `Invito esclusivo da ${nomeLocale}`,
+    html: renderTemplateInvito({ nomeLocale, offerta, scadenza, url })
+  })
+});
+
+
+Se richiami da browser, abilita CORS lato Express:
+
+// opzionale
+// const cors = require("cors");
+// app.use(cors({ origin: ["https://tuo-dominio.it"], methods: ["POST","GET"] }));
+
+7) Anti-spam operativo (obbligatorio)
+
+Mittente: info@taptrust.it (coerente con SPF/DKIM/DMARC)
+
+Oggetto pulito, niente parole trigger (“gratis!!!”, “CLICCA QUI”)
+
+Warm-up: primi giorni invia volumi bassi (3–10/giorno), poi cresci
+
+Link su https e dominio affidabile (niente shortener strani)
+
+Risponditore: se possibile fai rispondere qualcuno → aiuta la reputazione

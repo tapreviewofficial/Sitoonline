@@ -1,8 +1,8 @@
-# TapReview - Guida Deployment Vercel
+# TapTrust - Guida Deployment Vercel
 
 ## 📦 Conversione Completata
 
-La tua app TapReview è stata **completamente convertita** da architettura monolitica Express a **funzioni serverless Vercel**.
+La tua app TapTrust è stata **completamente convertita** da architettura monolitica Express a **funzioni serverless Vercel**.
 
 ## ✅ Cosa è Stato Fatto
 
@@ -10,7 +10,7 @@ La tua app TapReview è stata **completamente convertita** da architettura monol
 - `db.ts` - Database client con connection pooling per serverless
 - `auth.ts` - Utilities JWT e cookie per autenticazione
 - `storage.ts` - Storage layer completo con tutte le operazioni CRUD
-- `emailService.ts` - Servizio email SendGrid
+- `emailService.ts` - Servizio email OVH SMTP (nodemailer)
 
 ### 2. **API Routes Vercel** (30 endpoints completi)
 Tutte le route Express sono state convertite in Vercel API routes:
@@ -77,7 +77,8 @@ Aggiungi queste variabili in **Environment Variables** su Vercel:
 ```
 DATABASE_URL=<tuo-supabase-connection-pooler>
 JWT_SECRET=<chiave-segreta-jwt>
-SENDGRID_API_KEY=<api-key-sendgrid>
+MAIL_USER=info@taptrust.it
+MAIL_PASSWORD=<password-ovh-smtp>
 NODE_ENV=production
 ```
 
@@ -112,7 +113,7 @@ tapreview/
 │   ├── db.ts             # Database client
 │   ├── auth.ts           # Auth utilities
 │   ├── storage.ts        # Storage layer
-│   └── emailService.ts   # Email SendGrid
+│   └── emailService.ts   # Email OVH SMTP
 ├── client/                # Frontend React
 ├── shared/schema.ts       # Schema database Drizzle
 ├── vercel.json           # Config Vercel

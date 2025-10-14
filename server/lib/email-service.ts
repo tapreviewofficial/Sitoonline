@@ -1,20 +1,5 @@
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
-
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
-
-// Configura SendGrid con API key e residenza EU
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-// Configura residenza dati EU per GDPR compliance
-try {
-  (sgMail as any).setDataResidency('eu');
-  console.log("✅ SendGrid configured with EU data residency");
-} catch (error) {
-  console.warn("⚠️ Could not set EU data residency, check SendGrid configuration");
-}
 
 interface EmailParams {
   to: string;
@@ -30,7 +15,28 @@ interface EmailParams {
   }>;
 }
 
-const FROM_EMAIL = 'taptrustofficial1@gmail.com'; // Sender verificato in SendGrid
+const FROM_EMAIL = process.env.MAIL_USER || 'info@taptrust.it';
+
+// Configurazione transporter SMTP OVH (compatibile con Vercel serverless)
+function createTransporter() {
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASSWORD) {
+    console.warn('MAIL_USER or MAIL_PASSWORD not configured');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: "ssl0.ovh.net",
+    port: 465,
+    secure: true, // SSL
+    auth: {
+      user: process.env.MAIL_USER,      // info@taptrust.it
+      pass: process.env.MAIL_PASSWORD   // secret
+    },
+    tls: { 
+      rejectUnauthorized: true 
+    }
+  });
+}
 
 export class EmailService {
   
@@ -38,26 +44,35 @@ export class EmailService {
    * Invia email generica
    */
   static async sendEmail(params: EmailParams): Promise<boolean> {
+    const transporter = createTransporter();
+    
+    if (!transporter) {
+      console.warn('Email transporter not configured, skipping email send');
+      return false;
+    }
+
     try {
-      // Struttura IDENTICA al test che funziona
-      const msg: any = {
+      const mailOptions: any = {
+        from: `"TapTrust" <${FROM_EMAIL}>`,
         to: params.to,
-        from: FROM_EMAIL,
         subject: params.subject,
         text: params.text || 'TapTrust notification',
-        html: params.html || `<p>TapTrust notification</p>`
+        html: params.html || `<p>TapTrust notification</p>`,
+        headers: {
+          'X-TapTrust-App': 'taptrust-1.0'
+        }
       };
       
       // Aggiungi attachment solo se presente
       if (params.attachments && params.attachments.length > 0) {
-        msg.attachments = params.attachments;
+        mailOptions.attachments = params.attachments;
       }
 
-      await sgMail.send(msg);
-      console.log(`Email sent successfully to ${params.to}`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully to ${params.to} (Message ID: ${info.messageId})`);
       return true;
     } catch (error) {
-      console.error('SendGrid email error:', error);
+      console.error('❌ Email error:', error);
       return false;
     }
   }
@@ -73,7 +88,7 @@ export class EmailService {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
+            <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
           </div>
           <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
         </div>
@@ -128,186 +143,145 @@ export class EmailService {
   }
 
   /**
-   * Invia QR code per promozione
+   * Invia email di invito con QR code
    */
-  static async sendPromotionQRCode(email: string, username: string, qrCodeUrl: string, promotionDetails: {
-    title: string;
-    description: string;
-    validUntil?: Date;
-  }): Promise<boolean> {
-    
-    const subject = `${promotionDetails.title} - Il tuo QR Code TapTrust`;
-    const validUntilText = promotionDetails.validUntil 
-      ? `Valido fino al ${promotionDetails.validUntil.toLocaleDateString('it-IT')}`
-      : 'Sempre valido';
-
-    // Genera QR code come JPEG per email
-    let qrBase64: string;
+  static async sendInvitationEmail(
+    email: string,
+    invitationUrl: string,
+    userName: string,
+    businessName: string
+  ): Promise<boolean> {
     try {
-      const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, {
-        type: 'image/jpeg',
-        width: 300,
+      // Genera QR code
+      const qrCodeDataUrl = await QRCode.toDataURL(invitationUrl, {
+        errorCorrectionLevel: 'M',
         margin: 2,
-        rendererOpts: { quality: 0.95 }
+        width: 300,
+        color: {
+          dark: '#CC9900',
+          light: '#0a0a0a'
+        }
       });
-      qrBase64 = qrDataUrl.split(',')[1]; // Rimuove "data:image/jpeg;base64,"
+
+      const qrCodeBase64 = qrCodeDataUrl.split(',')[1];
+
+      const subject = `${businessName} ti invita su TapTrust`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
+            </div>
+            <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
+          </div>
+
+          <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
+            <h2 style="color: #CC9900; margin-top: 0;">Hai ricevuto un invito!</h2>
+            <p style="color: #cccccc; line-height: 1.6;">
+              Ciao <strong style="color: #CC9900;">${userName}</strong>,
+            </p>
+            <p style="color: #cccccc; line-height: 1.6;">
+              <strong style="color: #CC9900;">${businessName}</strong> ti ha invitato a lasciare una recensione su TapTrust.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <img src="cid:qrcode" alt="QR Code" style="max-width: 200px; border: 3px solid #CC9900; border-radius: 8px; padding: 10px; background: white;" />
+            </div>
+
+            <p style="color: #cccccc; text-align: center; margin: 20px 0;">
+              Scansiona il QR code o clicca sul pulsante qui sotto:
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${invitationUrl}" 
+                 style="background-color: #CC9900; color: #000000; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+                Lascia una Recensione
+              </a>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
+            <p>TapTrust - Gestione Recensioni NFC</p>
+            <p>Email automatica, non rispondere.</p>
+          </div>
+        </div>
+      `;
+
+      const text = `
+        TapTrust - Invito a lasciare una recensione
+
+        Ciao ${userName},
+
+        ${businessName} ti ha invitato a lasciare una recensione su TapTrust.
+
+        Clicca su questo link per lasciare la tua recensione:
+        ${invitationUrl}
+
+        TapTrust - Gestione Recensioni NFC
+      `;
+
+      return this.sendEmail({
+        to: email,
+        subject,
+        html,
+        text,
+        attachments: [{
+          content: qrCodeBase64,
+          filename: 'qrcode.png',
+          type: 'image/png',
+          disposition: 'inline',
+          content_id: 'qrcode'
+        }]
+      });
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('Error sending invitation email:', error);
       return false;
     }
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>TapTrust - ${promotionDetails.title}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;">
-          
-          <div style="background-color: #0a0a0a; color: #ffffff; padding: 30px; text-align: center;">
-            <h1 style="color: #CC9900; margin: 0 0 10px 0; font-size: 24px;">TapTrust</h1>
-            <p style="margin: 0; color: #cccccc;">Il tuo QR Code per la promozione è pronto!</p>
-          </div>
-          
-          <div style="padding: 30px; background-color: #ffffff;">
-            <h2 style="color: #333333; margin-top: 0;">Ciao ${username},</h2>
-            
-            <p style="color: #333333; line-height: 1.6; margin-bottom: 20px;">
-              La tua richiesta per partecipare alla promozione "<strong>${promotionDetails.title}</strong>" è stata confermata con successo.
-            </p>
-            
-            <p style="color: #333333; line-height: 1.6; margin-bottom: 20px;">
-              ${promotionDetails.description}
-            </p>
-            
-            <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
-              <p style="color: #333333; margin-bottom: 15px; font-weight: bold;">Il tuo QR Code:</p>
-              
-              <div style="margin: 20px 0;">
-                <img src="cid:qrcode" alt="QR Code TapTrust" style="width: 200px; height: 200px; border: 2px solid #CC9900; border-radius: 8px; display: block; margin: 0 auto;" />
-              </div>
-              
-              <p style="color: #666666; margin: 15px 0; font-size: 14px;">
-                Mostra questo codice al momento dell'ordine<br>
-                Link diretto: <a href="${qrCodeUrl}" style="color: #CC9900; word-break: break-all;">${qrCodeUrl}</a>
-              </p>
-            </div>
-            
-            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #CC9900; margin: 20px 0;">
-              <p style="color: #333333; margin: 0; font-size: 14px;">
-                <strong>Come usare il QR Code:</strong><br>
-                Mostra questo codice al momento del pagamento o dell'ordine per usufruire della promozione.
-              </p>
-            </div>
-            
-            <p style="color: #333333; line-height: 1.6;">
-              <strong>Validità:</strong> ${validUntilText}<br>
-              <strong>Dettagli promozione:</strong> ${promotionDetails.description}
-            </p>
-            
-            <p style="color: #333333; line-height: 1.6; margin-top: 30px;">
-              Grazie per aver scelto TapTrust. Se hai domande o problemi con il tuo QR Code, 
-              non esitare a contattarci rispondendo a questa email.
-            </p>
-          </div>
-          
-          <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
-            <p style="color: #666666; font-size: 12px; margin: 0 0 10px 0;">
-              Questa email è stata inviata da TapTrust<br>
-              Via Roma 123, 00100 Roma RM, Italia
-            </p>
-            <p style="color: #666666; font-size: 12px; margin: 0;">
-              Email transazionale per richiesta promozione
-            </p>
-          </div>
-          
-        </div>
-      </body>
-      </html>
-    `;
-
-    const text = `
-      TapTrust - ${promotionDetails.title}
-      
-      Ciao ${username}!
-      
-      ${promotionDetails.description}
-      
-      Il tuo QR Code per la promozione è disponibile al link:
-      ${qrCodeUrl}
-      
-      Validità: ${validUntilText}
-      
-      Mostra il QR Code al momento del pagamento o dell'ordine per usufruire della promozione.
-      
-      Grazie per essere parte della nostra community!
-      TapTrust - Gestione Recensioni NFC
-    `;
-
-    return this.sendEmail({
-      to: email,
-      subject,
-      html,
-      text,
-      attachments: [{
-        content: qrBase64,
-        filename: 'tapreview-qr.jpg',
-        type: 'image/jpeg',
-        disposition: 'inline',
-        content_id: 'qrcode'
-      }]
-    });
   }
 
   /**
-   * Invia email di benvenuto per nuovo utente creato da admin
+   * Invia email di promozione attiva
    */
-  static async sendWelcomeEmail(email: string, username: string, tempPassword: string): Promise<boolean> {
-    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/login`;
-    
-    const subject = 'Benvenuto in TapTrust - Account Attivato';
+  static async sendPromotionEmail(
+    email: string,
+    promotionTitle: string,
+    promotionDescription: string,
+    claimUrl: string,
+    businessName: string
+  ): Promise<boolean> {
+    const subject = `🎁 ${businessName} - Promozione Esclusiva`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #000; font-size: 24px; font-weight: bold;">TR</span>
+            <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
           </div>
           <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
         </div>
-        
+
         <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
-          <h2 style="color: #CC9900; margin-top: 0;">🎉 Benvenuto in TapTrust!</h2>
-          <p style="color: #cccccc; line-height: 1.6; margin-bottom: 20px;">
-            Ciao <strong style="color: #CC9900;">${username}</strong>!
+          <h2 style="color: #CC9900; margin-top: 0;">🎁 Promozione Esclusiva!</h2>
+          <p style="color: #cccccc; line-height: 1.6;">
+            <strong style="color: #CC9900;">${businessName}</strong> ha una sorpresa per te!
           </p>
-          <p style="color: #cccccc; line-height: 1.6; margin-bottom: 25px;">
-            Il tuo account TapTrust è stato attivato con successo. Ecco le tue credenziali di accesso:
-          </p>
-          
-          <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; color: #CC9900;"><strong>Email:</strong> ${email}</p>
-            <p style="margin: 10px 0 0 0; color: #CC9900;"><strong>Password temporanea:</strong> <code style="background: #000; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
+
+          <div style="background: #0a0a0a; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #CC9900;">
+            <h3 style="color: #CC9900; margin: 0 0 10px 0;">${promotionTitle}</h3>
+            <p style="color: #cccccc; margin: 0; line-height: 1.6;">${promotionDescription}</p>
           </div>
-          
-          <div style="background: #CC9900; color: #000000; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <strong>⚠️ Dovrai cambiare la password al primo accesso per motivi di sicurezza</strong>
-          </div>
-          
+
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${loginUrl}" 
+            <a href="${claimUrl}" 
                style="background-color: #CC9900; color: #000000; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
-              Accedi al tuo Account
+              Richiedi la Tua Promozione
             </a>
           </div>
-          
-          <p style="color: #888888; font-size: 14px; margin-bottom: 0;">
-            Conserva questa email fino al primo accesso.<br>
-            Per supporto, contatta: taptrustofficial1@gmail.com
+
+          <p style="color: #888888; font-size: 14px; text-align: center; margin-bottom: 0;">
+            Affrettati! L'offerta potrebbe scadere presto.
           </p>
         </div>
-        
+
         <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
           <p>TapTrust - Gestione Recensioni NFC</p>
           <p>Email automatica, non rispondere.</p>
@@ -316,24 +290,182 @@ export class EmailService {
     `;
 
     const text = `
-      TapTrust - Benvenuto!
-      
-      Ciao ${username}!
-      
-      Il tuo account TapTrust è stato attivato con successo.
-      
-      Credenziali di accesso:
-      Email: ${email}
-      Password temporanea: ${tempPassword}
-      
-      IMPORTANTE: Dovrai cambiare la password al primo accesso per motivi di sicurezza.
-      
-      Accedi al tuo account: ${loginUrl}
-      
-      Conserva questa email fino al primo accesso.
-      Per supporto, contatta: taptrustofficial1@gmail.com
-      
+      TapTrust - Promozione Esclusiva
+
+      ${businessName} ha una sorpresa per te!
+
+      ${promotionTitle}
+      ${promotionDescription}
+
+      Richiedi la tua promozione qui:
+      ${claimUrl}
+
+      Affrettati! L'offerta potrebbe scadere presto.
+
       TapTrust - Gestione Recensioni NFC
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject,
+      html,
+      text
+    });
+  }
+
+  /**
+   * Invia email con QR code per promozione
+   */
+  static async sendPromotionQRCode(
+    email: string,
+    userName: string,
+    qrUrl: string,
+    promotion: {
+      title: string;
+      description: string;
+      validUntil?: Date | null;
+    }
+  ): Promise<boolean> {
+    try {
+      // Genera QR code dall'URL
+      const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 300,
+        color: {
+          dark: '#CC9900',
+          light: '#0a0a0a'
+        }
+      });
+
+      const qrCodeBase64 = qrCodeDataUrl.split(',')[1];
+      const validUntilText = promotion.validUntil 
+        ? new Date(promotion.validUntil).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : 'Fino ad esaurimento';
+
+      const subject = `🎁 ${promotion.title} - Il tuo QR Code`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
+            </div>
+            <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
+          </div>
+
+          <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
+            <h2 style="color: #CC9900; margin-top: 0;">🎁 ${promotion.title}</h2>
+            <p style="color: #cccccc; line-height: 1.6;">
+              Ciao <strong style="color: #CC9900;">${userName}</strong>,
+            </p>
+            <p style="color: #cccccc; line-height: 1.6;">
+              ${promotion.description}
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <img src="cid:qrcode" alt="QR Code Promozione" style="max-width: 250px; border: 3px solid #CC9900; border-radius: 8px; padding: 10px; background: white;" />
+            </div>
+
+            <p style="color: #cccccc; text-align: center; margin: 20px 0; font-size: 14px;">
+              Mostra questo QR code in negozio per riscattare la promozione
+            </p>
+
+            <div style="background: #0a0a0a; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <p style="color: #888888; margin: 0; font-size: 13px;">Valido fino al: <strong style="color: #CC9900;">${validUntilText}</strong></p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${qrUrl}" 
+                 style="background-color: #CC9900; color: #000000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+                Visualizza Online
+              </a>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
+            <p>TapTrust - Gestione Recensioni NFC</p>
+            <p>Email automatica, non rispondere.</p>
+          </div>
+        </div>
+      `;
+
+      const text = `
+        TapTrust - ${promotion.title}
+
+        Ciao ${userName},
+
+        ${promotion.description}
+
+        Valido fino al: ${validUntilText}
+
+        Link per visualizzare il QR code:
+        ${qrUrl}
+
+        Mostra questo QR code in negozio per riscattare la promozione.
+
+        TapTrust - Gestione Recensioni NFC
+      `;
+
+      return this.sendEmail({
+        to: email,
+        subject,
+        html,
+        text,
+        attachments: [{
+          content: qrCodeBase64,
+          filename: 'qrcode-promozione.png',
+          type: 'image/png',
+          disposition: 'inline',
+          content_id: 'qrcode'
+        }]
+      });
+    } catch (error) {
+      console.error('Error sending promotion QR code email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Invia email di test per verificare la configurazione
+   */
+  static async sendTestEmail(email: string): Promise<boolean> {
+    const subject = 'Test TapTrust - Email Funzionante! 🎉';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="width: 60px; height: 60px; background: linear-gradient(45deg, #CC9900, #FFD700); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: #000; font-size: 24px; font-weight: bold;">TT</span>
+          </div>
+          <h1 style="color: #CC9900; margin: 0; font-size: 28px;">TapTrust</h1>
+        </div>
+        
+        <div style="background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #CC9900;">
+          <h2 style="color: #CC9900; margin-top: 0;">🎉 Test Riuscito!</h2>
+          <p style="color: #cccccc; line-height: 1.6;">
+            Congratulazioni! Il sistema email di TapTrust (OVH SMTP) funziona correttamente.
+          </p>
+          <p style="color: #cccccc; line-height: 1.6;">
+            Puoi ora:
+          </p>
+          <ul style="color: #cccccc; line-height: 1.8;">
+            <li>Inviare email di reset password</li>
+            <li>Mandare inviti ai clienti</li>
+            <li>Comunicare promozioni e offerte</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #666666; font-size: 14px;">
+          <p>TapTrust - Sistema Email Attivo</p>
+        </div>
+      </div>
+    `;
+
+    const text = `
+      TapTrust - Test Email Riuscito!
+
+      Congratulazioni! Il sistema email di TapTrust (OVH SMTP) funziona correttamente.
+
+      TapTrust - Sistema Email Attivo
     `;
 
     return this.sendEmail({

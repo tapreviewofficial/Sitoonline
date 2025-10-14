@@ -105,8 +105,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /api/auth/register
   if (pathname === '/register' && req.method === 'POST') {
     res.status(403).json({ 
-      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta taptrustofficial1@gmail.com",
-      contactEmail: "taptrustofficial1@gmail.com",
+      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta info@taptrust.it",
+      contactEmail: "info@taptrust.it",
       code: "REGISTRATION_DISABLED"
     });
     return;

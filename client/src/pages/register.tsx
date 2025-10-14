@@ -27,11 +27,11 @@ export default function Register() {
               Per attivare il tuo account TapTrust, contattaci via email:
             </p>
             <a 
-              href="mailto:taptrustofficial1@gmail.com?subject=Richiesta Account TapTrust"
+              href="mailto:info@taptrust.it?subject=Richiesta Account TapTrust"
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#CC9900] hover:bg-[#B8860B] text-black font-medium rounded-lg transition-colors"
               data-testid="button-contact-email"
             >
-              taptrustofficial1@gmail.com
+              info@taptrust.it
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>

@@ -446,7 +446,7 @@ router.post("/public/:username/claim", async (req, res) => {
       // Non bloccare il flusso principale se il salvataggio del contatto fallisce
     }
       
-    // Invia email con QR code tramite SendGrid e logga l'operazione
+    // Invia email con QR code tramite OVH SMTP e logga l'operazione
     let emailLogId: string | null = null;
     try {
       // Logga prima dell'invio
@@ -474,7 +474,7 @@ router.post("/public/:username/claim", async (req, res) => {
         if (emailLogId) await updatePromoEmailStatus(emailLogId, 'sent');
       } else {
         console.log(`⚠️ Failed to send QR Code email to ${email}`);
-        if (emailLogId) await updatePromoEmailStatus(emailLogId, 'failed', 'SendGrid returned false');
+        if (emailLogId) await updatePromoEmailStatus(emailLogId, 'failed', 'Email service returned false');
       }
     } catch (emailError) {
       console.error('Error sending QR Code email:', emailError);

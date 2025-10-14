@@ -145,9 +145,25 @@ The monorepo structure separates client, server, and shared concerns:
 - PostCSS with Autoprefixer for CSS processing
 - Various @types packages for TypeScript definitions
 
+### Email Service
+The application uses **OVH SMTP** with nodemailer for sending transactional emails:
+- **Password Reset Emails**: Secure token-based password recovery with 1-hour expiration
+- **Promotional Invitations**: QR code generation and email delivery for customer engagement
+- **Promotional Offers**: Automated campaign notifications with custom HTML templates
+
+**Email Configuration**:
+- SMTP Server: `ssl0.ovh.net:465` (SSL)
+- From Address: `info@taptrust.it`
+- Compatible with Vercel serverless functions
+- Nodemailer transporter with TLS security
+
+All email templates follow the TapTrust brand theme (black/gold #0a0a0a/#CC9900) with responsive HTML design.
+
 ### Environment Configuration
 The application expects the following environment variables:
-- DATABASE_URL: Database connection string (defaults to SQLite file)
-- JWT_SECRET: Secret key for JWT token signing
+- DATABASE_URL: Database connection string (Supabase PostgreSQL pooler)
+- JWT_SECRET: Secret key for JWT token signing (required, no fallback)
 - NODE_ENV: Environment mode (development/production)
 - FRONTEND_URL: Frontend URL for CORS configuration (production only)
+- MAIL_USER: OVH SMTP email address (info@taptrust.it)
+- MAIL_PASSWORD: OVH SMTP password (secret)

@@ -94,7 +94,8 @@ Clicca "Environment Variables" e aggiungi:
 ```
 DATABASE_URL=postgresql://... (il tuo Supabase pooler URL)
 JWT_SECRET=il-tuo-jwt-secret-super-sicuro
-SENDGRID_API_KEY=il-tuo-sendgrid-api-key
+MAIL_USER=info@taptrust.it
+MAIL_PASSWORD=la-tua-password-ovh-smtp
 ```
 
 **⚠️ IMPORTANTE**: 
@@ -247,7 +248,7 @@ git push
 
 - [ ] Repository GitHub creato e pushato
 - [ ] Progetto importato su Vercel
-- [ ] Environment variables configurate (DATABASE_URL, JWT_SECRET, SENDGRID_API_KEY)
+- [ ] Environment variables configurate (DATABASE_URL, JWT_SECRET, MAIL_USER, MAIL_PASSWORD)
 - [ ] Build completato con successo
 - [ ] Verifica: solo 8 functions nella dashboard Vercel
 - [ ] Test API routes (almeno `/api/me` e `/api/auth/login`)
@@ -257,7 +258,7 @@ git push
 
 ## 🎉 Congratulazioni!
 
-TapReview è ora **100% deployato su Vercel** con:
+TapTrust è ora **100% deployato su Vercel** con:
 - ✅ 8 serverless functions (sotto il limite free tier)
 - ✅ Database Supabase PostgreSQL con pooling
 - ✅ Autenticazione JWT con cookie

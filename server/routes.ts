@@ -28,8 +28,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Registration disabled - users must contact admin for account creation
   app.post("/api/auth/register", async (req, res) => {
     res.status(403).json({ 
-      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta taptrustofficial1@gmail.com",
-      contactEmail: "taptrustofficial1@gmail.com",
+      message: "La registrazione pubblica è stata disabilitata. Per attivare un account, contatta info@taptrust.it",
+      contactEmail: "info@taptrust.it",
       code: "REGISTRATION_DISABLED"
     });
   });

@@ -1,8 +1,4 @@
-import sgMail from '@sendgrid/mail';
-
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+import nodemailer from 'nodemailer';
 
 interface EmailParams {
   to: string;
@@ -11,23 +7,51 @@ interface EmailParams {
   text?: string;
 }
 
+// Configurazione transporter SMTP OVH (compatibile con Vercel serverless)
+function createTransporter() {
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASSWORD) {
+    console.warn('MAIL_USER or MAIL_PASSWORD not configured');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: "ssl0.ovh.net",
+    port: 465,
+    secure: true, // SSL
+    auth: {
+      user: process.env.MAIL_USER,      // info@taptrust.it
+      pass: process.env.MAIL_PASSWORD   // secret
+    },
+    tls: { 
+      rejectUnauthorized: true 
+    }
+  });
+}
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SENDGRID_API_KEY not configured, skipping email send');
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.warn('Email transporter not configured, skipping email send');
     return false;
   }
 
   try {
-    await sgMail.send({
+    const info = await transporter.sendMail({
+      from: `"TapTrust" <${process.env.MAIL_USER}>`, // info@taptrust.it
       to: params.to,
-      from: 'taptrustofficial1@gmail.com',
       subject: params.subject,
       html: params.html,
       text: params.text,
+      headers: {
+        'X-TapTrust-App': 'taptrust-1.0'
+      }
     });
+    
+    console.log(`✅ Email sent successfully to ${params.to} (Message ID: ${info.messageId})`);
     return true;
   } catch (error) {
-    console.error('Errore invio email:', error);
+    console.error('❌ Errore invio email:', error);
     return false;
   }
 }
