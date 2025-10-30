@@ -61,9 +61,14 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        // Custom colors for TapReview theme
-        coal: "var(--coal)",
-        gold: "var(--gold)",
+        // Custom colors for TapTrust theme (exact PDF colors)
+        coal: "#0a0a0a",
+        charcoal: "#1a1a1a",
+        "warm-gray": "#2a2a2a",
+        gold: "#d4af37",
+        "gold-light": "#e6c77f",
+        "gold-dark": "#b8860b",
+        pearl: "#f5f4f2",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
