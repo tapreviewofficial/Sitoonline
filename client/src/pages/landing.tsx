@@ -187,33 +187,33 @@ export default function Landing() {
             </div>
             
             <div className="grid grid-cols-2 gap-6">
-              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center">
+              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center" data-testid="card-stat-authenticity">
                 <CardContent className="p-0">
-                  <div className="text-5xl font-black text-gold mb-2">98%</div>
+                  <div className="text-5xl font-black text-gold mb-2" data-testid="text-stat-98">98%</div>
                   <div className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Tasso di Autenticità</div>
                   <p className="text-xs text-gray-500 mt-2">Recensioni verificate e certificate</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center">
+              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center" data-testid="card-stat-increment">
                 <CardContent className="p-0">
-                  <div className="text-5xl font-black text-gold mb-2">5x</div>
+                  <div className="text-5xl font-black text-gold mb-2" data-testid="text-stat-5x">5x</div>
                   <div className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Incremento Recensioni</div>
                   <p className="text-xs text-gray-500 mt-2">Rispetto ai metodi tradizionali</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center">
+              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center" data-testid="card-stat-time">
                 <CardContent className="p-0">
-                  <div className="text-5xl font-black text-gold mb-2">&lt;10s</div>
+                  <div className="text-5xl font-black text-gold mb-2" data-testid="text-stat-time">&lt;10s</div>
                   <div className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Tempo Medio</div>
                   <p className="text-xs text-gray-500 mt-2">Per lasciare un feedback completo</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center">
+              <Card className="bg-charcoal border-l-4 border-l-gold p-6 text-center" data-testid="card-stat-monitoring">
                 <CardContent className="p-0">
-                  <div className="text-5xl font-black text-gold mb-2">24/7</div>
+                  <div className="text-5xl font-black text-gold mb-2" data-testid="text-stat-247">24/7</div>
                   <div className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Monitoraggio Continuo</div>
                   <p className="text-xs text-gray-500 mt-2">Reputazione sempre sotto controllo</p>
                 </CardContent>
@@ -247,7 +247,7 @@ export default function Landing() {
             </div>
             
             <div className="space-y-4">
-              <Card className="bg-coal border border-gold/40 p-6">
+              <Card className="bg-coal border border-gold/40 p-6" data-testid="card-elite-design">
                 <CardContent className="p-0 flex items-center gap-4">
                   <div className="text-4xl">🎨</div>
                   <div>
@@ -257,7 +257,7 @@ export default function Landing() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-coal border border-gold/40 p-6">
+              <Card className="bg-coal border border-gold/40 p-6" data-testid="card-elite-materials">
                 <CardContent className="p-0 flex items-center gap-4">
                   <div className="text-4xl">💎</div>
                   <div>
@@ -267,7 +267,7 @@ export default function Landing() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-coal border border-gold/40 p-6">
+              <Card className="bg-coal border border-gold/40 p-6" data-testid="card-elite-consultant">
                 <CardContent className="p-0 flex items-center gap-4">
                   <div className="text-4xl">👤</div>
                   <div>
@@ -277,7 +277,7 @@ export default function Landing() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-coal border border-gold/40 p-6">
+              <Card className="bg-coal border border-gold/40 p-6" data-testid="card-elite-events">
                 <CardContent className="p-0 flex items-center gap-4">
                   <div className="text-4xl">🌟</div>
                   <div>
@@ -328,19 +328,19 @@ export default function Landing() {
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20">
+              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20" data-testid="feature-connections">
                 <div className="text-3xl">🤝</div>
                 <p className="text-lg font-semibold text-gray-200">Connessioni Autentiche</p>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20">
+              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20" data-testid="feature-growth">
                 <div className="text-3xl">📈</div>
                 <p className="text-lg font-semibold text-gray-200">Crescita Condivisa</p>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20">
+              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20" data-testid="feature-excellence">
                 <div className="text-3xl">⭐</div>
                 <p className="text-lg font-semibold text-gray-200">Eccellenza Collettiva</p>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20">
+              <div className="flex items-center gap-4 p-4 bg-coal/50 rounded-lg border border-gold/20" data-testid="feature-premium">
                 <div className="text-3xl">👑</div>
                 <p className="text-lg font-semibold text-gray-200">Network Premium</p>
               </div>
@@ -366,10 +366,10 @@ export default function Landing() {
           
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Business Plan */}
-            <Card className="bg-charcoal border border-warm-gray/20 rounded-2xl p-10 hover:border-gold/40 transition-all">
+            <Card className="bg-charcoal border border-warm-gray/20 rounded-2xl p-10 hover:border-gold/40 transition-all" data-testid="card-plan-business">
               <CardContent className="p-0">
                 <h3 className="text-3xl font-bold mb-2">TapTrust Business</h3>
-                <div className="text-4xl font-black text-gold mb-6">€9,99<span className="text-xl text-gray-400">/mese</span></div>
+                <div className="text-4xl font-black text-gold mb-6" data-testid="text-price-business">€9,99<span className="text-xl text-gray-400">/mese</span></div>
                 <p className="text-gray-300 mb-8 leading-relaxed">
                   L'ingresso ufficiale nella rete della fiducia. Tutto ciò che serve per raccogliere recensioni autentiche e costruire reputazione tangibile, misurabile, inarrestabile.
                 </p>
@@ -400,11 +400,11 @@ export default function Landing() {
             </Card>
 
             {/* Elite Plan */}
-            <Card className="bg-gradient-to-br from-gold/10 to-coal border-2 border-gold rounded-2xl p-10 shadow-2xl shadow-gold/20 relative overflow-hidden">
+            <Card className="bg-gradient-to-br from-gold/10 to-coal border-2 border-gold rounded-2xl p-10 shadow-2xl shadow-gold/20 relative overflow-hidden" data-testid="card-plan-elite">
               <div className="absolute top-4 right-4 bg-gold text-coal px-4 py-1 rounded-full text-sm font-bold">ELITE</div>
               <CardContent className="p-0">
                 <h3 className="text-3xl font-bold mb-2">TapTrust Elite</h3>
-                <div className="text-4xl font-black text-gold mb-6">Solo su Invito</div>
+                <div className="text-4xl font-black text-gold mb-6" data-testid="text-price-elite">Solo su Invito</div>
                 <p className="text-gray-300 mb-8 leading-relaxed">
                   Il livello più alto della fiducia. Design personalizzato da maestri artigiani, materiali preziosi selezionati, consulente strategico dedicato, accesso a eventi riservati globali.
                 </p>
