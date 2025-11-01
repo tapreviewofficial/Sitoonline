@@ -20,7 +20,7 @@ export function Header() {
             </Button>
           </Link>
           <Link href="/login" data-testid="link-login">
-            <Button variant="ghost">Accedi</Button>
+            <Button className="btn-gold">Accedi</Button>
           </Link>
           <Link href="/register" className="hidden md:block" data-testid="link-register">
             <Button className="btn-gold">Attiva ora</Button>
