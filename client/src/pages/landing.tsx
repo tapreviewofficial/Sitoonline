@@ -522,13 +522,13 @@ export default function Landing() {
               <p className="text-gray-600 italic">La Fiducia. Evoluta.</p>
             </div>
             <div className="flex gap-6 text-gray-600 text-sm">
-              <a href="#" className="hover:text-[#C9A054] transition-colors">Chi Siamo</a>
+              <Link href="/chi-siamo" className="hover:text-[#C9A054] transition-colors" data-testid="link-chi-siamo">Chi Siamo</Link>
               <span className="text-gray-300">|</span>
-              <a href="#" className="hover:text-[#C9A054] transition-colors">Privacy</a>
+              <Link href="/privacy" className="hover:text-[#C9A054] transition-colors" data-testid="link-privacy">Privacy</Link>
               <span className="text-gray-300">|</span>
-              <a href="#" className="hover:text-[#C9A054] transition-colors">Contatti</a>
+              <Link href="/contatti" className="hover:text-[#C9A054] transition-colors" data-testid="link-contatti">Contatti</Link>
               <span className="text-gray-300">|</span>
-              <a href="#" className="hover:text-[#C9A054] transition-colors">Termini</a>
+              <Link href="/termini" className="hover:text-[#C9A054] transition-colors" data-testid="link-termini">Termini</Link>
             </div>
           </div>
           <div className="text-center text-gray-500 text-sm">

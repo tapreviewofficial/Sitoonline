@@ -11,6 +11,10 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
+import ChiSiamo from "@/pages/chi-siamo";
+import Privacy from "@/pages/privacy";
+import Contatti from "@/pages/contatti";
+import Termini from "@/pages/termini";
 
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Admin = lazy(() => import("@/pages/admin"));
@@ -48,6 +52,10 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/chi-siamo" component={ChiSiamo} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/contatti" component={Contatti} />
+        <Route path="/termini" component={Termini} />
         <Route path="/force-change-password" component={ForceChangePassword} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/admin" component={Admin} />
