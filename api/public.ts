@@ -127,20 +127,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           expiresAt: promo[0].endAt
         });
         
-      // Salva contatto promozionale
-      try {
-        await storage.createOrUpdatePromotionalContact({
-          email,
-          firstName: name || null,
-          lastName: surname || null,
-          userId: user[0].id,
-          lastPromoRequested: promo[0].title || 'Promozione',
-          totalPromoRequests: 1
-        });
-        console.log(`📧 Contatto promozionale salvato: ${email}`);
-      } catch (contactError) {
-        console.error('Error saving promotional contact:', contactError);
-      }
+      // NOTA: Database contatti promozionali disabilitato su richiesta cliente
+      // I dati vengono utilizzati SOLO per l'invio della promozione corrente
+      // e NON vengono archiviati permanentemente
       
       // Invia email con QR code
       try {
