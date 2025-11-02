@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "wouter";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function PublicClaimPage() {
   const { username } = useParams();
   const [promo, setPromo] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [sent, setSent] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   useEffect(() => { (async () => {
     // Fetch both promo and profile data
@@ -23,6 +32,12 @@ export default function PublicClaimPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    
+    if (!privacyAccepted) {
+      alert("Devi accettare l'informativa sulla privacy per continuare");
+      return;
+    }
+    
     const fd = new FormData(e.currentTarget);
     const body = { 
       name: fd.get("name")?.toString(), 
@@ -118,10 +133,66 @@ export default function PublicClaimPage() {
                 />
               </div>
 
+              {/* Privacy Consent */}
+              <div className="mt-4">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-1 w-4 h-4 accent-[#CC9900] cursor-pointer"
+                    data-testid="checkbox-privacy"
+                  />
+                  <span className="text-white/80 text-xs leading-relaxed">
+                    Autorizzo il trattamento dei miei dati personali (nome, cognome, email) ai sensi del Regolamento UE 679/2016 (GDPR) esclusivamente per l'invio automatico della promozione richiesta.{' '}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button 
+                          type="button" 
+                          className="text-[#CC9900] hover:text-[#CC9900]/80 underline font-medium"
+                          data-testid="link-privacy-info"
+                        >
+                          Leggi l'Informativa Privacy
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-[#1a2332] border-white/20 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-[#CC9900] text-xl">Informativa Privacy</DialogTitle>
+                          <DialogDescription className="text-white/70">
+                            Regolamento UE 679/2016 (GDPR)
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 text-sm text-white/80 leading-relaxed">
+                          <p>
+                            I dati personali forniti (nome, cognome, email) vengono trattati da <strong>TapTrust</strong>, in qualità di Titolare del trattamento, solo per l'invio automatico della promozione richiesta dall'utente.
+                          </p>
+                          <p>
+                            I dati non vengono utilizzati per altre finalità, non vengono comunicati a terzi né ceduti a partner commerciali per usi diversi.
+                          </p>
+                          <p>
+                            Dopo l'invio della promozione, i dati sono eliminati automaticamente dai sistemi TapTrust, garantendo la conformità al Regolamento UE 679/2016 (GDPR).
+                          </p>
+                          <p>
+                            L'utente può richiedere in qualsiasi momento la conferma dell'avvenuta cancellazione scrivendo a{' '}
+                            <a href="mailto:info@taptrust.it" className="text-[#CC9900] hover:underline">
+                              info@taptrust.it
+                            </a>
+                          </p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <br />
+                    <span className="text-white/60 italic">(Campo obbligatorio)</span>
+                  </span>
+                </label>
+              </div>
+
               {/* Submit Button */}
               <button 
                 type="submit"
-                className="w-full bg-[#CC9900] hover:bg-[#CC9900]/90 text-black font-semibold py-4 rounded-lg transition-colors mt-6"
+                className="w-full bg-[#CC9900] hover:bg-[#CC9900]/90 text-black font-semibold py-4 rounded-lg transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!privacyAccepted}
+                data-testid="button-submit-promo"
               >
                 Partecipa alla Promozione
               </button>
