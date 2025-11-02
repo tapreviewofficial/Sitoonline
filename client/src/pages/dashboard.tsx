@@ -19,7 +19,6 @@ import { DraggableLinkList } from "@/components/DraggableLinkList";
 import { LivePreview } from "@/components/LivePreview";
 import NewPromoLite from "@/components/NewPromoLite";
 import EditPromoForm from "@/components/EditPromoForm";
-import { ClientiDatabase } from "@/components/ClientiDatabase";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
 import AdminPanel from "@/pages/admin";
 import type { Link, Profile } from "@shared/schema";
@@ -232,7 +231,6 @@ export default function Dashboard() {
           <TabsList className="flex w-full overflow-x-auto bg-white/5 border-white/10 gap-1 scrollbar-hide px-2 snap-x snap-mandatory">
             <TabsTrigger value="gestione" data-testid="tab-manage" className="shrink-0 whitespace-nowrap snap-start">Gestione</TabsTrigger>
             <TabsTrigger value="promo" data-testid="tab-promo" className="shrink-0 whitespace-nowrap snap-start">Promozioni</TabsTrigger>
-            <TabsTrigger value="clienti" data-testid="tab-clienti" className="shrink-0 whitespace-nowrap snap-start">Database Clienti</TabsTrigger>
             <TabsTrigger value="analytics" data-testid="tab-analytics" className="shrink-0 whitespace-nowrap snap-start">Analytics</TabsTrigger>
             <TabsTrigger value="anteprima" data-testid="tab-preview" className="shrink-0 whitespace-nowrap snap-start">Anteprima</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings" className="shrink-0 whitespace-nowrap snap-start">Impostazioni</TabsTrigger>
@@ -654,23 +652,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="clienti" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <i className="fas fa-address-book text-[#CC9900]"></i>
-                  Database Clienti
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Tutti i clienti che hanno richiesto le tue promozioni
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ClientiDatabase />
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {authData?.user?.role === "ADMIN" && (
