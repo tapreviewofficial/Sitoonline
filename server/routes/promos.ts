@@ -430,21 +430,9 @@ router.post("/public/:username/claim", async (req, res) => {
         expiresAt: promo[0].endAt
       });
       
-    // Salva contatto promozionale per future campagne marketing
-    try {
-      await storage.createOrUpdatePromotionalContact({
-        email,
-        firstName: name || null,
-        lastName: surname || null,
-        userId: user[0].id,
-        lastPromoRequested: promo[0].title || 'Promozione',
-        totalPromoRequests: 1 // Il metodo gestisce l'incremento automaticamente se esiste già
-      });
-      console.log(`📧 Contatto promozionale salvato: ${email}`);
-    } catch (contactError) {
-      console.error('Error saving promotional contact:', contactError);
-      // Non bloccare il flusso principale se il salvataggio del contatto fallisce
-    }
+    // NOTA: Database contatti promozionali disabilitato su richiesta cliente
+    // I dati vengono utilizzati SOLO per l'invio della promozione corrente
+    // e NON vengono archiviati permanentemente nella tabella promotionalContacts
       
     // Invia email con QR code tramite OVH SMTP e logga l'operazione
     let emailLogId: string | null = null;
