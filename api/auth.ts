@@ -191,8 +191,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         used: false
       });
 
-      const frontendUrl = process.env.FRONTEND_URL 
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5000');
+      const frontendUrl = process.env.FRONTEND_URL || 'https://www.taptrust.it';
       const resetLink = `${frontendUrl}/reset-password?token=${token}`;
       
       const emailContent = generatePasswordResetEmail(resetLink, user.username);

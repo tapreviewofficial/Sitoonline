@@ -110,8 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       const code = nanoid(10);
-      const publicOrigin = process.env.FRONTEND_URL 
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5000');
+      const publicOrigin = process.env.FRONTEND_URL || 'https://www.taptrust.it';
       const qrUrl = `${publicOrigin}/q/${code}`;
       
       await db
