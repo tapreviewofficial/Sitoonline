@@ -1,10 +1,12 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Clock, AlertTriangle, Gift, Download } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface TicketData {
   status: "valid" | "used" | "expired" | "not_found";
@@ -22,11 +24,33 @@ interface TicketData {
 export default function TicketPage() {
   const params = useParams() as { code: string };
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: ticket, isLoading, error } = useQuery<TicketData>({
     queryKey: ["/api/tickets", params.code, "status"],
     enabled: !!params.code,
     refetchInterval: 5000, // Aggiorna ogni 5 secondi per vedere cambi di stato
+  });
+
+  const useTicketMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/tickets/${params.code}/use`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets", params.code, "status"] });
+      toast({
+        title: "✓ Biglietto Utilizzato",
+        description: "Il biglietto è stato marcato come utilizzato con successo.",
+        variant: "default"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error?.message || "Impossibile utilizzare il biglietto. Verifica di essere autenticato come ristoratore.",
+        variant: "destructive"
+      });
+    }
   });
 
   if (isLoading) {
@@ -220,15 +244,20 @@ export default function TicketPage() {
           )}
 
           <div className="space-y-2">
+            {ticket.status === "valid" && (
+              <Button 
+                onClick={() => useTicketMutation.mutate()}
+                disabled={useTicketMutation.isPending}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-6"
+                data-testid="button-confirm-use"
+              >
+                {useTicketMutation.isPending ? "Conferma in corso..." : "✓ Conferma Utilizzo Biglietto"}
+              </Button>
+            )}
+            
             <Button onClick={() => setLocation("/")} className="w-full" variant="outline">
               Torna alla Home
             </Button>
-            
-            {ticket.status === "valid" && (
-              <Button onClick={() => setLocation("/scan")} className="w-full bg-[#CC9900] hover:bg-[#CC9900]/80">
-                Scansiona per Utilizzare
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
