@@ -1,5 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export default function TicketPage() {
   const params = useParams() as { code: string };
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const autoUseAttempted = useRef(false);
 
   const { data: ticket, isLoading, error } = useQuery<TicketData>({
     queryKey: ["/api/tickets", params.code, "status"],
@@ -47,18 +49,26 @@ export default function TicketPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets", params.code, "status"] });
       toast({
         title: "✓ Biglietto Utilizzato",
-        description: "Il biglietto è stato marcato come utilizzato con successo.",
+        description: "Il biglietto è stato marcato come utilizzato automaticamente.",
         variant: "default"
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Errore",
-        description: error?.message || "Impossibile utilizzare il biglietto. Verifica di essere autenticato come ristoratore.",
+        title: "Biglietto non utilizzabile",
+        description: error?.message || "Questo biglietto non può essere utilizzato. Potrebbe essere già stato usato o scaduto.",
         variant: "destructive"
       });
     }
   });
+
+  // Utilizzo automatico del biglietto quando è VALID
+  useEffect(() => {
+    if (ticket?.status === "valid" && !autoUseAttempted.current && !useTicketMutation.isPending) {
+      autoUseAttempted.current = true;
+      useTicketMutation.mutate();
+    }
+  }, [ticket?.status]);
 
   if (isLoading) {
     return (
@@ -251,19 +261,19 @@ export default function TicketPage() {
           )}
 
           <div className="space-y-2">
-            {ticket.status === "valid" && (
-              <Button 
-                onClick={() => useTicketMutation.mutate()}
-                disabled={useTicketMutation.isPending}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-6"
-                data-testid="button-confirm-use"
-              >
-                {useTicketMutation.isPending ? "Conferma in corso..." : "✓ Conferma Utilizzo Biglietto"}
-              </Button>
+            {useTicketMutation.isPending && (
+              <div className="text-center py-4">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#CC9900]"></div>
+                <p className="text-sm text-muted-foreground mt-2">Validazione in corso...</p>
+              </div>
             )}
             
             <Button onClick={() => setLocation("/")} className="w-full" variant="outline">
               Torna alla Home
+            </Button>
+            
+            <Button onClick={() => setLocation("/scan")} className="w-full bg-[#CC9900] hover:bg-[#CC9900]/80">
+              Scansiona Altro Biglietto
             </Button>
           </div>
         </CardContent>
