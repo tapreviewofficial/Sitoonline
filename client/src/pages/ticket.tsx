@@ -31,7 +31,11 @@ export default function TicketPage() {
   const { data: ticket, isLoading, error } = useQuery<TicketData>({
     queryKey: ["/api/tickets", params.code, "status"],
     enabled: !!params.code,
-    refetchInterval: 5000, // Aggiorna ogni 5 secondi per vedere cambi di stato
+    refetchInterval: (query) => {
+      // Continua a fare refetch solo se il biglietto è in stato "valid" o in attesa di cambio stato
+      const data = query.state.data as TicketData | undefined;
+      return data?.status === "valid" ? 2000 : false;
+    },
   });
 
   const useTicketMutation = useMutation({

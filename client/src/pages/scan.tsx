@@ -105,16 +105,8 @@ export default function ScanPage() {
       // Ferma lo scanner
       stopScanning();
 
-      // Reindirizza alla pagina del ticket che mostrerà lo stato completo
-      toast({
-        title: "QR Code Scansionato",
-        description: "Apertura pagina biglietto...",
-      });
-
-      // Piccolo delay per mostrare il toast
-      setTimeout(() => {
-        setLocation(`/q/${code}`);
-      }, 500);
+      // Reindirizza immediatamente alla pagina del ticket
+      setLocation(`/q/${code}`);
 
     } catch (error: any) {
       console.error("Errore scansione:", error);
