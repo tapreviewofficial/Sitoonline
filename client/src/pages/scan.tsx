@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface ScanResult {
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [, setLocation] = useLocation();
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -67,7 +69,6 @@ export default function ScanPage() {
             const text = result.getText();
             setResult(text);
             setIsScanning(false);
-            codeReader.reset();
             handleDecoded(text);
           }
           // Non loggare errori di decodifica continui
@@ -101,70 +102,26 @@ export default function ScanPage() {
         code = match[1];
       }
 
-      // Controlla stato del ticket
-      const statusResponse = await fetch(`/api/tickets/${code}/status`);
-      const statusData = await statusResponse.json();
+      // Ferma lo scanner
+      stopScanning();
 
-      if (statusData.status === "not_found") {
-        setScanResult({ status: "not_found", code });
-        toast({
-          title: "Codice non valido",
-          description: "Il codice QR scansionato non è valido.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (statusData.status === "expired") {
-        setScanResult({ status: "expired", code, promo: statusData.promo });
-        toast({
-          title: "Biglietto scaduto",
-          description: "Questo biglietto è scaduto e non può essere utilizzato.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (statusData.status === "used") {
-        setScanResult({ 
-          status: "used", 
-          code, 
-          usedAt: statusData.usedAt, 
-          promo: statusData.promo 
-        });
-        toast({
-          title: "Biglietto già utilizzato",
-          description: "Questo biglietto è già stato utilizzato.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Il biglietto è valido, marchalo come usato
-      const useResponse = await fetch(`/api/tickets/${code}/use`, {
-        method: "POST",
-        credentials: "include", // Include cookies se utente loggato
-      });
-      const useData = await useResponse.json();
-
-      setScanResult({
-        status: "valid",
-        code,
-        usedAt: useData.usedAt,
-        promo: useData.promo,
-      });
-
+      // Reindirizza alla pagina del ticket che mostrerà lo stato completo
       toast({
-        title: "Biglietto validato!",
-        description: "Il biglietto è stato utilizzato con successo.",
+        title: "QR Code Scansionato",
+        description: "Apertura pagina biglietto...",
       });
+
+      // Piccolo delay per mostrare il toast
+      setTimeout(() => {
+        setLocation(`/q/${code}`);
+      }, 500);
 
     } catch (error: any) {
-      console.error("Errore validazione:", error);
-      setError("Errore durante la validazione del biglietto");
+      console.error("Errore scansione:", error);
+      setError("Errore durante la scansione del biglietto");
       toast({
-        title: "Errore di validazione",
-        description: "Si è verificato un errore durante la validazione.",
+        title: "Errore di scansione",
+        description: "Si è verificato un errore durante la scansione.",
         variant: "destructive",
       });
     }
