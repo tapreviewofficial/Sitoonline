@@ -34,7 +34,14 @@ export default function TicketPage() {
 
   const useTicketMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/tickets/${params.code}/use`);
+      const response = await apiRequest("POST", `/api/tickets/${params.code}/use`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Errore sconosciuto" }));
+        throw new Error(errorData.error || `Errore HTTP ${response.status}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets", params.code, "status"] });
