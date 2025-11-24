@@ -129,28 +129,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // I dati vengono utilizzati SOLO per l'invio della promozione corrente
       // e NON vengono archiviati permanentemente
       
-      // Invia email con QR code
-      try {
-        const emailSent = await sendPromotionQRCode(
-          email,
-          name ? `${name} ${surname || ''}`.trim() : email.split('@')[0],
-          qrUrl,
-          {
-            title: promo[0].title,
-            description: promo[0].description ?? 'Partecipa alla nostra promozione speciale!',
-            validUntil: promo[0].endAt ?? undefined
-          }
-        );
-        
+      // Invia email con QR code in background (non blocca la risposta)
+      sendPromotionQRCode(
+        email,
+        name ? `${name} ${surname || ''}`.trim() : email.split('@')[0],
+        qrUrl,
+        {
+          title: promo[0].title,
+          description: promo[0].description ?? 'Partecipa alla nostra promozione speciale!',
+          validUntil: promo[0].endAt ?? undefined
+        }
+      ).then(emailSent => {
         if (emailSent) {
           console.log(`✅ QR Code email sent successfully to ${email}`);
         } else {
           console.log(`⚠️ Failed to send QR Code email to ${email}`);
         }
-      } catch (emailError) {
+      }).catch(emailError => {
         console.error('Error sending QR Code email:', emailError);
-      }
+      });
       
+      // Risposta immediata al cliente (l'email arriverà tra pochi secondi)
       res.json({ ok: true, code, qrUrl });
     } catch (e: any) {
       res.status(400).json({ error: e?.message || 'Errore' });

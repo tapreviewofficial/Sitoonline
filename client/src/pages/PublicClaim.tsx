@@ -30,6 +30,8 @@ export default function PublicClaimPage() {
     setProfile(profileData);
   })(); }, [username]);
 
+  const [loading, setLoading] = useState(false);
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     
@@ -38,18 +40,32 @@ export default function PublicClaimPage() {
       return;
     }
     
+    setLoading(true);
+    
     const fd = new FormData(e.currentTarget);
     const body = { 
       name: fd.get("name")?.toString(), 
       surname: fd.get("surname")?.toString(), 
       email: fd.get("email")?.toString() 
     };
-    const r = await fetch(`/api/public/${username}/claim`, { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify(body) 
-    });
-    if (r.ok) setSent(true); else alert("Errore invio");
+    
+    try {
+      const r = await fetch(`/api/public/${username}/claim`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(body) 
+      });
+      
+      if (r.ok) {
+        setSent(true);
+      } else {
+        alert("Errore invio");
+      }
+    } catch (error) {
+      alert("Errore di connessione");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!promo || !profile) return (
@@ -191,10 +207,10 @@ export default function PublicClaimPage() {
               <button 
                 type="submit"
                 className="w-full bg-[#CC9900] hover:bg-[#CC9900]/90 text-black font-semibold py-4 rounded-lg transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!privacyAccepted}
+                disabled={!privacyAccepted || loading}
                 data-testid="button-submit-promo"
               >
-                Partecipa alla Promozione
+                {loading ? "Invio in corso..." : "Partecipa alla Promozione"}
               </button>
             </form>
           ) : (
