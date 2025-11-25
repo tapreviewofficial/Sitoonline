@@ -6,10 +6,17 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check } from "lucide-react";
 
-// Genera codice TapTrust univoco
+// Genera codice TapTrust univoco nel formato TT-XXXX-XX
 function generateTTCode(): string {
-  const num = Math.floor(Math.random() * 9999999).toString().padStart(7, '0');
-  return `TT-${num}`;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const part2 = Array.from({ length: 2 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `TT-${part1}-${part2}`;
+}
+
+// Formatta il codice per la copia
+function formatCodeForCopy(code: string): string {
+  return `TapTrust Verification Key: ${code}`;
 }
 
 export default function PublicProfile() {
@@ -35,13 +42,14 @@ export default function PublicProfile() {
     e.preventDefault();
     
     try {
-      // Copia il codice negli appunti
-      await navigator.clipboard.writeText(ttCode);
+      // Copia il codice completo negli appunti
+      const fullCode = formatCodeForCopy(ttCode);
+      await navigator.clipboard.writeText(fullCode);
       setCopied(true);
       
       toast({
         title: "Codice copiato!",
-        description: `Incolla "${ttCode}" nella tua recensione`,
+        description: `Incolla nella tua recensione`,
       });
       
       // Reset stato dopo 3 secondi
@@ -139,7 +147,7 @@ export default function PublicProfile() {
           {links.length > 0 && (
             <div className="mb-6 p-4 bg-[#CC9900]/10 border border-[#CC9900]/30 rounded-lg">
               <p className="text-white/80 text-sm text-center mb-2">
-                Includi questo codice nella recensione:
+                Includi il tuo Codice Univoco per inviare una Recensione Certificata TapTrust
               </p>
               <div className="flex items-center justify-center gap-2">
                 <span 
@@ -150,7 +158,8 @@ export default function PublicProfile() {
                 </span>
                 <button
                   onClick={async () => {
-                    await navigator.clipboard.writeText(ttCode);
+                    const fullCode = formatCodeForCopy(ttCode);
+                    await navigator.clipboard.writeText(fullCode);
                     setCopied(true);
                     toast({ title: "Codice copiato!" });
                     setTimeout(() => setCopied(false), 2000);
