@@ -20,6 +20,7 @@ import { LivePreview } from "@/components/LivePreview";
 import NewPromoLite from "@/components/NewPromoLite";
 import EditPromoForm from "@/components/EditPromoForm";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
+import { ReviewCodesPanel } from "@/components/ReviewCodesPanel";
 import AdminPanel from "@/pages/admin";
 import type { Link, Profile } from "@shared/schema";
 
@@ -377,7 +378,10 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
-            <AnalyticsChart />
+            <div className="space-y-6">
+              <AnalyticsChart />
+              <ReviewCodesPanel />
+            </div>
           </TabsContent>
 
           <TabsContent value="promo" className="mt-6">

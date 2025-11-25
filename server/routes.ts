@@ -611,6 +611,18 @@ TapTrust - Sistema Email Attivo`
     }
   });
 
+  // Endpoint per i codici di verifica recensioni
+  app.get("/api/review-codes", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as any).user.userId;
+      const codes = await storage.getReviewCodes(userId);
+      res.json(codes);
+    } catch (error) {
+      console.error("Errore recupero codici verifica:", error);
+      res.status(500).json({ message: "Errore interno del server" });
+    }
+  });
+
   // Routes con endpoint pubblici - NO requirePasswordChanged globale
   app.use("/api", promosRouter);
   app.use("/api", ticketsRouter);
