@@ -44,11 +44,11 @@ function generateTTCode(): string {
   return `TT-${part1}-${part2}`;
 }
 
-// Formatta il codice per la copia con caratteri di lusso
+// Formatta il codice per la copia con caratteri di lusso (con newline per andare a capo)
 function formatCodeForCopy(code: string): string {
   const fancyLabel = toBold('TapTrust Verification Key:');
   const fancyCode = toFancyCode(code);
-  return `${fancyLabel} ${fancyCode}`;
+  return `\n${fancyLabel} ${fancyCode}`;
 }
 
 export default function PublicProfile() {
