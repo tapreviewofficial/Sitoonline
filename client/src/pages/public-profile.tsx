@@ -6,6 +6,36 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check } from "lucide-react";
 
+// Mappa caratteri per stile Bold matematico (per il testo)
+const boldMap: Record<string, string> = {
+  'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈', 'J': '𝐉',
+  'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑', 'S': '𝐒', 'T': '𝐓',
+  'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙',
+  'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢', 'j': '𝐣',
+  'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫', 's': '𝐬', 't': '𝐭',
+  'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
+  ' ': ' ', ':': ':', '-': '–'
+};
+
+// Mappa caratteri fancy per il codice (mix di stili)
+const fancyCodeMap: Record<string, string> = {
+  'T': '𝐓', 'A': '𝔄', 'B': '𝔅', 'C': 'ℭ', 'D': '𝔇', 'E': '𝔈', 'F': '𝔉', 'G': '𝔊', 'H': 'ℌ', 'I': 'ℑ',
+  'J': '𝔍', 'K': '𝔎', 'L': '𝔏', 'M': '𝔐', 'N': '𝔑', 'O': '𝔒', 'P': '𝔓', 'Q': '𝔔', 'R': 'ℜ', 'S': '𝔖',
+  'U': '𝔘', 'V': '𝔙', 'W': '𝔚', 'X': '𝔛', 'Y': '𝔜', 'Z': 'ℨ',
+  '0': '𝟘', '1': '𝟙', '2': '𝟚', '3': '𝟛', '4': '𝟜', '5': '𝟝', '6': '𝟞', '7': '𝟟', '8': '𝟠', '9': '𝟡',
+  '-': '–'
+};
+
+// Converte testo in Bold matematico
+function toBold(text: string): string {
+  return text.split('').map(c => boldMap[c] || c).join('');
+}
+
+// Converte codice in stile fancy
+function toFancyCode(code: string): string {
+  return code.split('').map(c => fancyCodeMap[c] || c).join('');
+}
+
 // Genera codice TapTrust univoco nel formato TT-XXXX-XX
 function generateTTCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -14,9 +44,11 @@ function generateTTCode(): string {
   return `TT-${part1}-${part2}`;
 }
 
-// Formatta il codice per la copia
+// Formatta il codice per la copia con caratteri di lusso
 function formatCodeForCopy(code: string): string {
-  return `TapTrust Verification Key: ${code}`;
+  const fancyLabel = toBold('TapTrust Verification Key:');
+  const fancyCode = toFancyCode(code);
+  return `${fancyLabel} ${fancyCode}`;
 }
 
 export default function PublicProfile() {
