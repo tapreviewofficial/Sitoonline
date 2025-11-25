@@ -1,8 +1,9 @@
 // Storage layer per Supabase usando Drizzle ORM
 import { eq, and, desc, asc, gte, lte, count, sql } from 'drizzle-orm';
 import { db, users, profiles, links, clicks, passwordResets, promotionalContacts } from './supabase';
+import { reviewCodes } from '@shared/schema';
 import type { IStorage } from '../storage';
-import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "@shared/schema";
+import type { User, InsertUser, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact, ReviewCode, InsertReviewCode } from "@shared/schema";
 
 export class SupabaseStorage implements IStorage {
   // Helper per monitorare performance query
@@ -409,5 +410,25 @@ export class SupabaseStorage implements IStorage {
       .orderBy(desc(promotionalContacts.createdAt));
     
     return result as PromotionalContact[];
+  }
+
+  // Review codes methods
+  async createReviewCode(code: InsertReviewCode): Promise<ReviewCode> {
+    const result = await db
+      .insert(reviewCodes)
+      .values(code)
+      .returning();
+    
+    return result[0] as ReviewCode;
+  }
+
+  async getReviewCodes(userId: number): Promise<ReviewCode[]> {
+    const result = await db
+      .select()
+      .from(reviewCodes)
+      .where(eq(reviewCodes.userId, userId))
+      .orderBy(desc(reviewCodes.createdAt));
+    
+    return result as ReviewCode[];
   }
 }

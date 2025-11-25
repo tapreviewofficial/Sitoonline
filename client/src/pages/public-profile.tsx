@@ -1,11 +1,25 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Copy, Check } from "lucide-react";
+
+// Genera codice TapTrust univoco
+function generateTTCode(): string {
+  const num = Math.floor(Math.random() * 9999999).toString().padStart(7, '0');
+  return `TT-${num}`;
+}
 
 export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  
+  // Genera il codice una sola volta per sessione
+  const ttCode = useMemo(() => generateTTCode(), []);
   
   const { data, isLoading, error } = useQuery<{
     profile: { displayName?: string; bio?: string; avatarUrl?: string; accentColor?: string };
@@ -15,6 +29,34 @@ export default function PublicProfile() {
     queryKey: ["/api/public", params.username],
     enabled: !!params.username,
   });
+
+  // Copia il codice e apre il link
+  const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
+    e.preventDefault();
+    
+    try {
+      // Copia il codice negli appunti
+      await navigator.clipboard.writeText(ttCode);
+      setCopied(true);
+      
+      toast({
+        title: "Codice copiato!",
+        description: `Incolla "${ttCode}" nella tua recensione`,
+      });
+      
+      // Reset stato dopo 3 secondi
+      setTimeout(() => setCopied(false), 3000);
+      
+      // Apri il link con il codice per tracciamento (dopo breve delay per mostrare il toast)
+      setTimeout(() => {
+        window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
+      }, 800);
+      
+    } catch (err) {
+      // Fallback se clipboard non funziona
+      window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -93,6 +135,38 @@ export default function PublicProfile() {
             )}
           </div>
 
+          {/* Codice TapTrust */}
+          {links.length > 0 && (
+            <div className="mb-6 p-4 bg-[#CC9900]/10 border border-[#CC9900]/30 rounded-lg">
+              <p className="text-white/80 text-sm text-center mb-2">
+                Includi questo codice nella recensione:
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <span 
+                  className="font-mono text-lg font-bold text-[#CC9900] bg-[#0a0a0a] px-4 py-2 rounded"
+                  data-testid="text-tt-code"
+                >
+                  {ttCode}
+                </span>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(ttCode);
+                    setCopied(true);
+                    toast({ title: "Codice copiato!" });
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="p-2 bg-[#CC9900] hover:bg-[#CC9900]/80 rounded text-black transition-colors"
+                  data-testid="button-copy-code"
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-white/50 text-xs text-center mt-2">
+                Il codice verrà copiato automaticamente
+              </p>
+            </div>
+          )}
+
           {/* Links */}
           <div className="space-y-3">
             {links.length === 0 ? (
@@ -103,16 +177,14 @@ export default function PublicProfile() {
               </div>
             ) : (
               links.map((link: any) => (
-                <a
+                <button
                   key={link.id}
-                  href={`/r/${user.username}/${link.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => handleLinkClick(e, link.id)}
                   className="block w-full p-4 bg-[#2a3441] hover:bg-[#334155] rounded-lg border border-white/20 hover:border-[#CC9900]/50 transition-all duration-200 text-center font-medium text-white"
                   data-testid={`link-${link.id}`}
                 >
                   {link.title}
-                </a>
+                </button>
               ))
             )}
           </div>

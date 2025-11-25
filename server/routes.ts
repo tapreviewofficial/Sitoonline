@@ -357,6 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, linkId } = req.params;
       const linkIdNum = parseInt(linkId);
+      const ttcode = req.query.ttcode as string | undefined; // Codice TapTrust per tracciamento recensioni
 
       // Get user and link
       const user = await storage.getUserByUsername(username);
@@ -384,6 +385,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Increment click counter
       await storage.incrementLinkClicks(linkIdNum);
+
+      // Se c'è un codice TapTrust, salvalo per tracciamento recensioni
+      if (ttcode && ttcode.startsWith('TT-')) {
+        // Determina la piattaforma dal URL del link
+        let platform = 'other';
+        const linkUrl = link.url.toLowerCase();
+        if (linkUrl.includes('google')) platform = 'google';
+        else if (linkUrl.includes('tripadvisor')) platform = 'tripadvisor';
+        else if (linkUrl.includes('facebook')) platform = 'facebook';
+        else if (linkUrl.includes('yelp')) platform = 'yelp';
+
+        try {
+          await storage.createReviewCode({
+            code: ttcode,
+            userId: user.id,
+            linkId: linkIdNum,
+            platform,
+            clickedAt: new Date(),
+            userAgent,
+            ipHash,
+          });
+          console.log(`✅ Review code tracked: ${ttcode} for ${platform}`);
+        } catch (err) {
+          // Ignora errori di duplicato
+          console.log(`Review code ${ttcode} already exists or error`);
+        }
+      }
 
       // Redirect to actual URL
       res.redirect(302, link.url);
