@@ -140,6 +140,22 @@ export const promoEmails = pgTable("promo_emails", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Codici tracciabili per recensioni
+export const reviewCodes = pgTable("review_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 20 }).notNull().unique(), // es. TT-0000203
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Il ristorante
+  linkId: integer("link_id").references(() => links.id, { onDelete: "set null" }), // Link cliccato (Google, Trip, ecc)
+  platform: varchar("platform", { length: 50 }), // google, tripadvisor, ecc
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  clickedAt: timestamp("clicked_at"), // Quando ha cliccato il link
+  userAgent: text("user_agent"),
+  ipHash: text("ip_hash"),
+}, (table) => ({
+  userIdIdx: index("review_codes_user_id_idx").on(table.userId),
+  codeIdx: index("review_codes_code_idx").on(table.code),
+}));
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -213,6 +229,11 @@ export const insertPromoEmailSchema = createInsertSchema(promoEmails).omit({
   createdAt: true,
 });
 
+export const insertReviewCodeSchema = createInsertSchema(reviewCodes).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertUserDb = z.infer<typeof insertUserDbSchema>;
@@ -237,3 +258,5 @@ export type InsertPromotionalContact = z.infer<typeof insertPromotionalContactSc
 export type PromotionalContact = typeof promotionalContacts.$inferSelect;
 export type InsertPromoEmail = z.infer<typeof insertPromoEmailSchema>;
 export type PromoEmail = typeof promoEmails.$inferSelect;
+export type InsertReviewCode = z.infer<typeof insertReviewCodeSchema>;
+export type ReviewCode = typeof reviewCodes.$inferSelect;
