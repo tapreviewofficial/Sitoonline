@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { getCurrentUser } from '../lib/shared/auth.js';
 import { storage } from '../lib/shared/storage.js';
 import { getDatabase } from '../lib/shared/db.js';
-import { publicPages, users } from '../shared/schema.js';
+import { publicPages, users, reviewCodes } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -67,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const username = redirectMatch[1];
       const linkIdNum = parseInt(redirectMatch[2]);
+      const ttcode = url.searchParams.get('ttcode'); // Codice TapTrust per tracciamento recensioni
 
       const user = await storage.getUserByUsername(username);
       if (!user) {
@@ -85,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const ip = typeof forwarded === 'string' ? forwarded.split(',')[0] : null;
       const ipHash = ip ? crypto.createHash('sha256').update(ip + (process.env.JWT_SECRET || '')).digest('hex') : null;
 
+      // Traccia il click normalmente
       await storage.createClick({
         linkId: linkIdNum,
         userAgent,
@@ -93,6 +95,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       await storage.incrementLinkClicks(linkIdNum);
+
+      // Se c'è un codice TapTrust, salvalo per tracciamento recensioni
+      if (ttcode && ttcode.startsWith('TT-')) {
+        const db = getDatabase();
+        // Determina la piattaforma dal URL del link
+        let platform = 'other';
+        const linkUrl = link.url.toLowerCase();
+        if (linkUrl.includes('google')) platform = 'google';
+        else if (linkUrl.includes('tripadvisor')) platform = 'tripadvisor';
+        else if (linkUrl.includes('facebook')) platform = 'facebook';
+        else if (linkUrl.includes('yelp')) platform = 'yelp';
+
+        try {
+          await db.insert(reviewCodes).values({
+            code: ttcode,
+            userId: user.id,
+            linkId: linkIdNum,
+            platform,
+            clickedAt: new Date(),
+            userAgent,
+            ipHash,
+          });
+          console.log(`✅ Review code tracked: ${ttcode} for ${platform}`);
+        } catch (err) {
+          // Ignora errori di duplicato (stesso codice già salvato)
+          console.log(`Review code ${ttcode} already exists or error:`, err);
+        }
+      }
 
       res.redirect(302, link.url);
     } catch (error) {
