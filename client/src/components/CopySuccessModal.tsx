@@ -14,7 +14,7 @@ export function CopySuccessModal({ isOpen, onClose, code }: CopySuccessModalProp
   useEffect(() => {
     if (isOpen) {
       const timer1 = setTimeout(() => setShowCheck(true), 300);
-      const timer2 = setTimeout(() => onClose(), 4000);
+      const timer2 = setTimeout(() => onClose(), 3000);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);

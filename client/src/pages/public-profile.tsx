@@ -97,7 +97,7 @@ export default function PublicProfile() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-16 h-16 border-2 border-[#CC9900] border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-2 border-[#CC9900] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -129,117 +129,105 @@ export default function PublicProfile() {
   const firstLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="max-w-lg mx-auto px-6 py-12">
-        
-        {/* Avatar */}
-        <div className="flex justify-center mb-8">
-          {profile.avatarUrl ? (
-            <img
-              src={profile.avatarUrl}
-              alt={displayName}
-              className="w-28 h-28 rounded-full object-cover ring-2 ring-[#CC9900]"
-              data-testid="img-avatar"
-            />
-          ) : (
-            <div
-              className="w-28 h-28 bg-[#CC9900] rounded-full flex items-center justify-center"
-              data-testid="div-avatar-placeholder"
-            >
-              <span className="text-black text-4xl font-semibold">{firstLetter}</span>
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      {/* Glass Card Container */}
+      <div className="w-full max-w-md">
+        <div 
+          className="relative rounded-3xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(204, 153, 0, 0.3)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255,255,255,0.1)'
+          }}
+        >
+          {/* Top gold line accent */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#CC9900] to-transparent" />
+          
+          <div className="p-8">
+            {/* Avatar */}
+            <div className="flex justify-center mb-6">
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={displayName}
+                  className="w-24 h-24 rounded-full object-cover ring-2 ring-[#CC9900]/50"
+                  data-testid="img-avatar"
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 bg-gradient-to-br from-[#CC9900] to-[#997700] rounded-full flex items-center justify-center"
+                  data-testid="div-avatar-placeholder"
+                >
+                  <span className="text-black text-3xl font-semibold">{firstLetter}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Nome */}
-        <div className="text-center mb-10">
-          <h1 className="text-white text-3xl font-semibold tracking-tight" data-testid="text-display-name">
-            {displayName}
-          </h1>
-          {profile.bio && (
-            <p className="text-white/50 mt-3 text-base" data-testid="text-bio">
-              {profile.bio}
-            </p>
-          )}
-        </div>
+            {/* Nome */}
+            <div className="text-center mb-8">
+              <h1 className="text-white text-2xl font-semibold" data-testid="text-display-name">
+                {displayName}
+              </h1>
+              {profile.bio && (
+                <p className="text-white/50 mt-2 text-sm" data-testid="text-bio">
+                  {profile.bio}
+                </p>
+              )}
+            </div>
 
-        {/* Codice Verifica */}
-        {links.length > 0 && (
-          <div className="mb-10">
-            <div className="border border-[#CC9900]/30 rounded-2xl p-6 bg-[#CC9900]/5">
-              <p className="text-white/60 text-sm text-center mb-4">
-                Il tuo codice di verifica TapTrust
-              </p>
-              
-              <div className="flex items-center justify-center gap-3">
-                <span 
-                  className="font-mono text-2xl font-bold text-[#CC9900] tracking-wider"
-                  data-testid="text-tt-code"
-                >
-                  {ttCode}
-                </span>
-                
-                <button
-                  onClick={async () => {
-                    const fullCode = formatCodeForCopy(ttCode);
-                    await navigator.clipboard.writeText(fullCode);
-                    setCopied(true);
-                    setPendingLinkId(null);
-                    setShowModal(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="w-10 h-10 bg-[#CC9900] hover:bg-[#b8860b] rounded-full flex items-center justify-center transition-colors"
-                  data-testid="button-copy-code"
-                >
-                  {copied ? (
-                    <Check className="w-5 h-5 text-black" />
-                  ) : (
-                    <Copy className="w-5 h-5 text-black" />
-                  )}
-                </button>
-              </div>
-              
-              <p className="text-white/40 text-xs text-center mt-4">
-                Incolla questo codice nella tua recensione
-              </p>
+            {/* Divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />
+
+            {/* Links */}
+            <div className="space-y-3">
+              {links.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-white/40" data-testid="text-no-links">
+                    Nessun link disponibile
+                  </p>
+                </div>
+              ) : (
+                links.map((link: any) => (
+                  <button
+                    key={link.id}
+                    onClick={(e) => handleLinkClick(e, link.id)}
+                    className="w-full py-4 px-5 rounded-xl transition-all duration-300 flex items-center justify-between group"
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(204, 153, 0, 0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(204, 153, 0, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                    }}
+                    data-testid={`link-${link.id}`}
+                  >
+                    <span className="text-white font-medium">
+                      {link.title}
+                    </span>
+                    <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-[#CC9900] transition-colors" />
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="text-center mt-8 pt-6 border-t border-white/10">
+              <button
+                onClick={() => setLocation("/")}
+                className="text-white/30 text-xs hover:text-[#CC9900] transition-colors"
+                data-testid="link-powered-by"
+              >
+                Powered by <span className="text-[#CC9900]">TapTrust</span>
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Links */}
-        <div className="space-y-3">
-          {links.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-white/40" data-testid="text-no-links">
-                Nessun link disponibile
-              </p>
-            </div>
-          ) : (
-            links.map((link: any) => (
-              <button
-                key={link.id}
-                onClick={(e) => handleLinkClick(e, link.id)}
-                className="w-full py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#CC9900]/50 rounded-xl transition-all duration-200 flex items-center justify-between group"
-                data-testid={`link-${link.id}`}
-              >
-                <span className="text-white font-medium">
-                  {link.title}
-                </span>
-                <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-[#CC9900] transition-colors" />
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-16">
-          <button
-            onClick={() => setLocation("/")}
-            className="text-white/20 text-xs hover:text-[#CC9900] transition-colors"
-            data-testid="link-powered-by"
-          >
-            Powered by <span className="text-[#CC9900]">TapTrust</span>
-          </button>
         </div>
       </div>
 
