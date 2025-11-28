@@ -49,7 +49,7 @@ function generateTTCode(): string {
 function formatCodeForCopy(code: string): string {
   const fancyLabel = toBold('TapTrust Verification Key:');
   const fancyCode = toFancyCode(code);
-  return `\n\n${fancyLabel} ${fancyCode}`;
+  return `\n${fancyLabel} ${fancyCode}`;
 }
 
 export default function PublicProfile() {
