@@ -15,13 +15,20 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
   useEffect(() => {
     if (isOpen) {
       const timer1 = setTimeout(() => setShowCheck(true), 300);
+      const timer2 = setTimeout(() => {
+        if (linkUrl) {
+          window.open(linkUrl, '_blank');
+        }
+        onClose();
+      }, 2500);
       return () => {
         clearTimeout(timer1);
+        clearTimeout(timer2);
       };
     } else {
       setShowCheck(false);
     }
-  }, [isOpen]);
+  }, [isOpen, linkUrl, onClose]);
 
   const handleGoToReview = () => {
     if (linkUrl) {
@@ -164,6 +171,15 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
                   >
                     Vai alla Recensione
                   </motion.button>
+                  
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-center text-white/40 text-xs mt-3"
+                  >
+                    Si aprirà automaticamente...
+                  </motion.p>
                 </div>
               </div>
             </div>
