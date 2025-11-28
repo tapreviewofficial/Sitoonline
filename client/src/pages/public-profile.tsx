@@ -1,10 +1,11 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check } from "lucide-react";
+import { CopySuccessModal } from "@/components/CopySuccessModal";
 
 // Mappa caratteri per stile Bold matematico (per il testo)
 const boldMap: Record<string, string> = {
@@ -44,11 +45,11 @@ function generateTTCode(): string {
   return `TT-${part1}-${part2}`;
 }
 
-// Formatta il codice per la copia con caratteri di lusso (con newline per andare a capo)
+// Formatta il codice per la copia con caratteri di lusso (con doppio newline per separazione)
 function formatCodeForCopy(code: string): string {
   const fancyLabel = toBold('TapTrust Verification Key:');
   const fancyCode = toFancyCode(code);
-  return `\n${fancyLabel} ${fancyCode}`;
+  return `\n\n${fancyLabel} ${fancyCode}`;
 }
 
 export default function PublicProfile() {
@@ -56,6 +57,8 @@ export default function PublicProfile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [pendingLinkId, setPendingLinkId] = useState<number | null>(null);
   
   // Genera il codice una sola volta per sessione
   const ttCode = useMemo(() => generateTTCode(), []);
@@ -69,7 +72,16 @@ export default function PublicProfile() {
     enabled: !!params.username,
   });
 
-  // Copia il codice e apre il link
+  // Chiudi modal e apri link
+  const handleCloseModal = useCallback(() => {
+    setShowModal(false);
+    if (pendingLinkId !== null) {
+      window.open(`/r/${params.username}/${pendingLinkId}?ttcode=${ttCode}`, '_blank');
+      setPendingLinkId(null);
+    }
+  }, [pendingLinkId, params.username, ttCode]);
+
+  // Copia il codice e mostra modal
   const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
     
@@ -78,22 +90,19 @@ export default function PublicProfile() {
       const fullCode = formatCodeForCopy(ttCode);
       await navigator.clipboard.writeText(fullCode);
       setCopied(true);
+      setPendingLinkId(linkId);
+      setShowModal(true);
       
-      toast({
-        title: "Codice copiato!",
-        description: `Incolla nella tua recensione`,
-      });
-      
-      // Reset stato dopo 3 secondi
+      // Reset stato copied dopo 3 secondi
       setTimeout(() => setCopied(false), 3000);
-      
-      // Apri il link con il codice per tracciamento (dopo breve delay per mostrare il toast)
-      setTimeout(() => {
-        window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
-      }, 800);
       
     } catch (err) {
       // Fallback se clipboard non funziona
+      toast({
+        title: "Errore",
+        description: "Non è stato possibile copiare il codice",
+        variant: "destructive",
+      });
       window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
     }
   };
@@ -193,7 +202,8 @@ export default function PublicProfile() {
                     const fullCode = formatCodeForCopy(ttCode);
                     await navigator.clipboard.writeText(fullCode);
                     setCopied(true);
-                    toast({ title: "Codice copiato!" });
+                    setPendingLinkId(null);
+                    setShowModal(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
                   className="p-2 bg-[#CC9900] hover:bg-[#CC9900]/80 rounded text-black transition-colors"
@@ -242,6 +252,13 @@ export default function PublicProfile() {
           </div>
         </div>
       </div>
+
+      {/* Modal di conferma copia */}
+      <CopySuccessModal 
+        isOpen={showModal} 
+        onClose={handleCloseModal} 
+        code={ttCode} 
+      />
     </div>
   );
 }
