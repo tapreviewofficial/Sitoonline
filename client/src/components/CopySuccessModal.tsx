@@ -6,23 +6,29 @@ interface CopySuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   code: string;
+  linkUrl?: string;
 }
 
-export function CopySuccessModal({ isOpen, onClose, code }: CopySuccessModalProps) {
+export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccessModalProps) {
   const [showCheck, setShowCheck] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const timer1 = setTimeout(() => setShowCheck(true), 300);
-      const timer2 = setTimeout(() => onClose(), 3000);
       return () => {
         clearTimeout(timer1);
-        clearTimeout(timer2);
       };
     } else {
       setShowCheck(false);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]);
+
+  const handleGoToReview = () => {
+    if (linkUrl) {
+      window.open(linkUrl, '_blank');
+    }
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -149,14 +155,15 @@ export function CopySuccessModal({ isOpen, onClose, code }: CopySuccessModalProp
                     </p>
                   </motion.div>
 
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="text-center text-white/30 text-xs mt-4"
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    onClick={handleGoToReview}
+                    className="w-full mt-4 py-3 px-6 bg-gradient-to-r from-[#CC9900] to-[#997700] text-black font-bold rounded-xl shadow-lg shadow-[#CC9900]/30 hover:shadow-[#CC9900]/50 transition-all duration-300"
                   >
-                    Si chiuderà automaticamente...
-                  </motion.p>
+                    Vai alla Recensione
+                  </motion.button>
                 </div>
               </div>
             </div>

@@ -36,15 +36,18 @@ export default function PublicProfile() {
     enabled: !!params.username,
   });
 
+  const [pendingLinkUrl, setPendingLinkUrl] = useState<string | null>(null);
+
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
+    setPendingLinkUrl(null);
   }, []);
 
   const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
     
-    // Apri il link SUBITO (prima di tutto) per evitare blocco popup
-    window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
+    const linkUrl = `/r/${params.username}/${linkId}?ttcode=${ttCode}`;
+    setPendingLinkUrl(linkUrl);
     
     try {
       const fullCode = formatCodeForCopy(ttCode);
@@ -53,7 +56,8 @@ export default function PublicProfile() {
       setShowModal(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
-      // Clipboard fallito ma il link è già aperto
+      // Se clipboard fallisce, apri direttamente
+      window.open(linkUrl, '_blank');
     }
   };
 
@@ -197,7 +201,8 @@ export default function PublicProfile() {
       <CopySuccessModal 
         isOpen={showModal} 
         onClose={handleCloseModal} 
-        code={ttCode} 
+        code={ttCode}
+        linkUrl={pendingLinkUrl || undefined}
       />
     </div>
   );
