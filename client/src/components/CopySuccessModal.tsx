@@ -17,7 +17,7 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
       const timer1 = setTimeout(() => setShowCheck(true), 300);
       const timer2 = setTimeout(() => {
         onClose();
-      }, 3000);
+      }, 5000);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);

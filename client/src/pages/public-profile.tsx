@@ -52,10 +52,10 @@ export default function PublicProfile() {
     // 1) Popup SUBITO
     setShowModal(true);
     
-    // 2) Link dopo 3 secondi (parte contemporaneamente al popup)
+    // 2) Link dopo 5 secondi (parte contemporaneamente al popup)
     setTimeout(() => {
       window.open(linkUrl, '_blank');
-    }, 3000);
+    }, 5000);
     
     // Copia negli appunti
     try {
