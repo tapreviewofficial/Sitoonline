@@ -14,13 +14,13 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
 
   useEffect(() => {
     if (isOpen) {
-      const timer1 = setTimeout(() => setShowCheck(true), 300);
+      const timer1 = setTimeout(() => setShowCheck(true), 200);
       const timer2 = setTimeout(() => {
         if (linkUrl) {
           window.open(linkUrl, '_blank');
         }
         onClose();
-      }, 2500);
+      }, 800);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
@@ -162,24 +162,6 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
                     </p>
                   </motion.div>
 
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    onClick={handleGoToReview}
-                    className="w-full mt-4 py-3 px-6 bg-gradient-to-r from-[#CC9900] to-[#997700] text-black font-bold rounded-xl shadow-lg shadow-[#CC9900]/30 hover:shadow-[#CC9900]/50 transition-all duration-300"
-                  >
-                    Vai alla Recensione
-                  </motion.button>
-                  
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="text-center text-white/40 text-xs mt-3"
-                  >
-                    Si aprirà automaticamente...
-                  </motion.p>
                 </div>
               </div>
             </div>
