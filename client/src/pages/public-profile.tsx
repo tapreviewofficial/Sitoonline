@@ -38,29 +38,22 @@ export default function PublicProfile() {
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
-    if (pendingLinkId !== null) {
-      window.open(`/r/${params.username}/${pendingLinkId}?ttcode=${ttCode}`, '_blank');
-      setPendingLinkId(null);
-    }
-  }, [pendingLinkId, params.username, ttCode]);
+  }, []);
 
   const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
+    
+    // Apri il link SUBITO (prima di tutto) per evitare blocco popup
+    window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
     
     try {
       const fullCode = formatCodeForCopy(ttCode);
       await navigator.clipboard.writeText(fullCode);
       setCopied(true);
-      setPendingLinkId(linkId);
       setShowModal(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
-      toast({
-        title: "Errore",
-        description: "Non è stato possibile copiare il codice",
-        variant: "destructive",
-      });
-      window.open(`/r/${params.username}/${linkId}?ttcode=${ttCode}`, '_blank');
+      // Clipboard fallito ma il link è già aperto
     }
   };
 
