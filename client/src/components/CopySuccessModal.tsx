@@ -118,6 +118,9 @@ export function CopySuccessModal({ isOpen, onClose, code }: CopySuccessModalProp
                     <h3 className="text-xl font-bold text-white mb-2">
                       Codice Copiato!
                     </h3>
+                    <p className="text-white/70 text-sm mb-3">
+                      Includi il Codice Univoco per inviare una Recensione Certificata
+                    </p>
                     <p className="text-[#CC9900] font-mono text-lg font-bold mb-4">
                       {code}
                     </p>
