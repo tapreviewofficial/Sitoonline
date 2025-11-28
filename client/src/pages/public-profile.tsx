@@ -49,15 +49,22 @@ export default function PublicProfile() {
     const linkUrl = `/r/${params.username}/${linkId}?ttcode=${ttCode}`;
     setPendingLinkUrl(linkUrl);
     
+    // 1) Popup SUBITO
+    setShowModal(true);
+    
+    // 2) Link dopo 3 secondi (parte contemporaneamente al popup)
+    setTimeout(() => {
+      window.open(linkUrl, '_blank');
+    }, 3000);
+    
+    // Copia negli appunti
     try {
       const fullCode = formatCodeForCopy(ttCode);
       await navigator.clipboard.writeText(fullCode);
       setCopied(true);
-      setShowModal(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
-      // Se clipboard fallisce, apri direttamente
-      window.open(linkUrl, '_blank');
+      // Clipboard fallito, ignora
     }
   };
 

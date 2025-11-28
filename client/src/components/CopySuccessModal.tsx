@@ -14,13 +14,10 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
 
   useEffect(() => {
     if (isOpen) {
-      const timer1 = setTimeout(() => setShowCheck(true), 200);
+      const timer1 = setTimeout(() => setShowCheck(true), 300);
       const timer2 = setTimeout(() => {
-        if (linkUrl) {
-          window.open(linkUrl, '_blank');
-        }
         onClose();
-      }, 800);
+      }, 3000);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
@@ -28,14 +25,7 @@ export function CopySuccessModal({ isOpen, onClose, code, linkUrl }: CopySuccess
     } else {
       setShowCheck(false);
     }
-  }, [isOpen, linkUrl, onClose]);
-
-  const handleGoToReview = () => {
-    if (linkUrl) {
-      window.open(linkUrl, '_blank');
-    }
-    onClose();
-  };
+  }, [isOpen, onClose]);
 
   return (
     <AnimatePresence>
