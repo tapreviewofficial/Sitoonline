@@ -52,17 +52,6 @@ function formatCodeForCopy(code: string): string {
   return `\n${fancyLabel} ${fancyCode}`;
 }
 
-// Icona piattaforma
-function getPlatformIcon(title: string) {
-  const lower = title.toLowerCase();
-  if (lower.includes('google')) return '🔍';
-  if (lower.includes('tripadvisor')) return '🦉';
-  if (lower.includes('facebook')) return '📘';
-  if (lower.includes('yelp')) return '⭐';
-  if (lower.includes('trustpilot')) return '💚';
-  return '⭐';
-}
-
 export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
@@ -352,7 +341,6 @@ export default function PublicProfile() {
                         className="w-full p-4 bg-gradient-to-r from-[#1a1a1a] to-[#151515] hover:from-[#1f1f1f] hover:to-[#1a1a1a] rounded-xl border border-white/10 hover:border-[#CC9900]/40 transition-all duration-300 flex items-center gap-4 group"
                         data-testid={`link-${link.id}`}
                       >
-                        <span className="text-2xl">{getPlatformIcon(link.title)}</span>
                         <span className="flex-1 text-left font-medium text-white/90 group-hover:text-white">
                           {link.title}
                         </span>
