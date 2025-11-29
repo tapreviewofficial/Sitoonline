@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check, ChevronRight } from "lucide-react";
@@ -21,9 +21,7 @@ export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [pendingLinkId, setPendingLinkId] = useState<number | null>(null);
   
   const ttCode = useMemo(() => generateTTCode(), []);
   
@@ -36,37 +34,37 @@ export default function PublicProfile() {
     enabled: !!params.username,
   });
 
-  const [pendingLinkUrl, setPendingLinkUrl] = useState<string | null>(null);
+  const hasShownPopup = useRef(false);
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
-    setPendingLinkUrl(null);
   }, []);
 
-  const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
-    e.preventDefault();
-    
-    const linkUrl = `/r/${params.username}/${linkId}?ttcode=${ttCode}`;
-    setPendingLinkUrl(linkUrl);
-    
-    // Copia negli appunti
-    try {
+  // Popup si apre automaticamente quando la pagina carica
+  useEffect(() => {
+    if (data?.profile && !hasShownPopup.current) {
+      hasShownPopup.current = true;
+      
+      // Copia codice negli appunti
       const fullCode = formatCodeForCopy(ttCode);
-      await navigator.clipboard.writeText(fullCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    } catch (err) {
-      // Clipboard fallito, ignora
+      navigator.clipboard.writeText(fullCode).catch(() => {});
+      
+      // Mostra popup
+      setShowModal(true);
+      
+      // Chiudi popup dopo 3 secondi
+      const timer = setTimeout(() => {
+        setShowModal(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
-    
-    // 1) Popup SUBITO
-    setShowModal(true);
-    
-    // 2) Dopo 3 secondi: chiudi popup e apri link
-    setTimeout(() => {
-      setShowModal(false);
-      window.open(linkUrl, '_blank');
-    }, 3000);
+  }, [data?.profile, ttCode]);
+
+  const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
+    e.preventDefault();
+    const linkUrl = `/r/${params.username}/${linkId}?ttcode=${ttCode}`;
+    window.open(linkUrl, '_blank');
   };
 
   if (isLoading) {
@@ -210,7 +208,6 @@ export default function PublicProfile() {
         isOpen={showModal} 
         onClose={handleCloseModal} 
         code={ttCode}
-        linkUrl={pendingLinkUrl || undefined}
       />
     </div>
   );
