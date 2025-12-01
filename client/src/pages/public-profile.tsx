@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import { CopySuccessModal } from "@/components/CopySuccessModal";
@@ -13,6 +13,7 @@ export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
+  const hasShownPopup = useRef(false);
   
   const { data, isLoading, error } = useQuery<{
     profile: { displayName?: string; bio?: string; avatarUrl?: string; accentColor?: string };
@@ -30,26 +31,31 @@ export default function PublicProfile() {
     setShowModal(false);
   }, []);
 
-  const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
-    e.preventDefault();
-    
-    // Copia codice negli appunti (funziona perché c'è interazione utente)
-    const fullCode = formatCodeForCopy(reviewCode);
-    try {
-      await navigator.clipboard.writeText(fullCode);
-    } catch (err) {
-      console.error('Copy failed:', err);
+  // Popup si apre automaticamente quando la pagina carica
+  useEffect(() => {
+    if (data?.profile && reviewCode && !hasShownPopup.current) {
+      hasShownPopup.current = true;
+      
+      // Tenta copia codice negli appunti
+      const fullCode = formatCodeForCopy(reviewCode);
+      navigator.clipboard.writeText(fullCode).catch(() => {});
+      
+      // Mostra popup
+      setShowModal(true);
+      
+      // Chiudi popup dopo 3.8 secondi
+      const timer = setTimeout(() => {
+        setShowModal(false);
+      }, 3800);
+      
+      return () => clearTimeout(timer);
     }
-    
-    // Mostra popup
-    setShowModal(true);
-    
-    // Apri il link dopo 3 secondi e chiudi popup
+  }, [data?.profile, reviewCode]);
+
+  const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
+    e.preventDefault();
     const linkUrl = `/r/${params.username}/${linkId}?ttcode=${reviewCode}`;
-    setTimeout(() => {
-      setShowModal(false);
-      window.open(linkUrl, '_blank');
-    }, 3000);
+    window.open(linkUrl, '_blank');
   };
 
   if (isLoading) {
