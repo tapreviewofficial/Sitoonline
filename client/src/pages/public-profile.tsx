@@ -1,8 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { ChevronRight } from "lucide-react";
 import { CopySuccessModal } from "@/components/CopySuccessModal";
 
@@ -13,7 +12,6 @@ function formatCodeForCopy(code: string): string {
 export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   
   const { data, isLoading, error } = useQuery<{
@@ -26,38 +24,32 @@ export default function PublicProfile() {
     enabled: !!params.username,
   });
 
-  const hasShownPopup = useRef(false);
   const reviewCode = data?.reviewCode || '';
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
   }, []);
 
-  // Popup si apre automaticamente quando la pagina carica
-  useEffect(() => {
-    if (data?.profile && reviewCode && !hasShownPopup.current) {
-      hasShownPopup.current = true;
-      
-      // Copia codice negli appunti
-      const fullCode = formatCodeForCopy(reviewCode);
-      navigator.clipboard.writeText(fullCode).catch(() => {});
-      
-      // Mostra popup
-      setShowModal(true);
-      
-      // Chiudi popup dopo 3 secondi
-      const timer = setTimeout(() => {
-        setShowModal(false);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [data?.profile, reviewCode]);
-
-  const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
+  const handleLinkClick = async (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
+    
+    // Copia codice negli appunti (funziona perché c'è interazione utente)
+    const fullCode = formatCodeForCopy(reviewCode);
+    try {
+      await navigator.clipboard.writeText(fullCode);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+    
+    // Mostra popup
+    setShowModal(true);
+    
+    // Apri il link dopo 3 secondi e chiudi popup
     const linkUrl = `/r/${params.username}/${linkId}?ttcode=${reviewCode}`;
-    window.open(linkUrl, '_blank');
+    setTimeout(() => {
+      setShowModal(false);
+      window.open(linkUrl, '_blank');
+    }, 3000);
   };
 
   if (isLoading) {
