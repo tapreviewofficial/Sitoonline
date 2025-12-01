@@ -14,7 +14,7 @@ function generateTTCode(): string {
 }
 
 function formatCodeForCopy(code: string): string {
-  return `\nTapTrust Verification Key: ${code}`;
+  return `\nVerified Visit™ – Recensione Autentica — by TapTrust • ${code}`;
 }
 
 export default function PublicProfile() {

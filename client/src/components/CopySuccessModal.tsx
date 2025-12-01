@@ -13,7 +13,7 @@ export function CopySuccessModal({ isOpen, onClose, code }: CopySuccessModalProp
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(`\nTapTrust Verification Key: ${code}`);
+      await navigator.clipboard.writeText(`\nVerified Visit™ – Recensione Autentica — by TapTrust • ${code}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
