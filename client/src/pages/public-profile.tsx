@@ -1,20 +1,13 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Check, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { CopySuccessModal } from "@/components/CopySuccessModal";
 
-function generateTTCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const part2 = Array.from({ length: 2 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `TT-${part1}-${part2}`;
-}
-
 function formatCodeForCopy(code: string): string {
-  return `\nVERIFIED VISIT – Recensione Autentica — by TapTrust • ${code}`;
+  return `\n\n𝗩𝗘𝗥𝗜𝗙𝗜𝗘𝗗 𝗩𝗜𝗦𝗜𝗧 – Recensione Autentica — by TapTrust • ${code}`;
 }
 
 export default function PublicProfile() {
@@ -23,18 +16,18 @@ export default function PublicProfile() {
   const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   
-  const ttCode = useMemo(() => generateTTCode(), []);
-  
   const { data, isLoading, error } = useQuery<{
     profile: { displayName?: string; bio?: string; avatarUrl?: string; accentColor?: string };
     user: { username: string };
     links: Array<{ id: number; title: string; url: string }>;
+    reviewCode: string | null;
   }>({
     queryKey: ["/api/public", params.username],
     enabled: !!params.username,
   });
 
   const hasShownPopup = useRef(false);
+  const reviewCode = data?.reviewCode || '';
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
@@ -42,11 +35,11 @@ export default function PublicProfile() {
 
   // Popup si apre automaticamente quando la pagina carica
   useEffect(() => {
-    if (data?.profile && !hasShownPopup.current) {
+    if (data?.profile && reviewCode && !hasShownPopup.current) {
       hasShownPopup.current = true;
       
       // Copia codice negli appunti
-      const fullCode = formatCodeForCopy(ttCode);
+      const fullCode = formatCodeForCopy(reviewCode);
       navigator.clipboard.writeText(fullCode).catch(() => {});
       
       // Mostra popup
@@ -59,11 +52,11 @@ export default function PublicProfile() {
       
       return () => clearTimeout(timer);
     }
-  }, [data?.profile, ttCode]);
+  }, [data?.profile, reviewCode]);
 
   const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
-    const linkUrl = `/r/${params.username}/${linkId}?ttcode=${ttCode}`;
+    const linkUrl = `/r/${params.username}/${linkId}?ttcode=${reviewCode}`;
     window.open(linkUrl, '_blank');
   };
 
@@ -207,7 +200,7 @@ export default function PublicProfile() {
       <CopySuccessModal 
         isOpen={showModal} 
         onClose={handleCloseModal} 
-        code={ttCode}
+        code={reviewCode}
       />
     </div>
   );
