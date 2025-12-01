@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, gte, count, sql } from 'drizzle-orm';
 import { getDatabase } from './db.js';
-import { users, profiles, links, clicks, passwordResets, promotionalContacts } from '../../shared/schema.js';
-import type { User, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact } from "../../shared/schema.js";
+import { users, profiles, links, clicks, passwordResets, promotionalContacts, reviewCodes } from '../../shared/schema.js';
+import type { User, InsertUserDb, Profile, InsertProfile, Link, InsertLink, Click, InsertClick, PasswordReset, InsertPasswordReset, PromotionalContact, InsertPromotionalContact, ReviewCode, InsertReviewCode } from "../../shared/schema.js";
 
 export class Storage {
   // User methods
@@ -405,6 +405,13 @@ export class Storage {
       .orderBy(desc(promotionalContacts.createdAt));
     
     return result as PromotionalContact[];
+  }
+
+  // Review code methods
+  async createReviewCode(data: InsertReviewCode): Promise<ReviewCode> {
+    const db = getDatabase();
+    const result = await db.insert(reviewCodes).values(data).returning();
+    return result[0] as ReviewCode;
   }
 }
 

@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const links = await storage.getLinksByUsername(username);
       
       // Generate and save unique verification code
-      let reviewCode = null;
+      let reviewCode: { code: string } | null = null;
       let attempts = 0;
       const maxAttempts = 5;
       
