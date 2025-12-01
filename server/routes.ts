@@ -295,6 +295,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate unique TT code
+  function generateUniqueTTCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const part2 = Array.from({ length: 2 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `TT-${part1}-${part2}`;
+  }
+
   // Public routes
   app.get("/api/public/:username", async (req, res) => {
     try {
@@ -310,6 +318,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
+      // Generate and save unique verification code
+      let reviewCode = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!reviewCode && attempts < maxAttempts) {
+        try {
+          const code = generateUniqueTTCode();
+          reviewCode = await storage.createReviewCode({
+            code,
+            userId: user.id,
+            platform: 'public_page',
+          });
+        } catch (err: any) {
+          // If duplicate, retry with new code
+          if (err.code === '23505' || err.message?.includes('duplicate')) {
+            attempts++;
+            continue;
+          }
+          throw err;
+        }
+      }
+      
       res.json({
         profile: {
           displayName: profile?.displayName || user.username,
@@ -321,6 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: user.username,
         },
         links,
+        reviewCode: reviewCode?.code || null,
       });
     } catch (error) {
       console.error("Get public profile error:", error);
