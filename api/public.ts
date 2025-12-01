@@ -11,6 +11,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let pathname = url.pathname.replace('/api/public', '');
   if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');
 
+  // Generate unique TT code
+  function generateUniqueTTCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const part2 = Array.from({ length: 2 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `TT-${part1}-${part2}`;
+  }
+
   // /api/public/:username - GET (profilo pubblico)
   const usernameMatch = pathname.match(/^\/([^/]+)$/);
   if (usernameMatch && req.method === 'GET') {
@@ -25,7 +33,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      // Generate and save unique verification code
+      let reviewCode = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!reviewCode && attempts < maxAttempts) {
+        try {
+          const code = generateUniqueTTCode();
+          reviewCode = await storage.createReviewCode({
+            code,
+            userId: user.id,
+            platform: 'public_page',
+          });
+        } catch (err: any) {
+          if (err.code === '23505' || err.message?.includes('duplicate')) {
+            attempts++;
+            continue;
+          }
+          throw err;
+        }
+      }
+      
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.json({
         profile: {
           displayName: profile?.displayName || user.username,
@@ -37,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           username: user.username,
         },
         links,
+        reviewCode: reviewCode?.code || null,
       });
     } catch (error) {
       console.error('Get public profile error:', error);
