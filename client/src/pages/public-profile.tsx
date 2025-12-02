@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Copy, Check } from "lucide-react";
 import { CopySuccessModal } from "@/components/CopySuccessModal";
 
 function formatCodeForCopy(code: string): string {
@@ -13,6 +13,7 @@ export default function PublicProfile() {
   const params = useParams() as { username: string };
   const [, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
+  const [copied, setCopied] = useState(false);
   const hasShownPopup = useRef(false);
   
   const { data, isLoading, error } = useQuery<{
@@ -56,6 +57,17 @@ export default function PublicProfile() {
     e.preventDefault();
     const linkUrl = `/r/${params.username}/${linkId}?ttcode=${reviewCode}`;
     window.open(linkUrl, '_blank');
+  };
+
+  const handleCopyCode = async () => {
+    const fullCode = formatCodeForCopy(reviewCode);
+    try {
+      await navigator.clipboard.writeText(fullCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
   };
 
   if (isLoading) {
@@ -180,6 +192,22 @@ export default function PublicProfile() {
                 ))
               )}
             </div>
+
+            {/* Codice verifica - piccolo e discreto */}
+            {reviewCode && (
+              <button
+                onClick={handleCopyCode}
+                className="mt-6 mx-auto flex items-center gap-2 text-white/30 hover:text-[#CC9900] transition-colors text-xs"
+                data-testid="button-copy-code"
+              >
+                <span className="font-mono">{reviewCode}</span>
+                {copied ? (
+                  <Check className="w-3 h-3 text-green-500" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            )}
 
             {/* Footer */}
             <div className="text-center mt-8 pt-6 border-t border-white/10">
