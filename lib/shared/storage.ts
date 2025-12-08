@@ -413,6 +413,17 @@ export class Storage {
     const result = await db.insert(reviewCodes).values(data).returning();
     return result[0] as ReviewCode;
   }
+
+  async getReviewCodes(userId: number): Promise<ReviewCode[]> {
+    const db = getDatabase();
+    const result = await db
+      .select()
+      .from(reviewCodes)
+      .where(eq(reviewCodes.userId, userId))
+      .orderBy(desc(reviewCodes.createdAt));
+    
+    return result as ReviewCode[];
+  }
 }
 
 // Export singleton instance

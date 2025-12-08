@@ -112,5 +112,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // /api/review-codes - GET
+  if (pathname === '/review-codes' && req.method === 'GET') {
+    try {
+      const codes = await storage.getReviewCodes(user.userId);
+      res.json(codes);
+    } catch (error) {
+      console.error('Get review codes error:', error);
+      res.status(500).json({ message: 'Failed to fetch review codes' });
+    }
+    return;
+  }
+
   res.status(404).json({ message: 'Not found' });
 }

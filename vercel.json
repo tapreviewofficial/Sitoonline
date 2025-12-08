@@ -84,6 +84,10 @@
       "destination": "/api/user"
     },
     {
+      "source": "/api/review-codes",
+      "destination": "/api/user"
+    },
+    {
       "source": "/api/r/:path*",
       "destination": "/api/other"
     },
