@@ -15,8 +15,6 @@ import ChiSiamo from "@/pages/chi-siamo";
 import Privacy from "@/pages/privacy";
 import Contatti from "@/pages/contatti";
 import Termini from "@/pages/termini";
-import TapTrustHub from "@/pages/taptrust";
-import Manifesto from "@/pages/manifesto";
 
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Admin = lazy(() => import("@/pages/admin"));
@@ -58,8 +56,6 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/contatti" component={Contatti} />
         <Route path="/termini" component={Termini} />
-        <Route path="/taptrust" component={TapTrustHub} />
-        <Route path="/manifesto" component={Manifesto} />
         <Route path="/force-change-password" component={ForceChangePassword} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/admin" component={Admin} />
