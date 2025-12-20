@@ -148,6 +148,7 @@ export const reviewCodes = pgTable("review_codes", {
   linkId: integer("link_id").references(() => links.id, { onDelete: "set null" }), // Link cliccato (Google, Trip, ecc)
   platform: varchar("platform", { length: 50 }), // google, tripadvisor, ecc
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at"), // Scadenza codice (12h dopo creazione)
   clickedAt: timestamp("clicked_at"), // Quando ha cliccato il link
   userAgent: text("user_agent"),
   ipHash: text("ip_hash"),
