@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://taptrust.it/sitemap.xml
+
+# TapTrust - Infrastruttura Europea per Recensioni Verificate NFC
