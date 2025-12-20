@@ -19,6 +19,11 @@ export function Header() {
               Home
             </Button>
           </Link>
+          <Link href="/taptrust" className="hidden md:block" data-testid="link-taptrust-nav">
+            <Button variant="ghost" className={location === "/taptrust" ? "text-gold" : "text-muted-foreground hover:text-foreground"}>
+              Cos'è TapTrust
+            </Button>
+          </Link>
           <Link href="/login" data-testid="link-login">
             <Button className="btn-gold">Accedi</Button>
           </Link>
