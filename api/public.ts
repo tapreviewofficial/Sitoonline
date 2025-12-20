@@ -41,13 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       while (!reviewCode && attempts < maxAttempts) {
         try {
           const code = generateUniqueTTCode();
-          const now = new Date();
-          const expiresAt = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12 hours
           reviewCode = await storage.createReviewCode({
             code,
             userId: user.id,
             platform: 'public_page',
-            expiresAt,
           });
         } catch (err: any) {
           if (err.code === '23505' || err.message?.includes('duplicate')) {
