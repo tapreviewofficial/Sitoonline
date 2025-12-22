@@ -407,19 +407,24 @@ export class Storage {
     return result as PromotionalContact[];
   }
 
-  // Review code methods
-  async createReviewCode(data: InsertReviewCode): Promise<ReviewCode> {
+  // Review code methods (struttura semplificata)
+  async createReviewCode(data: { code: string; username: string; expiresAt?: Date }): Promise<{ code: string; expiresAt: Date | null }> {
     const db = getDatabase();
-    const result = await db.insert(reviewCodes).values(data).returning();
-    return result[0] as ReviewCode;
+    const result = await db.insert(reviewCodes).values({
+      code: data.code,
+      username: data.username,
+      used: false,
+      expiresAt: data.expiresAt || null
+    }).returning();
+    return { code: result[0].code, expiresAt: result[0].expiresAt };
   }
 
-  async getReviewCodes(userId: number): Promise<ReviewCode[]> {
+  async getReviewCodesByUsername(username: string): Promise<ReviewCode[]> {
     const db = getDatabase();
     const result = await db
       .select()
       .from(reviewCodes)
-      .where(eq(reviewCodes.userId, userId))
+      .where(eq(reviewCodes.username, username))
       .orderBy(desc(reviewCodes.createdAt));
     
     return result as ReviewCode[];

@@ -412,21 +412,26 @@ export class SupabaseStorage implements IStorage {
     return result as PromotionalContact[];
   }
 
-  // Review codes methods
-  async createReviewCode(code: InsertReviewCode): Promise<ReviewCode> {
+  // Review codes methods (struttura semplificata)
+  async createReviewCode(data: { code: string; username: string; expiresAt?: Date }): Promise<{ code: string; expiresAt: Date | null }> {
     const result = await db
       .insert(reviewCodes)
-      .values(code)
+      .values({
+        code: data.code,
+        username: data.username,
+        used: false,
+        expiresAt: data.expiresAt || null
+      })
       .returning();
     
-    return result[0] as ReviewCode;
+    return { code: result[0].code, expiresAt: result[0].expiresAt };
   }
 
-  async getReviewCodes(userId: number): Promise<ReviewCode[]> {
+  async getReviewCodesByUsername(username: string): Promise<ReviewCode[]> {
     const result = await db
       .select()
       .from(reviewCodes)
-      .where(eq(reviewCodes.userId, userId))
+      .where(eq(reviewCodes.username, username))
       .orderBy(desc(reviewCodes.createdAt));
     
     return result as ReviewCode[];

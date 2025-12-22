@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const links = await storage.getLinksByUsername(username);
       
       // Generate and save unique verification code ONLY if tap=1 (NFC tap)
-      let reviewCode: { code: string; expiresAt?: Date | null } | null = null;
+      let reviewCode: { code: string; expiresAt: Date | null } | null = null;
       
       if (isTap) {
         let attempts = 0;
@@ -48,8 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
             reviewCode = await storage.createReviewCode({
               code,
-              userId: user.id,
-              platform: 'public_page',
+              username,
               expiresAt,
             });
           } catch (err: any) {

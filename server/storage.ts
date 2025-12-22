@@ -50,9 +50,9 @@ export interface IStorage {
   getPromotionalContacts(userId: number): Promise<PromotionalContact[]>;
   getAllPromotionalContacts(): Promise<PromotionalContact[]>;
 
-  // Review codes methods
-  createReviewCode(code: InsertReviewCode): Promise<ReviewCode>;
-  getReviewCodes(userId: number): Promise<ReviewCode[]>;
+  // Review codes methods (struttura semplificata)
+  createReviewCode(data: { code: string; username: string; expiresAt?: Date }): Promise<{ code: string; expiresAt: Date | null }>;
+  getReviewCodesByUsername(username: string): Promise<ReviewCode[]>;
 }
 
 // Ora usiamo Supabase invece di Prisma

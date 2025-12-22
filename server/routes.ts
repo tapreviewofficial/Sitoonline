@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const links = await storage.getLinksByUsername(username);
       
       // Generate and save unique verification code ONLY if tap=1 (NFC tap)
-      let reviewCode: { code: string; expiresAt?: Date | null } | null = null;
+      let reviewCode: { code: string; expiresAt: Date | null } | null = null;
       
       if (isTap) {
         let attempts = 0;
@@ -333,8 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
             reviewCode = await storage.createReviewCode({
               code,
-              userId: user.id,
-              platform: 'public_page',
+              username,
               expiresAt,
             });
           } catch (err: any) {
@@ -427,31 +426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment click counter
       await storage.incrementLinkClicks(linkIdNum);
 
-      // Se c'è un codice TapTrust, salvalo per tracciamento recensioni
+      // Log del codice TapTrust per tracciamento (non salviamo su DB per struttura semplificata)
       if (ttcode && ttcode.startsWith('TT-')) {
-        // Determina la piattaforma dal URL del link
-        let platform = 'other';
-        const linkUrl = link.url.toLowerCase();
-        if (linkUrl.includes('google')) platform = 'google';
-        else if (linkUrl.includes('tripadvisor')) platform = 'tripadvisor';
-        else if (linkUrl.includes('facebook')) platform = 'facebook';
-        else if (linkUrl.includes('yelp')) platform = 'yelp';
-
-        try {
-          await storage.createReviewCode({
-            code: ttcode,
-            userId: user.id,
-            linkId: linkIdNum,
-            platform,
-            clickedAt: new Date(),
-            userAgent,
-            ipHash,
-          });
-          console.log(`✅ Review code tracked: ${ttcode} for ${platform}`);
-        } catch (err) {
-          // Ignora errori di duplicato
-          console.log(`Review code ${ttcode} already exists or error`);
-        }
+        console.log(`✅ Review code used: ${ttcode} for link ${linkIdNum}`);
       }
 
       // Redirect to actual URL
@@ -655,8 +632,12 @@ TapTrust - Sistema Email Attivo`
   // Endpoint per i codici di verifica recensioni
   app.get("/api/review-codes", requireAuth, async (req, res) => {
     try {
-      const userId = (req as any).user.userId;
-      const codes = await storage.getReviewCodes(userId);
+      const user = (req as any).user;
+      const fullUser = await storage.getUserById(user.userId);
+      if (!fullUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      const codes = await storage.getReviewCodesByUsername(fullUser.username);
       res.json(codes);
     } catch (error) {
       console.error("Errore recupero codici verifica:", error);

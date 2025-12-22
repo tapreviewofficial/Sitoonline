@@ -140,22 +140,15 @@ export const promoEmails = pgTable("promo_emails", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Codici tracciabili per recensioni
+// Codici tracciabili per recensioni (struttura semplificata)
 export const reviewCodes = pgTable("review_codes", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 20 }).notNull().unique(), // es. TT-XXXX-XX
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Il ristorante
-  linkId: integer("link_id").references(() => links.id, { onDelete: "set null" }), // Link cliccato (Google, Trip, ecc)
-  platform: varchar("platform", { length: 50 }), // google, tripadvisor, ecc
+  username: varchar("username", { length: 255 }).notNull(), // Username del profilo
+  used: boolean("used").default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   expiresAt: timestamp("expires_at"), // Scadenza codice (24h dopo creazione da tap NFC)
-  clickedAt: timestamp("clicked_at"), // Quando ha cliccato il link
-  userAgent: text("user_agent"),
-  ipHash: text("ip_hash"),
-}, (table) => ({
-  userIdIdx: index("review_codes_user_id_idx").on(table.userId),
-  codeIdx: index("review_codes_code_idx").on(table.code),
-}));
+});
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
