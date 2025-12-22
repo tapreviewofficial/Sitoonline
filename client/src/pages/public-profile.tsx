@@ -1,12 +1,41 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Copy, Check } from "lucide-react";
+import { ChevronRight, Copy, Check, AlertTriangle } from "lucide-react";
 import { CopySuccessModal } from "@/components/CopySuccessModal";
 
 function formatCodeForCopy(code: string): string {
   return `\n\n𝗩𝗘𝗥𝗜𝗙𝗜𝗘𝗗 𝗩𝗜𝗦𝗜𝗧 – Recensione Autentica — by TapTrust • ${code}`;
+}
+
+// LocalStorage key per salvare codice e scadenza
+const STORAGE_KEY = 'taptrust_review_code';
+
+interface StoredCode {
+  code: string;
+  expiresAt: string;
+  username: string;
+}
+
+function getStoredCode(username: string): StoredCode | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    const parsed: StoredCode = JSON.parse(stored);
+    if (parsed.username !== username) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveCode(username: string, code: string, expiresAt: string) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ code, expiresAt, username }));
+}
+
+function isCodeExpired(expiresAt: string): boolean {
+  return new Date(expiresAt) < new Date();
 }
 
 export default function PublicProfile() {
@@ -16,42 +45,79 @@ export default function PublicProfile() {
   const [copied, setCopied] = useState(false);
   const hasShownPopup = useRef(false);
   
+  // Check if this is a tap (NFC) visit
+  const isTap = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('tap') === '1';
+  }, []);
+  
+  // Get stored code from localStorage
+  const storedCode = useMemo(() => getStoredCode(params.username), [params.username]);
+  const storedCodeValid = storedCode && !isCodeExpired(storedCode.expiresAt);
+  
+  // Only call API with ?tap=1 if it's a tap visit
   const { data, isLoading, error } = useQuery<{
     profile: { displayName?: string; bio?: string; avatarUrl?: string; accentColor?: string };
     user: { username: string };
     links: Array<{ id: number; title: string; url: string }>;
     reviewCode: string | null;
+    expiresAt: string | null;
+    isTap: boolean;
   }>({
-    queryKey: ["/api/public", params.username],
+    queryKey: ["/api/public", params.username, isTap ? 'tap' : 'view'],
+    queryFn: async () => {
+      const url = isTap 
+        ? `/api/public/${params.username}?tap=1`
+        : `/api/public/${params.username}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
     enabled: !!params.username,
   });
 
-  const reviewCode = data?.reviewCode || '';
+  // Determine which code to show
+  const reviewCode = useMemo(() => {
+    // If API returned a new code (from tap), save it and use it
+    if (data?.reviewCode && data?.expiresAt) {
+      saveCode(params.username, data.reviewCode, data.expiresAt);
+      return data.reviewCode;
+    }
+    // If we have a valid stored code, use it
+    if (storedCodeValid) {
+      return storedCode.code;
+    }
+    return '';
+  }, [data?.reviewCode, data?.expiresAt, storedCodeValid, storedCode?.code, params.username]);
+  
+  const codeExpired = storedCode && isCodeExpired(storedCode.expiresAt) && !data?.reviewCode;
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
   }, []);
 
-  // Popup si apre automaticamente quando la pagina carica
+  // Popup si apre automaticamente quando c'è un nuovo codice da tap
   useEffect(() => {
-    if (data?.profile && reviewCode && !hasShownPopup.current) {
+    if (data?.profile && reviewCode && !codeExpired && !hasShownPopup.current) {
       hasShownPopup.current = true;
       
       // Tenta copia codice negli appunti
       const fullCode = formatCodeForCopy(reviewCode);
       navigator.clipboard.writeText(fullCode).catch(() => {});
       
-      // Mostra popup
-      setShowModal(true);
-      
-      // Chiudi popup dopo 3.8 secondi
-      const timer = setTimeout(() => {
-        setShowModal(false);
-      }, 3800);
-      
-      return () => clearTimeout(timer);
+      // Mostra popup solo se è un tap o se abbiamo un codice valido
+      if (isTap || storedCodeValid) {
+        setShowModal(true);
+        
+        // Chiudi popup dopo 3.8 secondi
+        const timer = setTimeout(() => {
+          setShowModal(false);
+        }, 3800);
+        
+        return () => clearTimeout(timer);
+      }
     }
-  }, [data?.profile, reviewCode]);
+  }, [data?.profile, reviewCode, codeExpired, isTap, storedCodeValid]);
 
   const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
@@ -194,7 +260,7 @@ export default function PublicProfile() {
             </div>
 
             {/* Codice verifica - piccolo e discreto */}
-            {reviewCode && (
+            {reviewCode && !codeExpired && (
               <button
                 onClick={handleCopyCode}
                 className="mt-6 mx-auto flex items-center gap-2 text-white/30 hover:text-[#CC9900] transition-colors text-xs"
@@ -207,6 +273,14 @@ export default function PublicProfile() {
                   <Copy className="w-3 h-3" />
                 )}
               </button>
+            )}
+            
+            {/* Messaggio codice scaduto */}
+            {codeExpired && (
+              <div className="mt-6 mx-auto flex items-center gap-2 text-amber-500/70 text-xs" data-testid="text-code-expired">
+                <AlertTriangle className="w-3 h-3" />
+                <span>Codice scaduto - fai un nuovo tap</span>
+              </div>
             )}
 
             {/* Footer */}
