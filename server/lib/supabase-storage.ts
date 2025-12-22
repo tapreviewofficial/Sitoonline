@@ -53,6 +53,16 @@ export class SupabaseStorage implements IStorage {
     // InsertUser has password_hash from routes
     const result = await db.insert(users).values(user).returning();
     const newUser = result[0];
+    
+    // Crea automaticamente un profilo per il nuovo utente
+    await db.insert(profiles).values({
+      userId: newUser.id,
+      businessName: user.username,
+      displayName: user.username,
+      isActive: true,
+      accentColor: '#CC9900'
+    });
+    
     return { ...newUser, role: newUser.role || 'USER' } as User;
   }
 
@@ -111,8 +121,23 @@ export class SupabaseStorage implements IStorage {
 
   async createLink(userId: number, link: InsertLink): Promise<Link> {
     // Prima otteniamo il profileId dall'userId
-    const profile = await this.getProfile(userId);
-    if (!profile) throw new Error('Profile not found for user');
+    let profile = await this.getProfile(userId);
+    
+    // Se il profilo non esiste, lo creiamo automaticamente
+    if (!profile) {
+      const user = await this.getUser(userId);
+      if (!user) throw new Error('User not found');
+      
+      const newProfile = await db.insert(profiles).values({
+        userId: user.id,
+        businessName: user.username,
+        displayName: user.username,
+        isActive: true,
+        accentColor: '#CC9900'
+      }).returning();
+      profile = newProfile[0];
+    }
+    
     const result = await db.insert(links).values({ ...link, profileId: profile.id }).returning();
     return result[0];
   }
