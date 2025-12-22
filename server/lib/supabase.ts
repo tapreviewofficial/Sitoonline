@@ -24,14 +24,25 @@ const clientConfig = {
   })
 };
 
-const client = postgres(databaseUrl, clientConfig);
-export const db = drizzle(client, { schema });
+// Configurazione con search_path automatico per ogni connessione
+const clientWithSearchPath = postgres(databaseUrl, {
+  ...clientConfig,
+  transform: {
+    undefined: null, // Trasforma undefined in null
+  },
+  onnotice: () => {}, // Ignora notices
+  connection: {
+    search_path: 'tapreview,public', // Imposta search_path per ogni connessione
+  }
+});
 
-// Imposta il search_path allo schema tapreview all'avvio
-client`SET search_path TO tapreview, public`.then(() => {
-  console.log('✅ Search path impostato a: tapreview, public');
+export const db = drizzle(clientWithSearchPath, { schema });
+
+// Verifica search_path all'avvio
+clientWithSearchPath`SHOW search_path`.then((result) => {
+  console.log('✅ Search path corrente:', result[0]?.search_path || 'non impostato');
 }).catch((err: any) => {
-  console.warn('⚠️ Errore impostazione search_path:', err.message);
+  console.warn('⚠️ Errore verifica search_path:', err.message);
 });
 
 // Log connessione (senza password)
@@ -47,7 +58,7 @@ export * from '@shared/schema';
 
 // Test connessione semplice con timeout
 Promise.race([
-  client`SELECT 1 as test`,
+  clientWithSearchPath`SELECT 1 as test`,
   new Promise((_, reject) => 
     setTimeout(() => reject(new Error('Connection test timeout')), 5000)
   )

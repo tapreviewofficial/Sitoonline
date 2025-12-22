@@ -30,11 +30,14 @@ export function getDatabase() {
     })
   };
 
-  cachedClient = postgres(databaseUrl, clientConfig);
+  // Configurazione con search_path automatico per ogni connessione
+  cachedClient = postgres(databaseUrl, {
+    ...clientConfig,
+    connection: {
+      search_path: 'tapreview,public', // Imposta search_path per ogni connessione
+    }
+  });
   cachedDb = drizzle(cachedClient, { schema });
-  
-  // Imposta search_path allo schema tapreview
-  cachedClient`SET search_path TO tapreview, public`.catch(() => {});
 
   return cachedDb;
 }

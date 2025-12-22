@@ -1,17 +1,14 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid, index, pgEnum } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, pgSchema, timestamp, varchar, decimal, boolean, serial, uuid, index, pgEnum } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Enums per Supabase
-export const roleEnum = pgEnum("role", ["USER", "ADMIN"]);
-export const ticketStatusEnum = pgEnum("ticket_status", ["ACTIVE", "USED", "EXPIRED"]);
+// Schema tapreview per Supabase
+export const tapreviewSchema = pgSchema("tapreview");
 
-// Schema PostgreSQL per Supabase - tabelle nello schema tapreview
-// Il search_path viene impostato nella connessione
-
-export const users = pgTable("tr_users", {
+// Tabelle nello schema tapreview - usano tapreviewSchema.table() invece di pgTable()
+export const users = tapreviewSchema.table("tr_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
@@ -21,7 +18,7 @@ export const users = pgTable("tr_users", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const profiles = pgTable("tr_profiles", {
+export const profiles = tapreviewSchema.table("tr_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
@@ -37,7 +34,7 @@ export const profiles = pgTable("tr_profiles", {
   isActive: boolean("is_active").default(true),
 });
 
-export const links = pgTable("tr_links", {
+export const links = tapreviewSchema.table("tr_links", {
   id: serial("id").primaryKey(),
   profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
@@ -52,7 +49,7 @@ export const links = pgTable("tr_links", {
   profileIdIdx: index("links_profile_id_idx").on(table.profileId),
 }));
 
-export const clicks = pgTable("tr_clicks", {
+export const clicks = tapreviewSchema.table("tr_clicks", {
   id: serial("id").primaryKey(),
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   clickedAt: timestamp("clicked_at").default(sql`CURRENT_TIMESTAMP`),
@@ -63,7 +60,7 @@ export const clicks = pgTable("tr_clicks", {
   ipHash: text("ip_hash"),
 });
 
-export const passwordResets = pgTable("tr_password_resets", {
+export const passwordResets = tapreviewSchema.table("tr_password_resets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
@@ -72,7 +69,7 @@ export const passwordResets = pgTable("tr_password_resets", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const publicPages = pgTable("public_pages", {
+export const publicPages = tapreviewSchema.table("public_pages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
@@ -82,7 +79,7 @@ export const publicPages = pgTable("public_pages", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const promos = pgTable("promos", {
+export const promos = tapreviewSchema.table("promos", {
   id: serial("id").primaryKey(),
   profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   publicPageId: integer("public_page_id").references(() => publicPages.id),
@@ -107,7 +104,7 @@ export const promos = pgTable("promos", {
   activeIdx: index("promos_active_idx").on(table.active),
 }));
 
-export const tickets = pgTable("tickets", {
+export const tickets = tapreviewSchema.table("tickets", {
   id: serial("id").primaryKey(),
   profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),
@@ -124,7 +121,7 @@ export const tickets = pgTable("tickets", {
   profileIdIdx: index("tickets_profile_id_idx").on(table.profileId),
 }));
 
-export const scanLogs = pgTable("scan_logs", {
+export const scanLogs = tapreviewSchema.table("scan_logs", {
   id: serial("id").primaryKey(),
   ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
   userId: integer("user_id").references(() => users.id),
@@ -135,7 +132,7 @@ export const scanLogs = pgTable("scan_logs", {
   ticketIdIdx: index("scan_logs_ticket_id_idx").on(table.ticketId),
 }));
 
-export const promotionalContacts = pgTable("promotional_contacts", {
+export const promotionalContacts = tapreviewSchema.table("promotional_contacts", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   firstName: varchar("first_name", { length: 255 }),
@@ -147,7 +144,7 @@ export const promotionalContacts = pgTable("promotional_contacts", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const promoEmails = pgTable("promo_emails", {
+export const promoEmails = tapreviewSchema.table("promo_emails", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name"),
   email: text("email"),
@@ -159,7 +156,7 @@ export const promoEmails = pgTable("promo_emails", {
 });
 
 // Codici tracciabili per recensioni (struttura semplificata)
-export const reviewCodes = pgTable("review_codes", {
+export const reviewCodes = tapreviewSchema.table("review_codes", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 20 }).notNull().unique(),
   username: varchar("username", { length: 255 }).notNull(),
