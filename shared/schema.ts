@@ -4,8 +4,8 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Schema PostgreSQL standard senza prefissi, semplificato per migrazione completa
-export const users = pgTable("users", {
+// Schema PostgreSQL per Supabase - alcune tabelle usano prefisso tr_
+export const users = pgTable("tr_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
@@ -15,7 +15,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const profiles = pgTable("profiles", {
+export const profiles = pgTable("tr_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
@@ -24,7 +24,7 @@ export const profiles = pgTable("profiles", {
   accentColor: text("accent_color").default("#CC9900"),
 });
 
-export const links = pgTable("links", {
+export const links = pgTable("tr_links", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   url: text("url").notNull(),
@@ -36,7 +36,7 @@ export const links = pgTable("links", {
   userIdIdx: index("links_user_id_idx").on(table.userId),
 }));
 
-export const clicks = pgTable("clicks", {
+export const clicks = pgTable("tr_clicks", {
   id: serial("id").primaryKey(),
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
@@ -45,7 +45,7 @@ export const clicks = pgTable("clicks", {
   ipHash: text("ip_hash"),
 });
 
-export const passwordResets = pgTable("password_resets", {
+export const passwordResets = pgTable("tr_password_resets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
