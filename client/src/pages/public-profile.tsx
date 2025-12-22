@@ -96,28 +96,26 @@ export default function PublicProfile() {
     setShowModal(false);
   }, []);
 
-  // Popup si apre automaticamente quando c'è un nuovo codice da tap
+  // Popup si apre SOLO quando c'è un nuovo tap NFC (non su visite normali)
   useEffect(() => {
-    if (data?.profile && reviewCode && !codeExpired && !hasShownPopup.current) {
+    // Mostra popup SOLO se: è un tap E il server ha restituito un nuovo codice
+    if (isTap && data?.reviewCode && data?.expiresAt && !hasShownPopup.current) {
       hasShownPopup.current = true;
       
       // Tenta copia codice negli appunti
-      const fullCode = formatCodeForCopy(reviewCode);
+      const fullCode = formatCodeForCopy(data.reviewCode);
       navigator.clipboard.writeText(fullCode).catch(() => {});
       
-      // Mostra popup solo se è un tap o se abbiamo un codice valido
-      if (isTap || storedCodeValid) {
-        setShowModal(true);
-        
-        // Chiudi popup dopo 3.8 secondi
-        const timer = setTimeout(() => {
-          setShowModal(false);
-        }, 3800);
-        
-        return () => clearTimeout(timer);
-      }
+      setShowModal(true);
+      
+      // Chiudi popup dopo 3.8 secondi
+      const timer = setTimeout(() => {
+        setShowModal(false);
+      }, 3800);
+      
+      return () => clearTimeout(timer);
     }
-  }, [data?.profile, reviewCode, codeExpired, isTap, storedCodeValid]);
+  }, [isTap, data?.reviewCode, data?.expiresAt]);
 
   const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
