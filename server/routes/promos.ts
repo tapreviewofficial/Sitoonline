@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, promos, tickets, users, publicPages } from "../lib/supabase";
+import { db, promos, tickets, users, publicPages, profiles } from "../lib/supabase";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../lib/auth.js";
@@ -15,19 +15,32 @@ function getUserId(req: any) {
   return (req as any).user?.userId || 1; 
 }
 
+// Helper per ottenere profileId dall'userId
+async function getProfileIdFromUserId(userId: number): Promise<number | null> {
+  const result = await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  return result[0]?.id || null;
+}
+
 // Ottieni tutte le promozioni dell'utente
 router.get("/promos", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
+    const profileId = await getProfileIdFromUserId(userId);
+    
+    if (!profileId) {
+      return res.json([]);
+    }
     
     const promosResult = await db
       .select({
         id: promos.id,
-        userId: promos.userId,
+        profileId: promos.profileId,
         publicPageId: promos.publicPageId,
         title: promos.title,
         description: promos.description,
-        type: promos.type,
+        discountCode: promos.discountCode,
+        validUntil: promos.validUntil,
+        isActive: promos.isActive,
         valueKind: promos.valueKind,
         value: promos.value,
         startAt: promos.startAt,
@@ -38,38 +51,15 @@ router.get("/promos", requireAuth, async (req, res) => {
         qrMode: promos.qrMode,
         active: promos.active,
         createdAt: promos.createdAt,
-        updatedAt: promos.updatedAt,
-        publicPage: {
-          id: publicPages.id,
-          userId: publicPages.userId,
-          slug: publicPages.slug,
-          title: publicPages.title,
-          theme: publicPages.theme,
-          createdAt: publicPages.createdAt,
-          updatedAt: publicPages.updatedAt
-        }
+        updatedAt: promos.updatedAt
       })
       .from(promos)
-      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
-      .where(eq(promos.userId, userId))
+      .where(eq(promos.profileId, profileId))
       .orderBy(desc(promos.createdAt));
 
-    // Get ticket counts for each promo
-    const promosWithCounts = await Promise.all(
-      promosResult.map(async (promo) => {
-        const ticketCount = await db
-          .select({ count: count() })
-          .from(tickets)
-          .where(eq(tickets.promoId, promo.id));
-        
-        return {
-          ...promo,
-          _count: { tickets: ticketCount[0]?.count || 0 }
-        };
-      })
-    );
-
-    res.json(promosWithCounts);
+    // Note: tickets are linked to profiles, not individual promos
+    // So we return promos without ticket counts for now
+    res.json(promosResult);
   } catch (error) {
     console.error("Errore recupero promozioni:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -80,16 +70,23 @@ router.get("/promos", requireAuth, async (req, res) => {
 router.get("/promos/:id", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
+    const profileId = await getProfileIdFromUserId(userId);
     const promoId = parseInt(req.params.id);
+    
+    if (!profileId) {
+      return res.status(404).json({ error: "Profilo non trovato" });
+    }
 
     const promoResult = await db
       .select({
         id: promos.id,
-        userId: promos.userId,
+        profileId: promos.profileId,
         publicPageId: promos.publicPageId,
         title: promos.title,
         description: promos.description,
-        type: promos.type,
+        discountCode: promos.discountCode,
+        validUntil: promos.validUntil,
+        isActive: promos.isActive,
         valueKind: promos.valueKind,
         value: promos.value,
         startAt: promos.startAt,
@@ -100,20 +97,10 @@ router.get("/promos/:id", requireAuth, async (req, res) => {
         qrMode: promos.qrMode,
         active: promos.active,
         createdAt: promos.createdAt,
-        updatedAt: promos.updatedAt,
-        publicPage: {
-          id: publicPages.id,
-          userId: publicPages.userId,
-          slug: publicPages.slug,
-          title: publicPages.title,
-          theme: publicPages.theme,
-          createdAt: publicPages.createdAt,
-          updatedAt: publicPages.updatedAt
-        }
+        updatedAt: promos.updatedAt
       })
       .from(promos)
-      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
-      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .where(and(eq(promos.id, promoId), eq(promos.profileId, profileId)))
       .limit(1);
 
     if (!promoResult.length) {
@@ -121,20 +108,9 @@ router.get("/promos/:id", requireAuth, async (req, res) => {
     }
 
     const promo = promoResult[0];
-
-    // Get tickets for this promo
-    const promoTickets = await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.promoId, promoId))
-      .orderBy(desc(tickets.createdAt));
-
-    const result = {
-      ...promo,
-      tickets: promoTickets
-    };
-
-    res.json(result);
+    
+    // Note: tickets are linked to profiles, not individual promos
+    res.json(promo);
   } catch (error) {
     console.error("Errore recupero promozione:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -145,63 +121,38 @@ router.get("/promos/:id", requireAuth, async (req, res) => {
 router.post("/promos", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
-    const { title, description, type, startAt, endAt, publicPageId } = req.body;
+    const profileId = await getProfileIdFromUserId(userId);
+    
+    if (!profileId) {
+      return res.status(400).json({ error: "Profilo non trovato" });
+    }
+    
+    const { title, description, discountCode, startAt, endAt, publicPageId, valueKind, value, maxCodes, usesPerCode, codeFormat, qrMode } = req.body;
 
-    if (!title || !type) {
-      return res.status(400).json({ error: "Titolo e tipo sono obbligatori" });
+    if (!title) {
+      return res.status(400).json({ error: "Titolo è obbligatorio" });
     }
 
     const insertedPromo = await db
       .insert(promos)
       .values({
-        userId,
+        profileId,
         title,
-        description,
-        type,
+        description: description || null,
+        discountCode: discountCode || null,
+        valueKind: valueKind || null,
+        value: value || null,
         startAt: startAt ? new Date(startAt) : new Date(),
         endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        maxCodes: maxCodes || 100,
+        usesPerCode: usesPerCode || 1,
+        codeFormat: codeFormat || 'short',
+        qrMode: qrMode || 'url',
         publicPageId: publicPageId || null
       })
       .returning();
 
-    const promoId = insertedPromo[0].id;
-
-    // Get the created promo with publicPage
-    const promoWithPublicPage = await db
-      .select({
-        id: promos.id,
-        userId: promos.userId,
-        publicPageId: promos.publicPageId,
-        title: promos.title,
-        description: promos.description,
-        type: promos.type,
-        valueKind: promos.valueKind,
-        value: promos.value,
-        startAt: promos.startAt,
-        endAt: promos.endAt,
-        maxCodes: promos.maxCodes,
-        usesPerCode: promos.usesPerCode,
-        codeFormat: promos.codeFormat,
-        qrMode: promos.qrMode,
-        active: promos.active,
-        createdAt: promos.createdAt,
-        updatedAt: promos.updatedAt,
-        publicPage: {
-          id: publicPages.id,
-          userId: publicPages.userId,
-          slug: publicPages.slug,
-          title: publicPages.title,
-          theme: publicPages.theme,
-          createdAt: publicPages.createdAt,
-          updatedAt: publicPages.updatedAt
-        }
-      })
-      .from(promos)
-      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
-      .where(eq(promos.id, promoId))
-      .limit(1);
-
-    res.status(201).json(promoWithPublicPage[0]);
+    res.status(201).json(insertedPromo[0]);
   } catch (error) {
     console.error("Errore creazione promozione:", error);
     res.status(500).json({ error: "Errore interno del server" });
@@ -212,67 +163,43 @@ router.post("/promos", requireAuth, async (req, res) => {
 router.patch("/promos/:id", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
+    const profileId = await getProfileIdFromUserId(userId);
     const promoId = parseInt(req.params.id);
-    const { title, description, type, startAt, endAt, active, publicPageId } = req.body;
+    
+    if (!profileId) {
+      return res.status(404).json({ error: "Profilo non trovato" });
+    }
+    
+    const { title, description, discountCode, startAt, endAt, active, publicPageId, valueKind, value, maxCodes, usesPerCode } = req.body;
 
     const existingPromo = await db
       .select()
       .from(promos)
-      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .where(and(eq(promos.id, promoId), eq(promos.profileId, profileId)))
       .limit(1);
 
     if (!existingPromo.length) {
       return res.status(404).json({ error: "Promozione non trovata" });
     }
 
-    await db
+    const updatedPromo = await db
       .update(promos)
       .set({
         title,
         description,
-        type,
-        startAt: startAt ? new Date(startAt) : new Date(),
-        endAt: endAt ? new Date(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        discountCode,
+        valueKind,
+        value,
+        startAt: startAt ? new Date(startAt) : undefined,
+        endAt: endAt ? new Date(endAt) : undefined,
+        maxCodes,
+        usesPerCode,
         active,
         publicPageId: publicPageId || null,
         updatedAt: new Date()
       })
-      .where(eq(promos.id, promoId));
-
-    // Get the updated promo with publicPage
-    const updatedPromo = await db
-      .select({
-        id: promos.id,
-        userId: promos.userId,
-        publicPageId: promos.publicPageId,
-        title: promos.title,
-        description: promos.description,
-        type: promos.type,
-        valueKind: promos.valueKind,
-        value: promos.value,
-        startAt: promos.startAt,
-        endAt: promos.endAt,
-        maxCodes: promos.maxCodes,
-        usesPerCode: promos.usesPerCode,
-        codeFormat: promos.codeFormat,
-        qrMode: promos.qrMode,
-        active: promos.active,
-        createdAt: promos.createdAt,
-        updatedAt: promos.updatedAt,
-        publicPage: {
-          id: publicPages.id,
-          userId: publicPages.userId,
-          slug: publicPages.slug,
-          title: publicPages.title,
-          theme: publicPages.theme,
-          createdAt: publicPages.createdAt,
-          updatedAt: publicPages.updatedAt
-        }
-      })
-      .from(promos)
-      .leftJoin(publicPages, eq(promos.publicPageId, publicPages.id))
       .where(eq(promos.id, promoId))
-      .limit(1);
+      .returning();
 
     res.json(updatedPromo[0]);
   } catch (error) {
@@ -285,12 +212,17 @@ router.patch("/promos/:id", requireAuth, async (req, res) => {
 router.delete("/promos/:id", requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
+    const profileId = await getProfileIdFromUserId(userId);
     const promoId = parseInt(req.params.id);
+    
+    if (!profileId) {
+      return res.status(404).json({ error: "Profilo non trovato" });
+    }
 
     const existingPromo = await db
       .select()
       .from(promos)
-      .where(and(eq(promos.id, promoId), eq(promos.userId, userId)))
+      .where(and(eq(promos.id, promoId), eq(promos.profileId, profileId)))
       .limit(1);
 
     if (!existingPromo.length) {
@@ -313,6 +245,12 @@ router.delete("/promos/:id", requireAuth, async (req, res) => {
 // GET / -> lista promozioni dell'utente (per UI lista semplificata)
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).user.userId;
+  const profileId = await getProfileIdFromUserId(userId);
+  
+  if (!profileId) {
+    return res.json({ items: [] });
+  }
+  
   const items = await db
     .select({
       id: promos.id,
@@ -323,7 +261,7 @@ router.get("/", requireAuth, async (req, res) => {
       endAt: promos.endAt
     })
     .from(promos)
-    .where(eq(promos.userId, userId))
+    .where(eq(promos.profileId, profileId))
     .orderBy(desc(promos.createdAt));
   res.json({ items });
 });
@@ -331,13 +269,18 @@ router.get("/", requireAuth, async (req, res) => {
 // PATCH /promos/:id/active -> set attiva (max 1 attiva)
 router.patch("/promos/:id/active", requireAuth, async (req, res) => {
   const userId = (req as any).user.userId;
+  const profileId = await getProfileIdFromUserId(userId);
   const id = Number(req.params.id);
   const { active } = req.body as { active: boolean };
+  
+  if (!profileId) {
+    return res.status(404).json({ error: "Profilo non trovato" });
+  }
   
   const promo = await db
     .select()
     .from(promos)
-    .where(and(eq(promos.id, id), eq(promos.userId, userId)))
+    .where(and(eq(promos.id, id), eq(promos.profileId, profileId)))
     .limit(1);
     
   if (!promo.length) return res.status(404).json({ error: "Promo non trovata" });
@@ -347,7 +290,7 @@ router.patch("/promos/:id/active", requireAuth, async (req, res) => {
     await db
       .update(promos)
       .set({ active: false, updatedAt: new Date() })
-      .where(eq(promos.userId, userId));
+      .where(eq(promos.profileId, profileId));
     
     // Then activate the specific promo
     await db
@@ -368,18 +311,20 @@ router.patch("/promos/:id/active", requireAuth, async (req, res) => {
 router.get("/public/:username/active-promo", async (req, res) => {
   const { username } = req.params;
   
-  const user = await db
-    .select()
-    .from(users)
+  // Join user -> profile -> promo
+  const profile = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .leftJoin(users, eq(profiles.userId, users.id))
     .where(eq(users.username, username))
     .limit(1);
     
-  if (!user.length) return res.json({ active: false });
+  if (!profile.length) return res.json({ active: false });
   
   const promo = await db
     .select()
     .from(promos)
-    .where(and(eq(promos.userId, user[0].id), eq(promos.active, true)))
+    .where(and(eq(promos.profileId, profile[0].id), eq(promos.active, true)))
     .limit(1);
     
   if (!promo.length) return res.json({ active: false });
@@ -398,18 +343,22 @@ router.post("/public/:username/claim", async (req, res) => {
     const { username } = req.params;
     const { name, surname, email } = req.body as { name?: string; surname?: string; email: string };
     
-    const user = await db
-      .select()
-      .from(users)
+    // Join user -> profile
+    const profile = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .leftJoin(users, eq(profiles.userId, users.id))
       .where(eq(users.username, username))
       .limit(1);
       
-    if (!user.length) return res.status(404).json({ error: "Profilo non trovato" });
+    if (!profile.length) return res.status(404).json({ error: "Profilo non trovato" });
+    
+    const profileId = profile[0].id;
     
     const promo = await db
       .select()
       .from(promos)
-      .where(and(eq(promos.userId, user[0].id), eq(promos.active, true)))
+      .where(and(eq(promos.profileId, profileId), eq(promos.active, true)))
       .limit(1);
       
     if (!promo.length) return res.status(400).json({ error: "Nessuna promozione attiva" });
@@ -418,15 +367,15 @@ router.post("/public/:username/claim", async (req, res) => {
     const publicOrigin = process.env.FRONTEND_URL || 'https://www.taptrust.it';
     const qrUrl = `${publicOrigin}/q/${code}`;
     
+    // Insert ticket linked to profile
     await db
       .insert(tickets)
       .values({
-        promoId: promo[0].id,
-        customerName: name || null,
-        customerSurname: surname || null,
-        customerEmail: email,
+        profileId,
         code, 
-        qrUrl,
+        title: promo[0].title,
+        description: promo[0].description,
+        customerSurname: surname || null,
         expiresAt: promo[0].endAt
       });
       
