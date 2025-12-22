@@ -307,6 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/:username", async (req, res) => {
     try {
       const { username } = req.params;
+      const isTap = req.query.tap === '1'; // Solo tap NFC genera nuovo codice
       
       // First check if user exists
       const user = await storage.getUserByUsername(username);
@@ -318,26 +319,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
-      // Generate and save unique verification code
-      let reviewCode = null;
-      let attempts = 0;
-      const maxAttempts = 5;
+      // Generate and save unique verification code ONLY if tap=1 (NFC tap)
+      let reviewCode: { code: string; expiresAt?: Date | null } | null = null;
       
-      while (!reviewCode && attempts < maxAttempts) {
-        try {
-          const code = generateUniqueTTCode();
-          reviewCode = await storage.createReviewCode({
-            code,
-            userId: user.id,
-            platform: 'public_page',
-          });
-        } catch (err: any) {
-          // If duplicate, retry with new code
-          if (err.code === '23505' || err.message?.includes('duplicate')) {
-            attempts++;
-            continue;
+      if (isTap) {
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        while (!reviewCode && attempts < maxAttempts) {
+          try {
+            const code = generateUniqueTTCode();
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+            reviewCode = await storage.createReviewCode({
+              code,
+              userId: user.id,
+              platform: 'public_page',
+              expiresAt,
+            });
+          } catch (err: any) {
+            // If duplicate, retry with new code
+            if (err.code === '23505' || err.message?.includes('duplicate')) {
+              attempts++;
+              continue;
+            }
+            throw err;
           }
-          throw err;
         }
       }
       
@@ -353,6 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         links,
         reviewCode: reviewCode?.code || null,
+        expiresAt: reviewCode?.expiresAt || null,
+        isTap,
       });
     } catch (error) {
       console.error("Get public profile error:", error);

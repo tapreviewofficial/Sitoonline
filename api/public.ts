@@ -24,6 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (usernameMatch && req.method === 'GET') {
     try {
       const username = usernameMatch[1];
+      const isTap = url.searchParams.get('tap') === '1'; // Solo tap NFC genera nuovo codice
       
       const user = await storage.getUserByUsername(username);
       if (!user) {
@@ -33,25 +34,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
-      // Generate and save unique verification code
-      let reviewCode: { code: string } | null = null;
-      let attempts = 0;
-      const maxAttempts = 5;
+      // Generate and save unique verification code ONLY if tap=1 (NFC tap)
+      let reviewCode: { code: string; expiresAt?: Date | null } | null = null;
       
-      while (!reviewCode && attempts < maxAttempts) {
-        try {
-          const code = generateUniqueTTCode();
-          reviewCode = await storage.createReviewCode({
-            code,
-            userId: user.id,
-            platform: 'public_page',
-          });
-        } catch (err: any) {
-          if (err.code === '23505' || err.message?.includes('duplicate')) {
-            attempts++;
-            continue;
+      if (isTap) {
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        while (!reviewCode && attempts < maxAttempts) {
+          try {
+            const code = generateUniqueTTCode();
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+            reviewCode = await storage.createReviewCode({
+              code,
+              userId: user.id,
+              platform: 'public_page',
+              expiresAt,
+            });
+          } catch (err: any) {
+            if (err.code === '23505' || err.message?.includes('duplicate')) {
+              attempts++;
+              continue;
+            }
+            throw err;
           }
-          throw err;
         }
       }
       
@@ -68,6 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         links,
         reviewCode: reviewCode?.code || null,
+        expiresAt: reviewCode?.expiresAt || null,
+        isTap,
       });
     } catch (error) {
       console.error('Get public profile error:', error);
