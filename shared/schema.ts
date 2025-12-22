@@ -143,11 +143,12 @@ export const promoEmails = pgTable("promo_emails", {
 // Codici tracciabili per recensioni
 export const reviewCodes = pgTable("review_codes", {
   id: serial("id").primaryKey(),
-  code: varchar("code", { length: 20 }).notNull().unique(), // es. TT-0000203
+  code: varchar("code", { length: 20 }).notNull().unique(), // es. TT-XXXX-XX
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Il ristorante
   linkId: integer("link_id").references(() => links.id, { onDelete: "set null" }), // Link cliccato (Google, Trip, ecc)
   platform: varchar("platform", { length: 50 }), // google, tripadvisor, ecc
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at"), // Scadenza codice (24h dopo creazione da tap NFC)
   clickedAt: timestamp("clicked_at"), // Quando ha cliccato il link
   userAgent: text("user_agent"),
   ipHash: text("ip_hash"),
