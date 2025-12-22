@@ -81,11 +81,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(users.username, username))
       .limit(1);
       
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
     
     return {
-      ...result[0].profiles,
-      user: result[0].users
+      ...result[0].tr_profiles,
+      user: result[0].tr_users
     } as Profile & { user: User };
   }
 
@@ -101,13 +101,19 @@ export class SupabaseStorage implements IStorage {
     return result[0];
   }
 
-  // Link methods
+  // Link methods - ora usano profileId invece di userId
   async getLinks(userId: number): Promise<Link[]> {
-    return await db.select().from(links).where(eq(links.userId, userId)).orderBy(asc(links.order));
+    // Prima otteniamo il profileId dall'userId
+    const profile = await this.getProfile(userId);
+    if (!profile) return [];
+    return await db.select().from(links).where(eq(links.profileId, profile.id)).orderBy(asc(links.order));
   }
 
   async createLink(userId: number, link: InsertLink): Promise<Link> {
-    const result = await db.insert(links).values({ ...link, userId }).returning();
+    // Prima otteniamo il profileId dall'userId
+    const profile = await this.getProfile(userId);
+    if (!profile) throw new Error('Profile not found for user');
+    const result = await db.insert(links).values({ ...link, profileId: profile.id }).returning();
     return result[0];
   }
 
@@ -121,22 +127,16 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getLinksByUsername(username: string): Promise<Link[]> {
+    // Join links -> profiles -> users per username
     const result = await db
-      .select({
-        id: links.id,
-        title: links.title,
-        url: links.url,
-        order: links.order,
-        userId: links.userId,
-        createdAt: links.createdAt,
-        clicks: links.clicks
-      })
+      .select()
       .from(links)
-      .leftJoin(users, eq(links.userId, users.id))
+      .leftJoin(profiles, eq(links.profileId, profiles.id))
+      .leftJoin(users, eq(profiles.userId, users.id))
       .where(eq(users.username, username))
       .orderBy(asc(links.order));
       
-    return result;
+    return result.map(r => r.tr_links);
   }
 
   // Click methods
@@ -156,11 +156,15 @@ export class SupabaseStorage implements IStorage {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // Ottieni il profile per questo user
+    const profile = await this.getProfile(userId);
+    if (!profile) return { totalClicks: 0, clicks7d: 0, clicks30d: 0 };
+
     // Total clicks
     const totalResult = await db
       .select({ total: sql<number>`sum(${links.clicks})` })
       .from(links)
-      .where(eq(links.userId, userId));
+      .where(eq(links.profileId, profile.id));
 
     // Clicks last 7 days
     const clicks7dResult = await db
@@ -168,7 +172,7 @@ export class SupabaseStorage implements IStorage {
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
       .where(and(
-        eq(links.userId, userId),
+        eq(links.profileId, profile.id),
         gte(clicks.createdAt, sevenDaysAgo)
       ));
 
@@ -178,7 +182,7 @@ export class SupabaseStorage implements IStorage {
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
       .where(and(
-        eq(links.userId, userId),
+        eq(links.profileId, profile.id),
         gte(clicks.createdAt, thirtyDaysAgo)
       ));
 
@@ -194,6 +198,10 @@ export class SupabaseStorage implements IStorage {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // Ottieni il profile per questo user
+    const profile = await this.getProfile(userId);
+    if (!profile) return [];
+
     const result = await db
       .select({
         id: links.id,
@@ -201,18 +209,18 @@ export class SupabaseStorage implements IStorage {
         clicksAllTime: links.clicks,
         order: links.order,
         clicks7d: sql<number>`
-          (SELECT COUNT(*) FROM ${clicks} 
-           WHERE ${clicks.linkId} = ${links.id} 
-           AND ${clicks.createdAt} >= ${sevenDaysAgo.toISOString()})
+          (SELECT COUNT(*) FROM tr_clicks 
+           WHERE tr_clicks.link_id = tr_links.id 
+           AND tr_clicks.created_at >= ${sevenDaysAgo.toISOString()})
         `,
         clicks30d: sql<number>`
-          (SELECT COUNT(*) FROM ${clicks} 
-           WHERE ${clicks.linkId} = ${links.id} 
-           AND ${clicks.createdAt} >= ${thirtyDaysAgo.toISOString()})
+          (SELECT COUNT(*) FROM tr_clicks 
+           WHERE tr_clicks.link_id = tr_links.id 
+           AND tr_clicks.created_at >= ${thirtyDaysAgo.toISOString()})
         `
       })
       .from(links)
-      .where(eq(links.userId, userId))
+      .where(eq(links.profileId, profile.id))
       .orderBy(asc(links.order));
 
     return result.map(r => ({
@@ -274,9 +282,19 @@ export class SupabaseStorage implements IStorage {
     // Get aggregated clicks data
     const bucketSql = sql<Date>`date_trunc('${sql.raw(bucket)}', ${clicks.createdAt})`;
     
+    // Ottieni il profile per questo user
+    const profile = await this.getProfile(userId);
+    if (!profile) {
+      return {
+        meta: { range: options.range, bucket, since, until: now, timezone },
+        totals: { clicks: 0 },
+        series: []
+      };
+    }
+
     // Build WHERE conditions
     const whereConditions = [
-      eq(links.userId, userId),
+      eq(links.profileId, profile.id),
       gte(clicks.createdAt, since)
     ];
     if (options.linkId) {
@@ -343,11 +361,11 @@ export class SupabaseStorage implements IStorage {
       .where(eq(passwordResets.token, token))
       .limit(1);
 
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
 
     return {
-      ...result[0].password_resets,
-      user: result[0].users
+      ...result[0].tr_password_resets,
+      user: result[0].tr_users
     } as PasswordReset & { user: User };
   }
 

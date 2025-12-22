@@ -32,6 +32,9 @@ export function getDatabase() {
 
   cachedClient = postgres(databaseUrl, clientConfig);
   cachedDb = drizzle(cachedClient, { schema });
+  
+  // Imposta search_path allo schema tapreview
+  cachedClient`SET search_path TO tapreview, public`.catch(() => {});
 
   return cachedDb;
 }

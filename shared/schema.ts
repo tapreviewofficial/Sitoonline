@@ -1,10 +1,16 @@
 import { sql } from "drizzle-orm";
-import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid, index } from "drizzle-orm/pg-core";
+import { integer, text, pgTable, timestamp, varchar, decimal, boolean, serial, uuid, index, pgEnum } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Schema PostgreSQL per Supabase - alcune tabelle usano prefisso tr_
+// Enums per Supabase
+export const roleEnum = pgEnum("role", ["USER", "ADMIN"]);
+export const ticketStatusEnum = pgEnum("ticket_status", ["ACTIVE", "USED", "EXPIRED"]);
+
+// Schema PostgreSQL per Supabase - tabelle nello schema tapreview
+// Il search_path viene impostato nella connessione
+
 export const users = pgTable("tr_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -22,25 +28,37 @@ export const profiles = pgTable("tr_profiles", {
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
   accentColor: text("accent_color").default("#CC9900"),
+  businessName: text("business_name"),
+  description: text("description"),
+  logoUrl: text("logo_url"),
+  backgroundUrl: text("background_url"),
+  themeColor: text("theme_color"),
+  customMessage: text("custom_message"),
+  isActive: boolean("is_active").default(true),
 });
 
 export const links = pgTable("tr_links", {
   id: serial("id").primaryKey(),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   url: text("url").notNull(),
+  icon: text("icon"),
+  orderIndex: integer("order_index").default(0),
   order: integer("order").default(0),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  isActive: boolean("is_active").default(true),
   clicks: integer("clicks").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  userIdIdx: index("links_user_id_idx").on(table.userId),
+  profileIdIdx: index("links_profile_id_idx").on(table.profileId),
 }));
 
 export const clicks = pgTable("tr_clicks", {
   id: serial("id").primaryKey(),
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  clickedAt: timestamp("clicked_at").default(sql`CURRENT_TIMESTAMP`),
+  ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   referer: text("referer"),
   ipHash: text("ip_hash"),
 });
@@ -66,15 +84,17 @@ export const publicPages = pgTable("public_pages", {
 
 export const promos = pgTable("promos", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   publicPageId: integer("public_page_id").references(() => publicPages.id),
-  title: varchar("title", { length: 255 }).notNull(),
+  title: text("title").notNull(),
   description: text("description"),
-  type: varchar("type", { length: 50 }).notNull(),
+  discountCode: text("discount_code"),
+  validUntil: timestamp("valid_until"),
+  isActive: boolean("is_active").default(true),
   valueKind: varchar("value_kind", { length: 20 }),
   value: decimal("value", { precision: 10, scale: 2 }),
-  startAt: timestamp("start_at").notNull(),
-  endAt: timestamp("end_at").notNull(),
+  startAt: timestamp("start_at"),
+  endAt: timestamp("end_at"),
   maxCodes: integer("max_codes").default(100),
   usesPerCode: integer("uses_per_code").default(1),
   codeFormat: varchar("code_format", { length: 20 }).default("short"),
@@ -83,27 +103,25 @@ export const promos = pgTable("promos", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  userIdIdx: index("promos_user_id_idx").on(table.userId),
+  profileIdIdx: index("promos_profile_id_idx").on(table.profileId),
   activeIdx: index("promos_active_idx").on(table.active),
-  userActiveIdx: index("promos_user_active_idx").on(table.userId, table.active),
 }));
 
 export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
-  promoId: integer("promo_id").notNull().references(() => promos.id, { onDelete: "cascade" }),
-  customerName: varchar("customer_name", { length: 255 }),
+  profileId: integer("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(),
+  title: text("title"),
+  description: text("description"),
+  status: text("status").default("ACTIVE"),
+  validUntil: timestamp("valid_until"),
   customerSurname: varchar("customer_surname", { length: 255 }),
-  customerEmail: varchar("customer_email", { length: 255 }).notNull(),
-  code: varchar("code", { length: 100 }).notNull().unique(),
-  qrUrl: text("qr_url").notNull(),
-  status: varchar("status", { length: 20 }).default("ACTIVE"),
   usedAt: timestamp("used_at"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
   statusIdx: index("tickets_status_idx").on(table.status),
-  promoIdIdx: index("tickets_promo_id_idx").on(table.promoId),
-  promoStatusIdx: index("tickets_promo_status_idx").on(table.promoId, table.status),
+  profileIdIdx: index("tickets_profile_id_idx").on(table.profileId),
 }));
 
 export const scanLogs = pgTable("scan_logs", {
@@ -122,7 +140,7 @@ export const promotionalContacts = pgTable("promotional_contacts", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   firstName: varchar("first_name", { length: 255 }),
   lastName: varchar("last_name", { length: 255 }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Il business owner che ha ricevuto la richiesta
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   lastPromoRequested: varchar("last_promo_requested", { length: 255 }),
   totalPromoRequests: integer("total_promo_requests").default(1),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
@@ -135,7 +153,7 @@ export const promoEmails = pgTable("promo_emails", {
   email: text("email"),
   code: text("code"),
   promoTitle: text("promo_title"),
-  status: text("status").default("queued"), // queued, sent, failed
+  status: text("status").default("queued"),
   error: text("error"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -143,11 +161,11 @@ export const promoEmails = pgTable("promo_emails", {
 // Codici tracciabili per recensioni (struttura semplificata)
 export const reviewCodes = pgTable("review_codes", {
   id: serial("id").primaryKey(),
-  code: varchar("code", { length: 20 }).notNull().unique(), // es. TT-XXXX-XX
-  username: varchar("username", { length: 255 }).notNull(), // Username del profilo
+  code: varchar("code", { length: 20 }).notNull().unique(),
+  username: varchar("username", { length: 255 }).notNull(),
   used: boolean("used").default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  expiresAt: timestamp("expires_at"), // Scadenza codice (24h dopo creazione da tap NFC)
+  expiresAt: timestamp("expires_at"),
 });
 
 // Zod schemas for validation
@@ -171,7 +189,7 @@ export const insertProfileSchema = createInsertSchema(profiles).omit({
 
 export const insertLinkSchema = createInsertSchema(links).omit({
   id: true,
-  userId: true,
+  profileId: true,
   createdAt: true,
   clicks: true,
 });
@@ -179,6 +197,7 @@ export const insertLinkSchema = createInsertSchema(links).omit({
 export const insertClickSchema = createInsertSchema(clicks).omit({
   id: true,
   createdAt: true,
+  clickedAt: true,
 });
 
 export const insertPasswordResetSchema = createInsertSchema(passwordResets).omit({
@@ -195,7 +214,7 @@ export const insertPublicPageSchema = createInsertSchema(publicPages).omit({
 
 export const insertPromoSchema = createInsertSchema(promos).omit({
   id: true,
-  userId: true,
+  profileId: true,
   createdAt: true,
   updatedAt: true,
 });

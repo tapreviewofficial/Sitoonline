@@ -69,11 +69,11 @@ export class Storage {
       .where(eq(users.username, username))
       .limit(1);
       
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
     
     return {
-      ...result[0].profiles,
-      user: result[0].users
+      ...result[0].tr_profiles,
+      user: result[0].tr_users
     } as Profile & { user: User };
   }
 
@@ -93,12 +93,16 @@ export class Storage {
   // Link methods
   async getLinks(userId: number): Promise<Link[]> {
     const db = getDatabase();
-    return await db.select().from(links).where(eq(links.userId, userId)).orderBy(asc(links.order));
+    const profile = await this.getProfile(userId);
+    if (!profile) return [];
+    return await db.select().from(links).where(eq(links.profileId, profile.id)).orderBy(asc(links.order));
   }
 
   async createLink(userId: number, link: InsertLink): Promise<Link> {
     const db = getDatabase();
-    const result = await db.insert(links).values({ ...link, userId }).returning();
+    const profile = await this.getProfile(userId);
+    if (!profile) throw new Error('Profile not found for user');
+    const result = await db.insert(links).values({ ...link, profileId: profile.id }).returning();
     return result[0];
   }
 
@@ -116,21 +120,14 @@ export class Storage {
   async getLinksByUsername(username: string): Promise<Link[]> {
     const db = getDatabase();
     const result = await db
-      .select({
-        id: links.id,
-        title: links.title,
-        url: links.url,
-        order: links.order,
-        userId: links.userId,
-        createdAt: links.createdAt,
-        clicks: links.clicks
-      })
+      .select()
       .from(links)
-      .leftJoin(users, eq(links.userId, users.id))
+      .leftJoin(profiles, eq(links.profileId, profiles.id))
+      .leftJoin(users, eq(profiles.userId, users.id))
       .where(eq(users.username, username))
       .orderBy(asc(links.order));
       
-    return result;
+    return result.map(r => r.tr_links);
   }
 
   // Click methods
@@ -153,17 +150,20 @@ export class Storage {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    const profile = await this.getProfile(userId);
+    if (!profile) return { totalClicks: 0, clicks7d: 0, clicks30d: 0 };
+
     const totalResult = await db
       .select({ total: sql<number>`sum(${links.clicks})` })
       .from(links)
-      .where(eq(links.userId, userId));
+      .where(eq(links.profileId, profile.id));
 
     const clicks7dResult = await db
       .select({ count: count() })
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
       .where(and(
-        eq(links.userId, userId),
+        eq(links.profileId, profile.id),
         gte(clicks.createdAt, sevenDaysAgo)
       ));
 
@@ -172,7 +172,7 @@ export class Storage {
       .from(clicks)
       .leftJoin(links, eq(clicks.linkId, links.id))
       .where(and(
-        eq(links.userId, userId),
+        eq(links.profileId, profile.id),
         gte(clicks.createdAt, thirtyDaysAgo)
       ));
 
@@ -189,6 +189,9 @@ export class Storage {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    const profile = await this.getProfile(userId);
+    if (!profile) return [];
+
     const result = await db
       .select({
         id: links.id,
@@ -196,18 +199,18 @@ export class Storage {
         clicksAllTime: links.clicks,
         order: links.order,
         clicks7d: sql<number>`
-          (SELECT COUNT(*) FROM ${clicks} 
-           WHERE ${clicks.linkId} = ${links.id} 
-           AND ${clicks.createdAt} >= ${sevenDaysAgo.toISOString()})
+          (SELECT COUNT(*) FROM tr_clicks 
+           WHERE tr_clicks.link_id = tr_links.id 
+           AND tr_clicks.created_at >= ${sevenDaysAgo.toISOString()})
         `,
         clicks30d: sql<number>`
-          (SELECT COUNT(*) FROM ${clicks} 
-           WHERE ${clicks.linkId} = ${links.id} 
-           AND ${clicks.createdAt} >= ${thirtyDaysAgo.toISOString()})
+          (SELECT COUNT(*) FROM tr_clicks 
+           WHERE tr_clicks.link_id = tr_links.id 
+           AND tr_clicks.created_at >= ${thirtyDaysAgo.toISOString()})
         `
       })
       .from(links)
-      .where(eq(links.userId, userId))
+      .where(eq(links.profileId, profile.id))
       .orderBy(asc(links.order));
 
     return result.map(r => ({
@@ -228,6 +231,15 @@ export class Storage {
   }) {
     const db = getDatabase();
     const timezone = options.timezone || 'Europe/Rome';
+    
+    const profile = await this.getProfile(userId);
+    if (!profile) {
+      return {
+        meta: { range: options.range, bucket: 'day', since: new Date(), until: new Date(), timezone },
+        totals: { clicks: 0 },
+        series: []
+      };
+    }
     
     const now = new Date();
     let since: Date;
@@ -269,7 +281,7 @@ export class Storage {
     const bucketSql = sql<Date>`date_trunc('${sql.raw(bucket)}', ${clicks.createdAt})`;
     
     const whereConditions = [
-      eq(links.userId, userId),
+      eq(links.profileId, profile.id),
       gte(clicks.createdAt, since)
     ];
     if (options.linkId) {
@@ -336,11 +348,11 @@ export class Storage {
       .where(eq(passwordResets.token, token))
       .limit(1);
 
-    if (!result[0] || !result[0].users) return undefined;
+    if (!result[0] || !result[0].tr_users) return undefined;
 
     return {
-      ...result[0].password_resets,
-      user: result[0].users
+      ...result[0].tr_password_resets,
+      user: result[0].tr_users
     } as PasswordReset & { user: User };
   }
 

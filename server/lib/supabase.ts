@@ -27,6 +27,13 @@ const clientConfig = {
 const client = postgres(databaseUrl, clientConfig);
 export const db = drizzle(client, { schema });
 
+// Imposta il search_path allo schema tapreview all'avvio
+client`SET search_path TO tapreview, public`.then(() => {
+  console.log('✅ Search path impostato a: tapreview, public');
+}).catch((err: any) => {
+  console.warn('⚠️ Errore impostazione search_path:', err.message);
+});
+
 // Log connessione (senza password)
 try {
   const url = new URL(databaseUrl);
