@@ -3,9 +3,17 @@
 
 console.log('🔧 Auto-configurazione variabili Supabase...');
 
-// Auto-configurazione DATABASE_URL: priorità al POOLER per maggiore affidabilità
-// Priorità: SUPABASE_DB_POOLER_URL > SUPABASE_DATABASE_URL > SUPABASE_DB_URL
-if (!process.env.DATABASE_URL) {
+// In sviluppo, usa il database locale Replit (variabili PG*) - tabelle senza prefisso tr_
+// In produzione (Vercel), usa Supabase
+const isDevelopment = process.env.NODE_ENV === 'development';
+const hasLocalPgVars = process.env.PGHOST && process.env.PGUSER && process.env.PGDATABASE;
+
+if (isDevelopment && hasLocalPgVars && !process.env.PGHOST.includes('supabase')) {
+  // Costruisci DATABASE_URL dal database locale Replit
+  const localDbUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+  process.env.DATABASE_URL = localDbUrl;
+  console.log('✅ Sviluppo: usando database locale Replit');
+} else if (!process.env.DATABASE_URL) {
   const poolerDbUrl = process.env.SUPABASE_DB_POOLER_URL; 
   const fallbackUrl = process.env.SUPABASE_DATABASE_URL;
   const directDbUrl = process.env.SUPABASE_DB_URL;
