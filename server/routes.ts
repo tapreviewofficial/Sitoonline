@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const user = await storage.getUserByUsername(username);
     if (!user) {
-      return res.redirect(`/${username}`);
+      return res.redirect(`/u/${username}`);
     }
     
     const jwtSecret = process.env.JWT_SECRET;
@@ -336,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Redirect to public profile with tapToken param
-    res.redirect(`/${username}?tapToken=${tapToken}`);
+    res.redirect(`/u/${username}?tapToken=${tapToken}`);
   });
 
   // Tap Claim Endpoint - validates JWT and generates TT code
