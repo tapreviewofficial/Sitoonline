@@ -305,6 +305,15 @@ export default function PublicProfile() {
               >
                 Powered by <span className="text-[#CC9900]">TapTrust</span>
               </button>
+              <div className="mt-2">
+                <button
+                  onClick={() => setLocation("/privacy")}
+                  className="text-white/20 text-[10px] hover:text-white/40 transition-colors"
+                  data-testid="link-privacy"
+                >
+                  Privacy & Cookie
+                </button>
+              </div>
             </div>
           </div>
         </div>

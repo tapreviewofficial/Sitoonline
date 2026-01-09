@@ -57,6 +57,25 @@ export default function Privacy() {
           </ul>
           
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+            Cookie Policy
+          </h2>
+          
+          <p className="text-gray-700 mb-4">TapTrust utilizza esclusivamente <strong>cookie tecnici strettamente necessari</strong> al funzionamento del servizio:</p>
+          <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-6">
+            <li><strong>tt_tap_nonce</strong> – Cookie di sessione temporaneo (60 secondi) per la verifica NFC. Viene eliminato automaticamente dopo l'uso o alla scadenza.</li>
+            <li><strong>tt_code_session</strong> – Cookie tecnico (24 ore) per mantenere attivo il codice di verifica TapTrust durante la sessione di recensione.</li>
+            <li><strong>token</strong> – Cookie di autenticazione per utenti registrati (30 giorni).</li>
+          </ul>
+          
+          <p className="text-gray-700 mb-4">
+            <strong>Questi cookie sono esenti dal consenso</strong> ai sensi dell'art. 5(3) della Direttiva ePrivacy poiché strettamente necessari per erogare il servizio richiesto dall'utente.
+          </p>
+          
+          <p className="text-gray-700 mb-6">
+            TapTrust <strong>non utilizza cookie di profilazione, marketing o analytics di terze parti</strong>. Non vengono effettuati tracciamenti comportamentali.
+          </p>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
             Conservazione dei dati
           </h2>
           
