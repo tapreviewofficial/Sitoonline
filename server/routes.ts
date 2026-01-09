@@ -29,11 +29,13 @@ const TAP_SESSION_TTL = 60 * 1000; // 60 seconds
 
 function cleanupExpiredSessions() {
   const now = Date.now();
-  for (const [nonce, session] of tapSessions.entries()) {
+  const toDelete: string[] = [];
+  tapSessions.forEach((session, nonce) => {
     if (now - session.createdAt > TAP_SESSION_TTL) {
-      tapSessions.delete(nonce);
+      toDelete.push(nonce);
     }
-  }
+  });
+  toDelete.forEach(nonce => tapSessions.delete(nonce));
 }
 setInterval(cleanupExpiredSessions, 30 * 1000); // Cleanup every 30s
 

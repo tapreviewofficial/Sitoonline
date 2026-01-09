@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Copy, Check, AlertTriangle } from "lucide-react";
@@ -9,7 +9,6 @@ function formatCodeForCopy(code: string): string {
   return `\n\n𝗩𝗘𝗥𝗜𝗙𝗜𝗘𝗗 𝗩𝗜𝗦𝗜𝗧 – Recensione Autentica — by TapTrust • ${code}`;
 }
 
-// LocalStorage key per salvare codice e scadenza
 const STORAGE_KEY = 'taptrust_review_code';
 
 interface StoredCode {
@@ -43,31 +42,32 @@ export default function PublicProfile() {
   const [, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const hasShownPopup = useRef(false);
+  const [claimedCode, setClaimedCode] = useState<string | null>(null);
+  const [claimedExpiresAt, setClaimedExpiresAt] = useState<string | null>(null);
+  const hasClaimedTap = useRef(false);
   
-  // Check if this is a tap (NFC) visit
-  const isTap = useMemo(() => {
+  // Check for tapSession in URL (new handshake flow)
+  const tapSession = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('tap') === '1';
+    return urlParams.get('tapSession');
   }, []);
   
   // Get stored code from localStorage
   const storedCode = useMemo(() => getStoredCode(params.username), [params.username]);
   const storedCodeValid = storedCode && !isCodeExpired(storedCode.expiresAt);
   
-  // Only call API with ?tap=1 if it's a tap visit
+  // Fetch profile data
   const { data, isLoading, error } = useQuery<{
     profile: { displayName?: string; bio?: string; avatarUrl?: string; accentColor?: string };
     user: { username: string };
     links: Array<{ id: number; title: string; url: string }>;
-    reviewCode: string | null;
-    expiresAt: string | null;
-    isTap: boolean;
+    hasPendingTap?: boolean;
+    tapSession?: string | null;
   }>({
-    queryKey: ["/api/public", params.username, isTap ? 'tap' : 'view'],
+    queryKey: ["/api/public", params.username],
     queryFn: async () => {
-      const url = isTap 
-        ? `/api/public/${params.username}?tap=1`
+      const url = tapSession 
+        ? `/api/public/${params.username}?tapSession=${tapSession}`
         : `/api/public/${params.username}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch');
@@ -75,47 +75,62 @@ export default function PublicProfile() {
     },
     enabled: !!params.username,
   });
+  
+  // Tap claim mutation
+  const claimMutation = useMutation({
+    mutationFn: async (session: string) => {
+      const res = await fetch(`/api/public/${params.username}/tap-claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ tapSession: session }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Claim failed');
+      }
+      return res.json();
+    },
+    onSuccess: (result) => {
+      if (result.reviewCode && result.expiresAt) {
+        setClaimedCode(result.reviewCode);
+        setClaimedExpiresAt(result.expiresAt);
+        saveCode(params.username, result.reviewCode, result.expiresAt);
+        
+        // Copy to clipboard and show modal
+        const fullCode = formatCodeForCopy(result.reviewCode);
+        navigator.clipboard.writeText(fullCode).catch(() => {});
+        setShowModal(true);
+        
+        // Auto-close modal after 3.8s
+        setTimeout(() => setShowModal(false), 3800);
+        
+        // Clean URL
+        window.history.replaceState({}, '', `/${params.username}`);
+      }
+    },
+  });
+  
+  // Auto-claim when tapSession is present and profile is loaded
+  useEffect(() => {
+    if (tapSession && data?.hasPendingTap && !hasClaimedTap.current && !claimMutation.isPending) {
+      hasClaimedTap.current = true;
+      claimMutation.mutate(tapSession);
+    }
+  }, [tapSession, data?.hasPendingTap, claimMutation]);
 
   // Determine which code to show
   const reviewCode = useMemo(() => {
-    // If API returned a new code (from tap), save it and use it
-    if (data?.reviewCode && data?.expiresAt) {
-      saveCode(params.username, data.reviewCode, data.expiresAt);
-      return data.reviewCode;
-    }
-    // If we have a valid stored code, use it
-    if (storedCodeValid) {
-      return storedCode.code;
-    }
+    if (claimedCode) return claimedCode;
+    if (storedCodeValid) return storedCode.code;
     return '';
-  }, [data?.reviewCode, data?.expiresAt, storedCodeValid, storedCode?.code, params.username]);
+  }, [claimedCode, storedCodeValid, storedCode?.code]);
   
-  const codeExpired = storedCode && isCodeExpired(storedCode.expiresAt) && !data?.reviewCode;
+  const codeExpired = storedCode && isCodeExpired(storedCode.expiresAt) && !claimedCode;
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
   }, []);
-
-  // Popup si apre SOLO quando c'è un nuovo tap NFC (non su visite normali)
-  useEffect(() => {
-    // Mostra popup SOLO se: è un tap E il server ha restituito un nuovo codice
-    if (isTap && data?.reviewCode && data?.expiresAt && !hasShownPopup.current) {
-      hasShownPopup.current = true;
-      
-      // Tenta copia codice negli appunti
-      const fullCode = formatCodeForCopy(data.reviewCode);
-      navigator.clipboard.writeText(fullCode).catch(() => {});
-      
-      setShowModal(true);
-      
-      // Chiudi popup dopo 3.8 secondi
-      const timer = setTimeout(() => {
-        setShowModal(false);
-      }, 3800);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isTap, data?.reviewCode, data?.expiresAt]);
 
   const handleLinkClick = (e: React.MouseEvent, linkId: number) => {
     e.preventDefault();
