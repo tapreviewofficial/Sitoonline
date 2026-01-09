@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (username && req.method === 'GET') {
       const user = await storage.getUserByUsername(username);
       if (!user) {
-        return res.redirect(302, `/u/${username}`);
+        return res.redirect(302, `/${username}`);
       }
       
       // Generate JWT tap token with 60s expiry
@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       // Redirect to profile with tapToken in URL
       const frontendUrl = process.env.FRONTEND_URL || 'https://www.taptrust.it';
-      return res.redirect(302, `${frontendUrl}/u/${username}?tapToken=${tapToken}`);
+      return res.redirect(302, `${frontendUrl}/${username}?tapToken=${tapToken}`);
     }
   }
   

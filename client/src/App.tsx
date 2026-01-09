@@ -69,6 +69,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/p/:username" component={PublicClaimPage} />
+        <Route path="/:username" component={PublicProfile} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
