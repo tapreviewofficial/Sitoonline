@@ -58,7 +58,7 @@ export function LivePreview({ username }: LivePreviewProps) {
         <h2 className="text-xl font-bold text-white">Anteprima Live</h2>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Button
-            onClick={() => window.open(`/u/${username}`, '_blank')}
+            onClick={() => window.open(`/tap/${username}`, '_blank')}
             className="bg-[#CC9900] hover:bg-[#CC9900]/80 text-black w-full sm:w-auto"
             data-testid="button-open-links-page"
           >
@@ -80,7 +80,7 @@ export function LivePreview({ username }: LivePreviewProps) {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Links Page Preview */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white text-center">Pagina Link (/u/{username})</h3>
+          <h3 className="text-lg font-semibold text-white text-center">Pagina Link (/tap/{username})</h3>
           <div className="max-w-sm mx-auto">
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-white/10">
               {/* Profile Header Preview */}
