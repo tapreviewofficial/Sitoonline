@@ -17,6 +17,26 @@ import publicPagesRouter from "./routes/publicPages";
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from './services/emailService';
 
+// Tap Session Store (in-memory, 60s TTL)
+interface TapSession {
+  nonce: string;
+  username: string;
+  createdAt: number;
+  consumed: boolean;
+}
+const tapSessions = new Map<string, TapSession>();
+const TAP_SESSION_TTL = 60 * 1000; // 60 seconds
+
+function cleanupExpiredSessions() {
+  const now = Date.now();
+  for (const [nonce, session] of tapSessions.entries()) {
+    if (now - session.createdAt > TAP_SESSION_TTL) {
+      tapSessions.delete(nonce);
+    }
+  }
+}
+setInterval(cleanupExpiredSessions, 30 * 1000); // Cleanup every 30s
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cors({
     origin: process.env.NODE_ENV === "development" ? true : process.env.FRONTEND_URL,
@@ -303,11 +323,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return `TT-${part1}-${part2}`;
   }
 
+  // NFC Tap Handshake Route - generates nonce, sets cookie, redirects
+  app.get("/tap/:username", async (req, res) => {
+    const { username } = req.params;
+    
+    // Check if user exists
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      return res.redirect(`/${username}`);
+    }
+    
+    // Generate unique nonce
+    const nonce = nanoid(32);
+    
+    // Store tap session
+    tapSessions.set(nonce, {
+      nonce,
+      username,
+      createdAt: Date.now(),
+      consumed: false,
+    });
+    
+    // Set HTTP-only cookie with nonce
+    res.cookie("tt_tap_nonce", nonce, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: TAP_SESSION_TTL,
+    });
+    
+    // Redirect to public profile with tapSession param
+    res.redirect(`/${username}?tapSession=${nonce}`);
+  });
+
+  // Tap Claim Endpoint - validates nonce and generates TT code
+  app.post("/api/public/:username/tap-claim", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { tapSession } = req.body;
+      const cookieNonce = req.cookies?.tt_tap_nonce;
+      
+      // Validate: both query param and cookie must match
+      if (!tapSession || !cookieNonce || tapSession !== cookieNonce) {
+        return res.status(403).json({ 
+          error: "tap_required",
+          message: "Per ottenere il codice verifica, usa la card NFC" 
+        });
+      }
+      
+      // Check if session exists and is valid
+      const session = tapSessions.get(tapSession);
+      if (!session) {
+        return res.status(403).json({ 
+          error: "session_expired",
+          message: "Sessione scaduta. Fai un nuovo tap con la card NFC" 
+        });
+      }
+      
+      // Check if session is expired
+      if (Date.now() - session.createdAt > TAP_SESSION_TTL) {
+        tapSessions.delete(tapSession);
+        return res.status(403).json({ 
+          error: "session_expired",
+          message: "Sessione scaduta. Fai un nuovo tap con la card NFC" 
+        });
+      }
+      
+      // Check if already consumed
+      if (session.consumed) {
+        return res.status(403).json({ 
+          error: "session_used",
+          message: "Questa sessione è già stata utilizzata" 
+        });
+      }
+      
+      // Check username matches
+      if (session.username !== username) {
+        return res.status(403).json({ 
+          error: "invalid_session",
+          message: "Sessione non valida per questo profilo" 
+        });
+      }
+      
+      // Mark session as consumed
+      session.consumed = true;
+      
+      // Generate TT code
+      let reviewCode: { code: string; expiresAt: Date | null } | null = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!reviewCode && attempts < maxAttempts) {
+        try {
+          const code = generateUniqueTTCode();
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+          reviewCode = await storage.createReviewCode({
+            code,
+            username,
+            expiresAt,
+          });
+        } catch (err: any) {
+          if (err.code === '23505' || err.message?.includes('duplicate')) {
+            attempts++;
+            continue;
+          }
+          throw err;
+        }
+      }
+      
+      if (!reviewCode) {
+        return res.status(500).json({ error: "Errore generazione codice" });
+      }
+      
+      // Clear the tap session cookie
+      res.clearCookie("tt_tap_nonce");
+      
+      // Set a long-lived cookie to remember this code for 24h
+      res.cookie("tt_code_session", reviewCode.code, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+      
+      res.json({
+        success: true,
+        reviewCode: reviewCode.code,
+        expiresAt: reviewCode.expiresAt,
+      });
+    } catch (error) {
+      console.error("Tap claim error:", error);
+      res.status(500).json({ error: "Errore interno" });
+    }
+  });
+
   // Public routes
   app.get("/api/public/:username", async (req, res) => {
     try {
       const { username } = req.params;
-      const isTap = req.query.tap === '1'; // Solo tap NFC genera nuovo codice
       
       // First check if user exists
       const user = await storage.getUserByUsername(username);
@@ -319,33 +473,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getProfile(user.id);
       const links = await storage.getLinksByUsername(username);
       
-      // Generate and save unique verification code ONLY if tap=1 (NFC tap)
-      let reviewCode: { code: string; expiresAt: Date | null } | null = null;
-      
-      if (isTap) {
-        let attempts = 0;
-        const maxAttempts = 5;
-        
-        while (!reviewCode && attempts < maxAttempts) {
-          try {
-            const code = generateUniqueTTCode();
-            const now = new Date();
-            const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-            reviewCode = await storage.createReviewCode({
-              code,
-              username,
-              expiresAt,
-            });
-          } catch (err: any) {
-            // If duplicate, retry with new code
-            if (err.code === '23505' || err.message?.includes('duplicate')) {
-              attempts++;
-              continue;
-            }
-            throw err;
-          }
-        }
-      }
+      // Check for tapSession in query (new handshake flow)
+      const tapSession = req.query.tapSession as string | undefined;
+      const hasPendingTap = tapSession && tapSessions.has(tapSession);
       
       res.json({
         profile: {
@@ -358,9 +488,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: user.username,
         },
         links,
-        reviewCode: reviewCode?.code || null,
-        expiresAt: reviewCode?.expiresAt || null,
-        isTap,
+        reviewCode: null,
+        expiresAt: null,
+        hasPendingTap: !!hasPendingTap,
+        tapSession: hasPendingTap ? tapSession : null,
       });
     } catch (error) {
       console.error("Get public profile error:", error);
