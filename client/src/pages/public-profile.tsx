@@ -46,10 +46,10 @@ export default function PublicProfile() {
   const [claimedExpiresAt, setClaimedExpiresAt] = useState<string | null>(null);
   const hasClaimedTap = useRef(false);
   
-  // Check for tapSession in URL (new handshake flow)
-  const tapSession = useMemo(() => {
+  // Check for tapToken in URL (new handshake flow)
+  const tapToken = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('tapSession');
+    return urlParams.get('tapToken');
   }, []);
   
   // Get stored code from localStorage
@@ -62,12 +62,12 @@ export default function PublicProfile() {
     user: { username: string };
     links: Array<{ id: number; title: string; url: string }>;
     hasPendingTap?: boolean;
-    tapSession?: string | null;
+    tapToken?: string | null;
   }>({
     queryKey: ["/api/public", params.username],
     queryFn: async () => {
-      const url = tapSession 
-        ? `/api/public/${params.username}?tapSession=${tapSession}`
+      const url = tapToken 
+        ? `/api/public/${params.username}?tapToken=${tapToken}`
         : `/api/public/${params.username}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch');
@@ -78,12 +78,12 @@ export default function PublicProfile() {
   
   // Tap claim mutation
   const claimMutation = useMutation({
-    mutationFn: async (session: string) => {
+    mutationFn: async (token: string) => {
       const res = await fetch(`/api/public/${params.username}/tap-claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tapSession: session }),
+        body: JSON.stringify({ tapToken: token }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -111,13 +111,13 @@ export default function PublicProfile() {
     },
   });
   
-  // Auto-claim when tapSession is present and profile is loaded
+  // Auto-claim when tapToken is present and profile is loaded
   useEffect(() => {
-    if (tapSession && data?.hasPendingTap && !hasClaimedTap.current && !claimMutation.isPending) {
+    if (tapToken && data?.hasPendingTap && !hasClaimedTap.current && !claimMutation.isPending) {
       hasClaimedTap.current = true;
-      claimMutation.mutate(tapSession);
+      claimMutation.mutate(tapToken);
     }
-  }, [tapSession, data?.hasPendingTap, claimMutation]);
+  }, [tapToken, data?.hasPendingTap, claimMutation]);
 
   // Determine which code to show
   const reviewCode = useMemo(() => {

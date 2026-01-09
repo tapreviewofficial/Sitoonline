@@ -64,6 +64,10 @@
       "destination": "/api/public"
     },
     {
+      "source": "/tap/:path*",
+      "destination": "/api/public"
+    },
+    {
       "source": "/api/user/:path*",
       "destination": "/api/user"
     },
