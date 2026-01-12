@@ -300,14 +300,22 @@ export default function Dashboard() {
                     </form>
                     
                     <div className="mt-6 p-4 bg-muted rounded-md">
-                      <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
-                      <button
-                        onClick={() => setLocation(`/u/${authData.user.username}`)}
-                        className="text-gold hover:underline text-sm font-medium"
-                        data-testid="link-public-profile"
-                      >
-                        taptrust.it/u/{authData.user.username}
-                      </button>
+                      <p className="text-sm text-muted-foreground mb-2">Link per card NFC (copia e incolla):</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-gold text-sm font-medium bg-background px-2 py-1 rounded flex-1">
+                          https://www.taptrust.it/tap/{authData.user.username}
+                        </code>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://www.taptrust.it/tap/${authData.user.username}`);
+                          }}
+                          data-testid="button-copy-nfc-url"
+                        >
+                          Copia
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -579,14 +587,22 @@ export default function Dashboard() {
                     </form>
                     
                     <div className="mt-6 p-4 bg-muted rounded-md">
-                      <p className="text-sm text-muted-foreground mb-2">Il tuo URL pubblico:</p>
-                      <button
-                        onClick={() => setLocation(`/u/${authData.user.username}`)}
-                        className="text-gold hover:underline text-sm font-medium"
-                        data-testid="link-public-profile"
-                      >
-                        taptrust.it/u/{authData.user.username}
-                      </button>
+                      <p className="text-sm text-muted-foreground mb-2">Link per card NFC (copia e incolla):</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-gold text-sm font-medium bg-background px-2 py-1 rounded flex-1">
+                          https://www.taptrust.it/tap/{authData.user.username}
+                        </code>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://www.taptrust.it/tap/${authData.user.username}`);
+                          }}
+                          data-testid="button-copy-nfc-url"
+                        >
+                          Copia
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
