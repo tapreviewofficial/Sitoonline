@@ -327,11 +327,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { expiresIn: TAP_TOKEN_TTL }
     );
     
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie (SameSite=Lax for redirect compatibility)
     res.cookie("tt_tap_token", tapToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: TAP_TOKEN_TTL * 1000,
     });
     
@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.cookie("tt_code_session", reviewCode.code, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       });
       

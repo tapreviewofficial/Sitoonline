@@ -37,8 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { expiresIn: TAP_TOKEN_TTL }
       );
       
-      // Set HTTP-only cookie
-      res.setHeader('Set-Cookie', `tt_tap_token=${tapToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${TAP_TOKEN_TTL}; Path=/`);
+      // Set HTTP-only cookie (SameSite=Lax for redirect compatibility)
+      res.setHeader('Set-Cookie', `tt_tap_token=${tapToken}; HttpOnly; Secure; SameSite=Lax; Max-Age=${TAP_TOKEN_TTL}; Path=/`);
       
       // Redirect to profile with tapToken in URL
       const frontendUrl = process.env.FRONTEND_URL || 'https://www.taptrust.it';
@@ -117,8 +117,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       // Clear tap token cookie, set code session cookie
       res.setHeader('Set-Cookie', [
-        'tt_tap_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/',
-        `tt_code_session=${reviewCode.code}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24*60*60}; Path=/`
+        'tt_tap_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/',
+        `tt_code_session=${reviewCode.code}; HttpOnly; Secure; SameSite=Lax; Max-Age=${24*60*60}; Path=/`
       ]);
       
       res.json({ success: true, reviewCode: reviewCode.code, expiresAt: reviewCode.expiresAt });
