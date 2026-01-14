@@ -158,7 +158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!emailSent) {
-        console.error('Errore nell\'invio della email di reset');
+        console.error('Errore nell\'invio della email di reset a:', user.email);
+        return res.status(500).json({ error: 'Errore nell\'invio dell\'email. Riprova più tardi.' });
       }
 
       res.json({ 

@@ -196,12 +196,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const emailContent = generatePasswordResetEmail(resetLink, user.username);
       
-      await sendEmail({
+      const emailSent = await sendEmail({
         to: user.email,
         subject: 'TapTrust - Reimpostazione Password',
         html: emailContent.html,
         text: emailContent.text
       });
+
+      if (!emailSent) {
+        console.error('Failed to send password reset email to:', user.email);
+        return res.status(500).json({ error: 'Errore nell\'invio dell\'email. Riprova più tardi.' });
+      }
 
       res.json({ 
         success: true, 
