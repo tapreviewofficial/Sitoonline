@@ -101,10 +101,9 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="mt-6 text-center">
-            <Link href="/accedi">
+            <Link href="/login">
               <Button variant="link" className="text-[#CC9900] hover:text-[#CC9900]/80" data-testid="link-back-login">
-                <i className="fas fa-arrow-left mr-2"></i>
-                Torna al Login
+                ← Torna al Login
               </Button>
             </Link>
           </div>
