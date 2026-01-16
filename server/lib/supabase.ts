@@ -4,12 +4,18 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '@shared/schema';
 
-const databaseUrl = process.env.DATABASE_URL;
+let databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error('DATABASE_URL non configurata');
 }
 
 console.log('🔗 Connessione a Supabase PostgreSQL via Drizzle...');
+
+// Aggiungi search_path alla connection string se non presente
+if (!databaseUrl.includes('search_path')) {
+  const separator = databaseUrl.includes('?') ? '&' : '?';
+  databaseUrl = `${databaseUrl}${separator}options=-c%20search_path%3Dtapreview%2Cpublic`;
+}
 
 // Configurazione conservativa per Supabase
 const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
@@ -21,28 +27,24 @@ const clientConfig = {
   ...(isPooler && { 
     prepare: false, // Disabilita prepared statements per PgBouncer
     onnotice: () => {}, // Ignora notices da PgBouncer
-  })
-};
-
-// Configurazione con search_path automatico per ogni connessione
-const clientWithSearchPath = postgres(databaseUrl, {
-  ...clientConfig,
+  }),
   transform: {
     undefined: null, // Trasforma undefined in null
   },
   onnotice: () => {}, // Ignora notices
-  connection: {
-    search_path: 'tapreview,public', // Imposta search_path per ogni connessione
-  }
-});
+};
+
+const clientWithSearchPath = postgres(databaseUrl, clientConfig);
 
 export const db = drizzle(clientWithSearchPath, { schema });
 
-// Verifica search_path all'avvio
-clientWithSearchPath`SHOW search_path`.then((result) => {
+// Imposta e verifica search_path all'avvio
+clientWithSearchPath`SET search_path TO tapreview, public`.then(() => {
+  return clientWithSearchPath`SHOW search_path`;
+}).then((result) => {
   console.log('✅ Search path corrente:', result[0]?.search_path || 'non impostato');
 }).catch((err: any) => {
-  console.warn('⚠️ Errore verifica search_path:', err.message);
+  console.warn('⚠️ Errore search_path:', err.message);
 });
 
 // Log connessione (senza password)

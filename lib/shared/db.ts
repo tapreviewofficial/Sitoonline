@@ -1,10 +1,12 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { sql as drizzleSql } from 'drizzle-orm';
 import * as schema from '../../shared/schema.js';
 
 // Funzione per creare connessione database serverless-friendly
 let cachedDb: ReturnType<typeof drizzle> | null = null;
 let cachedClient: ReturnType<typeof postgres> | null = null;
+let searchPathInitialized = false;
 
 export function getDatabase() {
   // Riusa connessione in cache per serverless (warm starts)
@@ -18,28 +20,26 @@ export function getDatabase() {
   }
 
   // Configurazione ottimizzata per serverless (connection pooling)
-  const isPooler = databaseUrl.includes(':6543') || databaseUrl.includes('pooler');
-  const clientConfig = {
+  cachedClient = postgres(databaseUrl, {
     ssl: 'require' as const,
     max: 1, // Serverless: 1 connessione per funzione
     idle_timeout: 20,
     connect_timeout: 10,
-    ...(isPooler && { 
-      prepare: false, // Disabilita prepared statements per PgBouncer
-      onnotice: () => {},
-    })
-  };
-
-  // Configurazione con search_path automatico per ogni connessione
-  cachedClient = postgres(databaseUrl, {
-    ...clientConfig,
-    connection: {
-      search_path: 'tapreview,public', // Imposta search_path per ogni connessione
-    }
+    prepare: false, // Disabilita per PgBouncer
+    onnotice: () => {},
   });
+  
   cachedDb = drizzle(cachedClient, { schema });
 
   return cachedDb;
+}
+
+// Inizializza search_path - DEVE essere chiamata all'inizio di ogni handler API
+export async function initSearchPath(): Promise<void> {
+  if (searchPathInitialized) return;
+  const db = getDatabase();
+  await db.execute(drizzleSql`SET search_path TO tapreview, public`);
+  searchPathInitialized = true;
 }
 
 // Export schema

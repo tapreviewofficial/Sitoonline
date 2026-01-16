@@ -2,11 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import { getCurrentUser } from '../lib/shared/auth.js';
 import { storage } from '../lib/shared/storage.js';
-import { getDatabase } from '../lib/shared/db.js';
+import { getDatabase, initSearchPath } from '../lib/shared/db.js';
 import { publicPages, users, reviewCodes } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   const url = new URL(req.url!, `http://${req.headers.host}`);
   const pathname = url.pathname;
 

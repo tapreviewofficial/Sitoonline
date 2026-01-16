@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { storage } from '../lib/shared/storage.js';
-import { getDatabase } from '../lib/shared/db.js';
+import { getDatabase, initSearchPath } from '../lib/shared/db.js';
 import { users, promos, tickets, publicPages, profiles } from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -15,6 +15,7 @@ if (!JWT_SECRET) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   const url = new URL(req.url!, `http://${req.headers.host}`);
   let pathname = url.pathname;
   

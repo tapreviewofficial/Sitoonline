@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getCurrentUser } from '../lib/shared/auth.js';
-import { getDatabase } from '../lib/shared/db.js';
+import { getDatabase, initSearchPath } from '../lib/shared/db.js';
 import { promos, publicPages, tickets } from '../shared/schema.js';
 import { eq, desc, count, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   const user = await getCurrentUser(req.headers.cookie);
   if (!user) {
     return res.status(401).json({ message: 'Unauthorized' });

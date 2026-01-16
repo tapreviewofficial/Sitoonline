@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getCurrentUser } from '../lib/shared/auth.js';
 import { storage } from '../lib/shared/storage.js';
+import { initSearchPath } from '../lib/shared/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }

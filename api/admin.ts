@@ -1,16 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getCurrentUser, hashPassword, signToken, createAuthCookie } from '../lib/shared/auth.js';
-import { getDatabase } from '../lib/shared/db.js';
+import { getDatabase, initSearchPath } from '../lib/shared/db.js';
 import { users, profiles, links, clicks } from '../shared/schema.js';
 import { or, ilike, desc, count, eq, gte } from 'drizzle-orm';
 import { insertUserSchema } from '../shared/schema.js';
 import { z } from 'zod';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Inizializza search_path prima di qualsiasi query
+  await initSearchPath();
+  
   const user = await getCurrentUser(req.headers.cookie);
   if (!user || user.role !== 'ADMIN') {
     return res.status(403).json({ message: 'Admin access required' });
   }
+
+  const db = getDatabase();
 
   const url = new URL(req.url!, `http://${req.headers.host}`);
   let pathname = url.pathname.replace('/api/admin', '');
@@ -19,7 +24,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /api/admin/users - GET & POST
   if (pathname === '/users' && req.method === 'GET') {
     try {
-      const db = getDatabase();
       const q = String(req.query.query || '').trim();
       const page = Number(req.query.page || 1);
       const pageSize = Number(req.query.pageSize || 20);
@@ -47,8 +51,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           displayName: profiles.displayName
         })
         .from(users)
-        .leftJoin(links, eq(users.id, links.userId))
         .leftJoin(profiles, eq(users.id, profiles.userId))
+        .leftJoin(links, eq(profiles.id, links.profileId))
         .where(whereCondition)
         .groupBy(users.id, profiles.displayName)
         .orderBy(desc(users.createdAt))
@@ -75,7 +79,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (pathname === '/users' && req.method === 'POST') {
     try {
-      const db = getDatabase();
       const adminCreateUserSchema = insertUserSchema.omit({
         password: true
       }).extend({
@@ -146,7 +149,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /api/admin/stats/summary
   if (pathname === '/stats/summary' && req.method === 'GET') {
     try {
-      const db = getDatabase();
       const [usersCountResult, linksCountResult] = await Promise.all([
         db.select({ count: count() }).from(users),
         db.select({ count: count() }).from(links),
@@ -198,7 +200,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /api/admin/impersonate/:id (with audit logging and enhanced security)
   if (pathname.startsWith('/impersonate/') && req.method === 'POST') {
     const targetId = parseInt(pathname.replace('/impersonate/', ''));
-    const db = getDatabase();
     
     const userResult = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
     const targetUser = userResult.length ? userResult[0] : null;

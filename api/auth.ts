@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { storage } from '../lib/shared/storage.js';
+import { initSearchPath } from '../lib/shared/db.js';
 import { comparePassword, signToken, createAuthCookie, createLogoutCookie, getCurrentUser, hashPassword } from '../lib/shared/auth.js';
 import { nanoid } from 'nanoid';
 import { sendEmail, generatePasswordResetEmail } from '../lib/shared/emailService.js';
@@ -7,6 +8,7 @@ import { checkRateLimit, RATE_LIMITS } from '../lib/shared/rateLimit.js';
 import { sanitizeEmail, sanitizeUsername, sanitizeText } from '../lib/shared/validation.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   const url = new URL(req.url!, `http://${req.headers.host}`);
   let pathname = url.pathname.replace('/api/auth', '');
   if (pathname.startsWith('/api/')) pathname = pathname.replace('/api', '');

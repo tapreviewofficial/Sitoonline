@@ -1,9 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getCurrentUser } from '../lib/shared/auth.js';
 import { storage } from '../lib/shared/storage.js';
+import { initSearchPath } from '../lib/shared/db.js';
 import { insertProfileSchema, insertLinkSchema } from '../shared/schema.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await initSearchPath();
   const user = await getCurrentUser(req.headers.cookie);
   if (!user) {
     return res.status(401).json({ message: 'Unauthorized' });
