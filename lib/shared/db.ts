@@ -6,7 +6,6 @@ import * as schema from '../../shared/schema.js';
 // Funzione per creare connessione database serverless-friendly
 let cachedDb: ReturnType<typeof drizzle> | null = null;
 let cachedClient: ReturnType<typeof postgres> | null = null;
-let searchPathInitialized = false;
 
 export function getDatabase() {
   // Riusa connessione in cache per serverless (warm starts)
@@ -35,11 +34,10 @@ export function getDatabase() {
 }
 
 // Inizializza search_path - DEVE essere chiamata all'inizio di ogni handler API
+// Esegue SET search_path ad ogni chiamata per garantire correttezza con PgBouncer
 export async function initSearchPath(): Promise<void> {
-  if (searchPathInitialized) return;
   const db = getDatabase();
   await db.execute(drizzleSql`SET search_path TO tapreview, public`);
-  searchPathInitialized = true;
 }
 
 // Export schema
