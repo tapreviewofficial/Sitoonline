@@ -25,6 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const pageSize = Number(req.query.pageSize || 20);
       const skip = (page - 1) * pageSize;
 
+      console.log('Admin users query - page:', page, 'pageSize:', pageSize, 'query:', q);
+
       const whereCondition = q ? 
         or(
           ilike(users.email, `%${q}%`),
@@ -54,7 +56,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .limit(pageSize)
       ]);
 
-      const total = totalResult[0].count;
+      const total = totalResult[0]?.count || 0;
+      console.log('Admin users query - total:', total, 'results:', usersResult.length);
+      
       const usersData = usersResult.map(user => ({
         ...user,
         _count: { links: user.linksCount },
@@ -62,9 +66,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }));
 
       res.json({ total, page, pageSize, users: usersData });
-    } catch (error) {
-      console.error('Admin users query error:', error);
-      res.status(500).json({ message: 'Errore nel caricamento utenti' });
+    } catch (error: any) {
+      console.error('Admin users query error:', error?.message || error);
+      res.status(500).json({ message: 'Errore nel caricamento utenti', error: error?.message });
     }
     return;
   }
