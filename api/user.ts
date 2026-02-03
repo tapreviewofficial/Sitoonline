@@ -63,23 +63,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { displayName, bio, avatarUrl, accentColor, businessName, description, logoUrl, backgroundUrl, themeColor, customMessage, isActive } = req.body;
       
-      const result = await rawSql`
-        INSERT INTO tapreview.tr_profiles (user_id, display_name, bio, avatar_url, accent_color, business_name, description, logo_url, background_url, theme_color, custom_message, is_active)
-        VALUES (${user.userId}, ${displayName || null}, ${bio || null}, ${avatarUrl || null}, ${accentColor || '#CC9900'}, ${businessName || null}, ${description || null}, ${logoUrl || null}, ${backgroundUrl || null}, ${themeColor || null}, ${customMessage || null}, ${isActive !== false})
-        ON CONFLICT (user_id) DO UPDATE SET
-          display_name = ${displayName || null},
-          bio = ${bio || null},
-          avatar_url = ${avatarUrl || null},
-          accent_color = ${accentColor || '#CC9900'},
-          business_name = ${businessName || null},
-          description = ${description || null},
-          logo_url = ${logoUrl || null},
-          background_url = ${backgroundUrl || null},
-          theme_color = ${themeColor || null},
-          custom_message = ${customMessage || null},
-          is_active = ${isActive !== false}
-        RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
-      `;
+      const existing = await rawSql`SELECT id FROM tapreview.tr_profiles WHERE user_id = ${user.userId} LIMIT 1`;
+      
+      let result;
+      if (existing.length > 0) {
+        result = await rawSql`
+          UPDATE tapreview.tr_profiles SET
+            display_name = ${displayName || null},
+            bio = ${bio || null},
+            avatar_url = ${avatarUrl || null},
+            accent_color = ${accentColor || '#CC9900'},
+            business_name = ${businessName || null},
+            description = ${description || null},
+            logo_url = ${logoUrl || null},
+            background_url = ${backgroundUrl || null},
+            theme_color = ${themeColor || null},
+            custom_message = ${customMessage || null},
+            is_active = ${isActive !== false}
+          WHERE user_id = ${user.userId}
+          RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
+        `;
+      } else {
+        result = await rawSql`
+          INSERT INTO tapreview.tr_profiles (user_id, display_name, bio, avatar_url, accent_color, business_name, description, logo_url, background_url, theme_color, custom_message, is_active)
+          VALUES (${user.userId}, ${displayName || null}, ${bio || null}, ${avatarUrl || null}, ${accentColor || '#CC9900'}, ${businessName || null}, ${description || null}, ${logoUrl || null}, ${backgroundUrl || null}, ${themeColor || null}, ${customMessage || null}, ${isActive !== false})
+          RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
+        `;
+      }
       res.json(result[0]);
     } catch (error) {
       console.error('Update profile error:', error);
@@ -145,14 +155,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { title, url: linkUrl, icon, orderIndex, order, isActive } = req.body;
       
+      const linkCheck = await rawSql`
+        SELECT l.id FROM tapreview.tr_links l
+        JOIN tapreview.tr_profiles p ON l.profile_id = p.id
+        WHERE l.id = ${linkId} AND p.user_id = ${user.userId}
+      `;
+      if (!linkCheck.length) {
+        await rawSql.end();
+        return res.status(404).json({ message: 'Link not found' });
+      }
+      
+      const updates: string[] = [];
+      const values: any = { linkId };
+      
+      if (title !== undefined) { values.title = title; }
+      if (linkUrl !== undefined) { values.url = linkUrl; }
+      if (icon !== undefined) { values.icon = icon; }
+      if (orderIndex !== undefined) { values.orderIndex = orderIndex; }
+      if (order !== undefined) { values.order = order; }
+      if (isActive !== undefined) { values.isActive = isActive; }
+      
       const result = await rawSql`
         UPDATE tapreview.tr_links SET
-          title = COALESCE(${title}, title),
-          url = COALESCE(${linkUrl}, url),
-          icon = COALESCE(${icon}, icon),
-          order_index = COALESCE(${orderIndex}, order_index),
-          "order" = COALESCE(${order}, "order"),
-          is_active = COALESCE(${isActive}, is_active)
+          title = COALESCE(${title !== undefined ? title : null}, title),
+          url = COALESCE(${linkUrl !== undefined ? linkUrl : null}, url),
+          icon = COALESCE(${icon !== undefined ? icon : null}, icon),
+          order_index = COALESCE(${orderIndex !== undefined ? orderIndex : null}, order_index),
+          "order" = COALESCE(${order !== undefined ? order : null}, "order"),
+          is_active = COALESCE(${isActive !== undefined ? isActive : null}, is_active)
         WHERE id = ${linkId}
         RETURNING id, profile_id as "profileId", title, url, icon, order_index as "orderIndex", "order", is_active as "isActive", clicks, created_at as "createdAt"
       `;
