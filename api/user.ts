@@ -65,25 +65,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // /api/user/profile - PUT
   if (pathname === '/profile' && req.method === 'PUT') {
-    console.log('[api/user] PUT /profile - body:', JSON.stringify(req.body));
     const rawSql = getRawSql();
     try {
       const { displayName, bio, avatarUrl, accentColor, businessName, description, logoUrl, backgroundUrl, themeColor, customMessage, isActive } = req.body || {};
       
-      console.log('[api/user] Checking existing profile for userId:', user.userId);
-      const existing = await rawSql`SELECT id FROM tapreview.tr_profiles WHERE user_id = ${user.userId} LIMIT 1`;
-      console.log('[api/user] Existing profile:', existing.length > 0 ? 'found' : 'not found');
+      const existing = await rawSql`SELECT id, business_name FROM tapreview.tr_profiles WHERE user_id = ${user.userId} LIMIT 1`;
       
       let result;
       if (existing.length > 0) {
-        console.log('[api/user] Updating profile...');
+        const currentBusinessName = existing[0].business_name;
         result = await rawSql`
           UPDATE tapreview.tr_profiles SET
             display_name = ${displayName || null},
             bio = ${bio || null},
             avatar_url = ${avatarUrl || null},
             accent_color = ${accentColor || '#CC9900'},
-            business_name = ${businessName || null},
+            business_name = ${businessName || currentBusinessName || ''},
             description = ${description || null},
             logo_url = ${logoUrl || null},
             background_url = ${backgroundUrl || null},
@@ -94,18 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
         `;
       } else {
-        console.log('[api/user] Inserting new profile...');
         result = await rawSql`
           INSERT INTO tapreview.tr_profiles (user_id, display_name, bio, avatar_url, accent_color, business_name, description, logo_url, background_url, theme_color, custom_message, is_active)
-          VALUES (${user.userId}, ${displayName || null}, ${bio || null}, ${avatarUrl || null}, ${accentColor || '#CC9900'}, ${businessName || null}, ${description || null}, ${logoUrl || null}, ${backgroundUrl || null}, ${themeColor || null}, ${customMessage || null}, ${isActive !== false})
+          VALUES (${user.userId}, ${displayName || null}, ${bio || null}, ${avatarUrl || null}, ${accentColor || '#CC9900'}, ${businessName || ''}, ${description || null}, ${logoUrl || null}, ${backgroundUrl || null}, ${themeColor || null}, ${customMessage || null}, ${isActive !== false})
           RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
         `;
       }
-      console.log('[api/user] Profile saved successfully:', result[0]?.id);
       res.json(result[0]);
     } catch (error: any) {
       console.error('[api/user] Update profile error:', error?.message || error);
-      console.error('[api/user] Error stack:', error?.stack);
       res.status(400).json({ message: 'Failed to update profile', error: error?.message });
     } finally {
       await rawSql.end();
