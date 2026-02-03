@@ -10,7 +10,12 @@ function getRawSql() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('[api/user] Request:', req.method, req.url);
+  console.log('[api/user] Cookie header:', req.headers.cookie ? 'present' : 'missing');
+  
   const user = await getCurrentUser(req.headers.cookie);
+  console.log('[api/user] User:', user ? `id=${user.userId}` : 'null');
+  
   if (!user) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -20,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (pathname.startsWith('/api/')) {
     pathname = pathname.replace('/api', '');
   }
+  console.log('[api/user] Pathname:', pathname, 'Method:', req.method);
 
   // /api/user/me
   if (pathname === '/me' && req.method === 'GET') {
@@ -59,14 +65,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // /api/user/profile - PUT
   if (pathname === '/profile' && req.method === 'PUT') {
+    console.log('[api/user] PUT /profile - body:', JSON.stringify(req.body));
     const rawSql = getRawSql();
     try {
-      const { displayName, bio, avatarUrl, accentColor, businessName, description, logoUrl, backgroundUrl, themeColor, customMessage, isActive } = req.body;
+      const { displayName, bio, avatarUrl, accentColor, businessName, description, logoUrl, backgroundUrl, themeColor, customMessage, isActive } = req.body || {};
       
+      console.log('[api/user] Checking existing profile for userId:', user.userId);
       const existing = await rawSql`SELECT id FROM tapreview.tr_profiles WHERE user_id = ${user.userId} LIMIT 1`;
+      console.log('[api/user] Existing profile:', existing.length > 0 ? 'found' : 'not found');
       
       let result;
       if (existing.length > 0) {
+        console.log('[api/user] Updating profile...');
         result = await rawSql`
           UPDATE tapreview.tr_profiles SET
             display_name = ${displayName || null},
@@ -84,16 +94,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
         `;
       } else {
+        console.log('[api/user] Inserting new profile...');
         result = await rawSql`
           INSERT INTO tapreview.tr_profiles (user_id, display_name, bio, avatar_url, accent_color, business_name, description, logo_url, background_url, theme_color, custom_message, is_active)
           VALUES (${user.userId}, ${displayName || null}, ${bio || null}, ${avatarUrl || null}, ${accentColor || '#CC9900'}, ${businessName || null}, ${description || null}, ${logoUrl || null}, ${backgroundUrl || null}, ${themeColor || null}, ${customMessage || null}, ${isActive !== false})
           RETURNING id, user_id as "userId", display_name as "displayName", bio, avatar_url as "avatarUrl", accent_color as "accentColor", business_name as "businessName", description, logo_url as "logoUrl", background_url as "backgroundUrl", theme_color as "themeColor", custom_message as "customMessage", is_active as "isActive"
         `;
       }
+      console.log('[api/user] Profile saved successfully:', result[0]?.id);
       res.json(result[0]);
-    } catch (error) {
-      console.error('Update profile error:', error);
-      res.status(400).json({ message: 'Failed to update profile' });
+    } catch (error: any) {
+      console.error('[api/user] Update profile error:', error?.message || error);
+      console.error('[api/user] Error stack:', error?.stack);
+      res.status(400).json({ message: 'Failed to update profile', error: error?.message });
     } finally {
       await rawSql.end();
     }
